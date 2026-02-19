@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Plus, CheckCircle, Clock, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AssignmentForm from "@/components/assignments/AssignmentForm";
 
@@ -9,31 +9,58 @@ export default function Assignments() {
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editData, setEditData] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const loadAssignments = async () => {
     setLoading(true);
-    const all = await base44.entities.Assignment.filter({ service_date: selectedDate }, "start_time");
-    setAssignments(all);
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const startDate = new Date(year, month, 1).toISOString().split("T")[0];
+    const endDate = new Date(year, month + 1, 0).toISOString().split("T")[0];
+    
+    const all = await base44.entities.Assignment.list("service_date");
+    const filtered = all.filter(a => a.service_date >= startDate && a.service_date <= endDate);
+    setAssignments(filtered);
     setLoading(false);
   };
 
-  useEffect(() => { loadAssignments(); }, [selectedDate]);
+  useEffect(() => { loadAssignments(); }, [currentMonth]);
 
-  const getWeekDates = () => {
-    const today = new Date(selectedDate);
-    const day = today.getDay();
-    const start = new Date(today);
-    start.setDate(today.getDate() - day);
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(start);
-      d.setDate(start.getDate() + i);
-      return d;
-    });
+  const getDaysInMonth = () => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startDayOfWeek = firstDay.getDay();
+    
+    const days = [];
+    for (let i = 0; i < startDayOfWeek; i++) {
+      days.push(null);
+    }
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(new Date(year, month, i));
+    }
+    return days;
   };
 
-  const weekDates = getWeekDates();
-  const dayNames = ["S", "M", "T", "W", "T", "F", "S"];
+  const days = getDaysInMonth();
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const monthName = currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+  const getAssignmentsForDate = (date) => {
+    if (!date) return [];
+    const dateStr = date.toISOString().split("T")[0];
+    return assignments.filter(a => a.service_date === dateStr);
+  };
+
+  const goToPreviousMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
+  };
+
+  const goToNextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
+  };
 
   const statusIcon = (status) => {
     if (status === "Confirmed") return <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />;
