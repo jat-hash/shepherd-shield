@@ -69,7 +69,7 @@ export default function Assignments() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 lg:ml-60 space-y-5">
+    <div className="max-w-6xl mx-auto px-4 py-6 lg:ml-60 space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-white">Assignments</h1>
         <Button onClick={() => { setEditData(null); setFormOpen(true); }} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-sm gap-1">
@@ -77,67 +77,73 @@ export default function Assignments() {
         </Button>
       </div>
 
-      {/* Week View */}
-      <div className="grid grid-cols-7 gap-1">
-        {weekDates.map((d, i) => {
-          const dateStr = d.toISOString().split("T")[0];
-          const isSelected = dateStr === selectedDate;
-          const isToday = dateStr === new Date().toISOString().split("T")[0];
-          return (
-            <button
-              key={i}
-              onClick={() => setSelectedDate(dateStr)}
-              className={`flex flex-col items-center py-2 rounded-xl transition-all ${
-                isSelected ? "bg-[#d4a843] text-[#0a1128]" : "bg-[#1a2744] text-slate-400 hover:bg-[#1a2744]/80"
-              }`}
-            >
-              <span className="text-[10px] font-medium">{dayNames[i]}</span>
-              <span className={`text-sm font-bold ${isToday && !isSelected ? "text-[#d4a843]" : ""}`}>
-                {d.getDate()}
-              </span>
-            </button>
-          );
-        })}
+      {/* Month Navigation */}
+      <div className="flex items-center justify-between bg-[#1a2744] rounded-xl p-3 border border-[rgba(212,168,67,0.1)]">
+        <Button onClick={goToPreviousMonth} variant="ghost" size="icon" className="text-slate-400 hover:text-[#d4a843]">
+          <ChevronLeft className="w-5 h-5" />
+        </Button>
+        <h2 className="text-base font-bold text-white">{monthName}</h2>
+        <Button onClick={goToNextMonth} variant="ghost" size="icon" className="text-slate-400 hover:text-[#d4a843]">
+          <ChevronRight className="w-5 h-5" />
+        </Button>
       </div>
 
-      {/* Assignments List */}
+      {/* Calendar Grid */}
       {loading ? (
         <div className="flex justify-center py-12">
           <div className="w-6 h-6 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : assignments.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-slate-500 text-sm">No assignments for this date</p>
-        </div>
       ) : (
-        <div className="space-y-3">
-          {assignments.map(a => (
-            <button
-              key={a.id}
-              onClick={() => { setEditData(a); setFormOpen(true); }}
-              className="w-full text-left bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-4 hover:border-[#d4a843]/30 transition-all"
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-white">{a.position_name}</h3>
-                  {a.service_type && a.service_type !== "Custom Date" && (
-                    <p className="text-xs text-[#d4a843] font-medium mt-0.5">{a.service_type}</p>
-                  )}
-                  <p className="text-xs text-slate-400 mt-1">{a.assigned_to_name} • {a.start_time} – {a.end_time}</p>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {statusIcon(a.status)}
-                  <span className="text-[10px] text-slate-400">{a.status}</span>
-                </div>
+        <div>
+          {/* Day Headers */}
+          <div className="grid grid-cols-7 gap-2 mb-2">
+            {dayNames.map(name => (
+              <div key={name} className="text-center text-xs font-semibold text-slate-400 py-2">
+                {name}
               </div>
-              {a.checked_in && (
-                <p className="text-[10px] text-emerald-400 mt-2">
-                  ✓ Checked in at {a.check_in_time}
-                  {a.checked_out && ` • Out at ${a.check_out_time}`}
-                </p>
-              )}
-            </button>
-          ))}
+            ))}
+          </div>
+
+          {/* Calendar Days */}
+          <div className="grid grid-cols-7 gap-2">
+            {days.map((date, i) => {
+              const dayAssignments = date ? getAssignmentsForDate(date) : [];
+              const isToday = date && date.toISOString().split("T")[0] === new Date().toISOString().split("T")[0];
+              
+              return (
+                <div
+                  key={i}
+                  className={`min-h-[100px] bg-[#1a2744] rounded-lg border p-2 ${
+                    date ? "border-[rgba(212,168,67,0.1)]" : "border-transparent bg-transparent"
+                  }`}
+                >
+                  {date && (
+                    <>
+                      <div className={`text-xs font-bold mb-1 ${isToday ? "text-[#d4a843]" : "text-slate-300"}`}>
+                        {date.getDate()}
+                      </div>
+                      <div className="space-y-1">
+                        {dayAssignments.map(a => (
+                          <button
+                            key={a.id}
+                            onClick={() => { setEditData(a); setFormOpen(true); }}
+                            className="w-full text-left bg-[#0a1128] rounded p-1.5 hover:bg-[#d4a843]/10 border border-transparent hover:border-[#d4a843]/30 transition-all"
+                          >
+                            <div className="flex items-center gap-1">
+                              {statusIcon(a.status)}
+                              <span className="text-[10px] text-white font-medium truncate">{a.position_name}</span>
+                            </div>
+                            <p className="text-[9px] text-slate-400 truncate mt-0.5">{a.assigned_to_name}</p>
+                            <p className="text-[9px] text-slate-500">{a.start_time}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
