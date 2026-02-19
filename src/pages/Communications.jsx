@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Send, Pin, X } from "lucide-react";
+import { Send, Pin, X, Paperclip, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import DirectMessageSelector from "@/components/communications/DirectMessageSelector";
 import MessageBubble from "@/components/communications/MessageBubble";
+import { toast } from "sonner";
 
 const CHANNELS = ["All Team", "Parking", "Kids Wing", "Medical", "Command"];
 
@@ -19,8 +20,10 @@ export default function Communications() {
   const [isTyping, setIsTyping] = useState(false);
   const [dmChannels, setDmChannels] = useState([]);
   const [activeChannel, setActiveChannel] = useState({ name: "All Team", type: "group" });
+  const [uploading, setUploading] = useState(false);
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     base44.auth.me().then(u => {
@@ -97,20 +100,49 @@ export default function Communications() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const sendMessage = async () => {
-    if (!newMsg.trim() || !user) return;
+  const sendMessage = async (attachment = null, messageType = "text") => {
+    if (!newMsg.trim() && !attachment || !user) return;
     setIsTyping(false);
     clearTimeout(typingTimeout.current);
     
     await base44.entities.TeamMessage.create({
       channel: activeChannel.name,
-      content: newMsg.trim(),
+      content: newMsg.trim() || (attachment ? "Shared a file" : ""),
       sender_name: user.full_name || user.email,
       sender_email: user.email,
-      message_type: "text",
+      message_type: messageType,
+      attachment: attachment,
       read_by: [user.email],
     });
     setNewMsg("");
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      toast.error("File size must be less than 10MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      
+      let messageType = "text";
+      if (file.type.startsWith("image/")) messageType = "photo";
+      else if (file.type.startsWith("video/")) messageType = "photo";
+      
+      await sendMessage(file_url, messageType);
+      toast.success("File uploaded");
+    } catch (error) {
+      toast.error("Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   const handleTyping = (e) => {
