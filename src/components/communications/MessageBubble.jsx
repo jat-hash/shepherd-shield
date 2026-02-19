@@ -37,6 +37,35 @@ export default function MessageBubble({ message, isMe, currentUserEmail, onUpdat
           {!isMe && (
             <p className="text-[10px] font-semibold text-[#d4a843] mb-0.5">{message.sender_name}</p>
           )}
+          
+          {message.attachment && (
+            <div className="mb-2">
+              {message.message_type === "photo" && message.attachment.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                <img 
+                  src={message.attachment} 
+                  alt="Shared image" 
+                  className="rounded-lg max-w-full max-h-64 object-contain cursor-pointer"
+                  onClick={() => window.open(message.attachment, '_blank')}
+                />
+              ) : message.attachment.match(/\.(mp4|mov|avi|webm)$/i) ? (
+                <video 
+                  src={message.attachment} 
+                  controls 
+                  className="rounded-lg max-w-full max-h-64"
+                />
+              ) : (
+                <a 
+                  href={message.attachment} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className={`text-xs underline flex items-center gap-1 ${isMe ? "text-[#0a1128]" : "text-[#d4a843]"}`}
+                >
+                  📎 {message.attachment.split('/').pop()?.split('?')[0] || "Download file"}
+                </a>
+              )}
+            </div>
+          )}
+          
           <p className="text-sm leading-relaxed">{message.content}</p>
           
           <div className="flex items-center justify-between mt-1 gap-3">

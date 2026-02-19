@@ -290,6 +290,22 @@ export default function Communications() {
       {/* Input */}
       <div className="px-4 py-3 border-t border-[rgba(212,168,67,0.1)] bg-[#141f3d]">
         <div className="flex items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/*,.pdf,.doc,.docx,.txt"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            size="icon"
+            variant="ghost"
+            className="shrink-0 text-slate-400 hover:text-[#d4a843]"
+          >
+            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+          </Button>
           <Input
             value={newMsg}
             onChange={handleTyping}
@@ -298,7 +314,7 @@ export default function Communications() {
             className="flex-1 bg-[#0a1128] border-slate-700 text-white placeholder:text-slate-500"
           />
           <Button
-            onClick={sendMessage}
+            onClick={() => sendMessage()}
             disabled={!newMsg.trim()}
             size="icon"
             className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] shrink-0"
