@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, AlertTriangle, Clock, CheckCircle2, FileWarning } from "lucide-react";
+import { Plus, AlertTriangle, Clock, CheckCircle2, FileWarning, ArrowUpDown, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import IncidentForm from "@/components/incidents/IncidentForm";
 import SOPReference from "@/components/incidents/SOPReference";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const severityColors = {
   Low: "bg-blue-500/20 text-blue-400",
@@ -24,17 +25,24 @@ export default function Incidents() {
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [filter, setFilter] = useState("all");
+  const [severityFilter, setSeverityFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("-created_date");
+  const [viewingIncident, setViewingIncident] = useState(null);
 
   const loadIncidents = async () => {
     setLoading(true);
-    const all = await base44.entities.Incident.list("-created_date", 100);
+    const all = await base44.entities.Incident.list(sortBy, 100);
     setIncidents(all);
     setLoading(false);
   };
 
-  useEffect(() => { loadIncidents(); }, []);
+  useEffect(() => { loadIncidents(); }, [sortBy]);
 
-  const filtered = filter === "all" ? incidents : incidents.filter(i => i.status === filter);
+  const filtered = incidents.filter(i => {
+    if (filter !== "all" && i.status !== filter) return false;
+    if (severityFilter !== "all" && i.severity !== severityFilter) return false;
+    return true;
+  });
 
   const updateStatus = async (id, status) => {
     await base44.entities.Incident.update(id, { status });
@@ -54,18 +62,46 @@ export default function Incidents() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar">
-        {["all", "Open", "In Progress", "Resolved", "Closed"].map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-              filter === f ? "bg-[#d4a843] text-[#0a1128]" : "bg-[#1a2744] text-slate-400 hover:text-white"
-            }`}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar">
+            {["all", "Open", "In Progress", "Resolved", "Closed"].map(f => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                  filter === f ? "bg-[#d4a843] text-[#0a1128]" : "bg-[#1a2744] text-slate-400 hover:text-white"
+                }`}
+              >
+                {f === "all" ? "All" : f}
+              </button>
+            ))}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSortBy(sortBy === "-created_date" ? "created_date" : "-created_date")}
+            className="text-slate-400 hover:text-white gap-1 shrink-0"
           >
-            {f === "all" ? "All" : f}
-          </button>
-        ))}
+            <ArrowUpDown className="w-3 h-3" />
+            Date
+          </Button>
+        </div>
+        
+        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+          <span className="text-[10px] text-slate-500 py-1.5 px-2">Severity:</span>
+          {["all", "Low", "Medium", "High", "Critical"].map(s => (
+            <button
+              key={s}
+              onClick={() => setSeverityFilter(s)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                severityFilter === s ? "bg-[#d4a843] text-[#0a1128]" : "bg-[#1a2744] text-slate-400 hover:text-white"
+              }`}
+            >
+              {s === "all" ? "All" : s}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
@@ -80,7 +116,7 @@ export default function Incidents() {
       ) : (
         <div className="space-y-3">
           {filtered.map(inc => (
-            <div key={inc.id} className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-4 space-y-3">
+            <div key={inc.id} onClick={() => setViewingIncident(inc)} className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-4 space-y-3 cursor-pointer hover:border-[#d4a843]/30 transition-all">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
@@ -88,6 +124,12 @@ export default function Incidents() {
                       {inc.severity}
                     </span>
                     <span className="text-[10px] text-slate-500">{inc.category}</span>
+                    {inc.attachments?.length > 0 && (
+                      <div className="flex items-center gap-1 text-[10px] text-slate-400">
+                        <Image className="w-3 h-3" />
+                        {inc.attachments.length}
+                      </div>
+                    )}
                   </div>
                   <h3 className="text-sm font-bold text-white">{inc.title}</h3>
                   <p className="text-xs text-slate-400 mt-1 line-clamp-2">{inc.description}</p>
@@ -101,10 +143,10 @@ export default function Incidents() {
                 <div className="flex items-center gap-2">
                   <span className={`font-semibold ${statusColors[inc.status]}`}>{inc.status}</span>
                   {inc.status === "Open" && (
-                    <button onClick={() => updateStatus(inc.id, "In Progress")} className="text-amber-400 hover:text-amber-300 underline">Take</button>
+                    <button onClick={(e) => { e.stopPropagation(); updateStatus(inc.id, "In Progress"); }} className="text-amber-400 hover:text-amber-300 underline">Take</button>
                   )}
                   {inc.status === "In Progress" && (
-                    <button onClick={() => updateStatus(inc.id, "Resolved")} className="text-emerald-400 hover:text-emerald-300 underline">Resolve</button>
+                    <button onClick={(e) => { e.stopPropagation(); updateStatus(inc.id, "Resolved"); }} className="text-emerald-400 hover:text-emerald-300 underline">Resolve</button>
                   )}
                 </div>
               </div>
@@ -114,6 +156,85 @@ export default function Incidents() {
       )}
 
       <IncidentForm open={formOpen} onClose={() => setFormOpen(false)} onSaved={loadIncidents} />
+
+      {/* Incident Detail View */}
+      <Dialog open={!!viewingIncident} onOpenChange={() => setViewingIncident(null)}>
+        <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-[#d4a843] flex items-center gap-2">
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${severityColors[viewingIncident?.severity]}`}>
+                {viewingIncident?.severity}
+              </span>
+              {viewingIncident?.title}
+            </DialogTitle>
+          </DialogHeader>
+          {viewingIncident && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <span className="text-slate-500">Category:</span>
+                  <p className="text-white font-medium">{viewingIncident.category}</p>
+                </div>
+                <div>
+                  <span className="text-slate-500">Location:</span>
+                  <p className="text-white font-medium">{viewingIncident.location}</p>
+                </div>
+                <div>
+                  <span className="text-slate-500">Status:</span>
+                  <p className={`font-semibold ${statusColors[viewingIncident.status]}`}>{viewingIncident.status}</p>
+                </div>
+                <div>
+                  <span className="text-slate-500">Reported By:</span>
+                  <p className="text-white font-medium">{viewingIncident.reported_by}</p>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-slate-500">Date:</span>
+                  <p className="text-white font-medium">{new Date(viewingIncident.created_date).toLocaleString()}</p>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-slate-500 text-xs">Description:</span>
+                <p className="text-white text-sm mt-1 bg-[#0a1128] rounded-lg p-3 border border-slate-700">{viewingIncident.description}</p>
+              </div>
+
+              {viewingIncident.people_involved && (
+                <div>
+                  <span className="text-slate-500 text-xs">People Involved:</span>
+                  <p className="text-white text-sm mt-1 bg-[#0a1128] rounded-lg p-3 border border-slate-700">{viewingIncident.people_involved}</p>
+                </div>
+              )}
+
+              {viewingIncident.attachments?.length > 0 && (
+                <div>
+                  <span className="text-slate-500 text-xs block mb-2">Attachments ({viewingIncident.attachments.length}):</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {viewingIncident.attachments.map((url, i) => (
+                      <a
+                        key={i}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-lg overflow-hidden bg-[#0a1128] border border-slate-700 hover:border-[#d4a843]/50 transition-all"
+                      >
+                        {url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                          <img src={url} alt="" className="w-full h-32 object-cover" />
+                        ) : url.match(/\.(mp4|mov|avi|webm)$/i) ? (
+                          <video src={url} className="w-full h-32 object-cover" />
+                        ) : (
+                          <div className="w-full h-32 flex items-center justify-center text-slate-400">
+                            <span className="text-xs">📎 File</span>
+                          </div>
+                        )}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

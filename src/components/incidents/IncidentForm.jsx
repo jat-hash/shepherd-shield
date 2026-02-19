@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Upload } from "lucide-react";
+import { Upload, X } from "lucide-react";
+import { toast } from "sonner";
 
 const CATEGORIES = ["Suspicious Activity", "Medical Emergency", "Disruptive Behavior", "Theft", "Trespassing", "Weather Emergency", "Facility Issue", "Other"];
 const SEVERITIES = ["Low", "Medium", "High", "Critical"];
@@ -46,10 +47,30 @@ export default function IncidentForm({ open, onClose, onSaved }) {
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const maxSize = 20 * 1024 * 1024; // 20MB
+    if (file.size > maxSize) {
+      toast.error("File size must be less than 20MB");
+      return;
+    }
+
     setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setForm(prev => ({ ...prev, attachments: [...prev.attachments, file_url] }));
-    setUploading(false);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setForm(prev => ({ ...prev, attachments: [...prev.attachments, file_url] }));
+      toast.success("File uploaded");
+    } catch (error) {
+      toast.error("Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeAttachment = (index) => {
+    setForm(prev => ({
+      ...prev,
+      attachments: prev.attachments.filter((_, i) => i !== index)
+    }));
   };
 
   const handleSave = async () => {
@@ -128,17 +149,30 @@ export default function IncidentForm({ open, onClose, onSaved }) {
           </div>
 
           <div>
-            <Label className="text-slate-300 text-xs">Attachments</Label>
+            <Label className="text-slate-300 text-xs">Photos/Videos</Label>
             <label className="mt-1 flex items-center gap-2 cursor-pointer bg-[#0a1128] border border-dashed border-slate-600 rounded-lg p-3 hover:border-[#d4a843]/40 transition-colors">
               <Upload className="w-4 h-4 text-slate-400" />
-              <span className="text-xs text-slate-400">{uploading ? "Uploading..." : "Add photo, video or file"}</span>
-              <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploading} />
+              <span className="text-xs text-slate-400">{uploading ? "Uploading..." : "Add photo, video or document"}</span>
+              <input type="file" accept="image/*,video/*,.pdf" className="hidden" onChange={handleFileUpload} disabled={uploading} />
             </label>
             {form.attachments.length > 0 && (
               <div className="flex gap-2 mt-2 flex-wrap">
                 {form.attachments.map((url, i) => (
-                  <div key={i} className="w-16 h-16 rounded-lg bg-[#0a1128] border border-slate-700 overflow-hidden">
-                    <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => e.target.style.display = 'none'} />
+                  <div key={i} className="relative group w-20 h-20 rounded-lg bg-[#0a1128] border border-slate-700 overflow-hidden">
+                    {url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                    ) : url.match(/\.(mp4|mov|avi|webm)$/i) ? (
+                      <video src={url} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs text-slate-400">📄</div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(i)}
+                      className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3 text-white" />
+                    </button>
                   </div>
                 ))}
               </div>
