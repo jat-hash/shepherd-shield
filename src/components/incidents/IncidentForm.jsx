@@ -1,0 +1,158 @@
+import { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Upload } from "lucide-react";
+
+const CATEGORIES = ["Suspicious Activity", "Medical Emergency", "Disruptive Behavior", "Theft", "Trespassing", "Weather Emergency", "Facility Issue", "Other"];
+const SEVERITIES = ["Low", "Medium", "High", "Critical"];
+const STATUSES = ["Open", "In Progress", "Resolved", "Closed"];
+
+export default function IncidentForm({ open, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    title: "",
+    category: "",
+    location: "",
+    severity: "",
+    description: "",
+    people_involved: "",
+    status: "Open",
+    incident_date: new Date().toISOString().split("T")[0],
+    attachments: [],
+  });
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setForm({
+        title: "",
+        category: "",
+        location: "",
+        severity: "",
+        description: "",
+        people_involved: "",
+        status: "Open",
+        incident_date: new Date().toISOString().split("T")[0],
+        attachments: [],
+      });
+    }
+  }, [open]);
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    setForm(prev => ({ ...prev, attachments: [...prev.attachments, file_url] }));
+    setUploading(false);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    const user = await base44.auth.me();
+    await base44.entities.Incident.create({
+      ...form,
+      reported_by: user?.full_name || user?.email || "Unknown",
+    });
+    setSaving(false);
+    onSaved?.();
+    onClose();
+  };
+
+  const severityColors = {
+    Low: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+    Medium: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+    High: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+    Critical: "bg-red-500/20 text-red-400 border-red-500/30",
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-[#d4a843]">New Incident Report</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div>
+            <Label className="text-slate-300 text-xs">Title</Label>
+            <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" placeholder="Brief incident title" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-slate-300 text-xs">Category</Label>
+              <Select value={form.category} onValueChange={v => setForm({ ...form, category: v })}>
+                <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent className="bg-[#1a2744] border-slate-700">
+                  {CATEGORIES.map(c => <SelectItem key={c} value={c} className="text-white">{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-slate-300 text-xs">Location</Label>
+              <Input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" placeholder="e.g. Parking Lot A" />
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-slate-300 text-xs mb-2 block">Severity</Label>
+            <div className="grid grid-cols-4 gap-2">
+              {SEVERITIES.map(s => (
+                <button
+                  key={s}
+                  onClick={() => setForm({ ...form, severity: s })}
+                  className={`py-2 rounded-lg text-xs font-semibold border transition-all ${
+                    form.severity === s ? severityColors[s] : "border-slate-700 text-slate-500 hover:border-slate-500"
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-slate-300 text-xs">Description</Label>
+            <Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" rows={4} placeholder="Detailed description of the incident..." />
+          </div>
+
+          <div>
+            <Label className="text-slate-300 text-xs">People Involved</Label>
+            <Textarea value={form.people_involved} onChange={e => setForm({ ...form, people_involved: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" rows={2} placeholder="Names and descriptions" />
+          </div>
+
+          <div>
+            <Label className="text-slate-300 text-xs">Attachments</Label>
+            <label className="mt-1 flex items-center gap-2 cursor-pointer bg-[#0a1128] border border-dashed border-slate-600 rounded-lg p-3 hover:border-[#d4a843]/40 transition-colors">
+              <Upload className="w-4 h-4 text-slate-400" />
+              <span className="text-xs text-slate-400">{uploading ? "Uploading..." : "Add photo, video or file"}</span>
+              <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploading} />
+            </label>
+            {form.attachments.length > 0 && (
+              <div className="flex gap-2 mt-2 flex-wrap">
+                {form.attachments.map((url, i) => (
+                  <div key={i} className="w-16 h-16 rounded-lg bg-[#0a1128] border border-slate-700 overflow-hidden">
+                    <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => e.target.style.display = 'none'} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter className="mt-4">
+          <Button variant="ghost" onClick={onClose} className="text-slate-400">Cancel</Button>
+          <Button onClick={handleSave} disabled={saving || !form.title || !form.category || !form.severity || !form.location || !form.description} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
+            {saving ? "Submitting..." : "Submit Report"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

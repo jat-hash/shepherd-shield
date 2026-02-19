@@ -1,0 +1,192 @@
+import { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { Plus, BookOpen, FileCheck, Upload } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import ReactMarkdown from "react-markdown";
+
+const CATEGORIES = ["Emergency Evacuation", "Active Threat", "Parking Lot", "Children's Wing", "Medical Response", "General Security", "Other"];
+
+const categoryIcons = {
+  "Emergency Evacuation": "🚪",
+  "Active Threat": "🛡️",
+  "Parking Lot": "🅿️",
+  "Children's Wing": "👶",
+  "Medical Response": "🏥",
+  "General Security": "🔒",
+  "Other": "📄",
+};
+
+export default function SOPLibrary() {
+  const [sops, setSops] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
+  const [detailSop, setDetailSop] = useState(null);
+  const [form, setForm] = useState({ title: "", category: "General Security", content: "", version: "1.0", document_file: "" });
+  const [saving, setSaving] = useState(false);
+  const [acknowledging, setAcknowledging] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const all = await base44.entities.SOP.list("-updated_date", 100);
+    setSops(all);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    setForm(prev => ({ ...prev, document_file: file_url }));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    await base44.entities.SOP.create(form);
+    setSaving(false);
+    setFormOpen(false);
+    setForm({ title: "", category: "General Security", content: "", version: "1.0", document_file: "" });
+    load();
+  };
+
+  const handleAcknowledge = async () => {
+    setAcknowledging(true);
+    const user = await base44.auth.me();
+    const existing = detailSop.acknowledged_by || "";
+    const emails = existing.split(",").map(e => e.trim()).filter(Boolean);
+    if (!emails.includes(user.email)) {
+      emails.push(user.email);
+    }
+    await base44.entities.SOP.update(detailSop.id, { acknowledged_by: emails.join(", ") });
+    setDetailSop({ ...detailSop, acknowledged_by: emails.join(", ") });
+    setAcknowledging(false);
+  };
+
+  const grouped = CATEGORIES.reduce((acc, cat) => {
+    const catSops = sops.filter(s => s.category === cat);
+    if (catSops.length > 0) acc[cat] = catSops;
+    return acc;
+  }, {});
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 py-6 lg:ml-60 space-y-5">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-white">SOP Library</h1>
+        <Button onClick={() => setFormOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-sm gap-1">
+          <Plus className="w-4 h-4" /> Upload
+        </Button>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <div className="w-6 h-6 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : Object.keys(grouped).length === 0 ? (
+        <div className="text-center py-12">
+          <BookOpen className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+          <p className="text-slate-500 text-sm">No SOPs uploaded yet</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {Object.entries(grouped).map(([cat, catSops]) => (
+            <div key={cat}>
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-2">
+                <span>{categoryIcons[cat]}</span> {cat}
+              </h2>
+              <div className="space-y-2">
+                {catSops.map(sop => (
+                  <button key={sop.id} onClick={() => setDetailSop(sop)} className="w-full text-left bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-4 hover:border-[#d4a843]/30 transition-all">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-white">{sop.title}</h3>
+                      <span className="text-[10px] text-slate-500">v{sop.version}</span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">Updated: {new Date(sop.updated_date).toLocaleDateString()}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add Form */}
+      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+        <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="text-[#d4a843]">New SOP</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-slate-300 text-xs">Title</Label>
+              <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-slate-300 text-xs">Category</Label>
+                <Select value={form.category} onValueChange={v => setForm({ ...form, category: v })}>
+                  <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-[#1a2744] border-slate-700">
+                    {CATEGORIES.map(c => <SelectItem key={c} value={c} className="text-white">{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-slate-300 text-xs">Version</Label>
+                <Input value={form.version} onChange={e => setForm({ ...form, version: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" />
+              </div>
+            </div>
+            <div>
+              <Label className="text-slate-300 text-xs">Content (Markdown supported)</Label>
+              <Textarea value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1 font-mono text-xs" rows={8} />
+            </div>
+            <div>
+              <Label className="text-slate-300 text-xs">Document File</Label>
+              <label className="mt-1 flex items-center gap-2 cursor-pointer bg-[#0a1128] border border-dashed border-slate-600 rounded-lg p-3">
+                <Upload className="w-4 h-4 text-slate-400" />
+                <span className="text-xs text-slate-400">{form.document_file ? "File uploaded" : "Upload PDF or document"}</span>
+                <input type="file" className="hidden" onChange={handleFileUpload} />
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setFormOpen(false)} className="text-slate-400">Cancel</Button>
+            <Button onClick={handleSave} disabled={saving || !form.title || !form.content} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
+              {saving ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail View */}
+      <Dialog open={!!detailSop} onOpenChange={() => setDetailSop(null)}>
+        <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="text-[#d4a843]">{detailSop?.title}</DialogTitle></DialogHeader>
+          {detailSop && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 text-xs text-slate-400">
+                <span>Version {detailSop.version}</span>
+                <span>•</span>
+                <span>Updated: {new Date(detailSop.updated_date).toLocaleDateString()}</span>
+              </div>
+              <div className="prose prose-sm prose-invert max-w-none bg-[#0a1128] rounded-xl p-4 border border-slate-700">
+                <ReactMarkdown>{detailSop.content}</ReactMarkdown>
+              </div>
+              {detailSop.document_file && (
+                <a href={detailSop.document_file} target="_blank" rel="noreferrer" className="text-[#d4a843] text-sm underline inline-flex items-center gap-1">
+                  📄 View Attached Document
+                </a>
+              )}
+              <Button onClick={handleAcknowledge} disabled={acknowledging} className="w-full bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold gap-2">
+                <FileCheck className="w-4 h-4" /> {acknowledging ? "Signing..." : "Acknowledge & Sign"}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

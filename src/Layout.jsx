@@ -1,0 +1,163 @@
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "./utils";
+import { base44 } from "@/api/base44Client";
+import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell } from "lucide-react";
+
+const NAV_ITEMS = [
+  { name: "Dashboard", icon: Home, page: "Dashboard" },
+  { name: "Comm", icon: MessageSquare, page: "Communications" },
+  { name: "Assign", icon: CalendarDays, page: "Assignments" },
+  { name: "Reports", icon: FileText, page: "Incidents" },
+  { name: "Profile", icon: User, page: "Profile" },
+];
+
+export default function Layout({ children, currentPageName }) {
+  const [user, setUser] = useState(null);
+  const [alerts, setAlerts] = useState([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    base44.auth.me().then(setUser).catch(() => {});
+    base44.entities.EmergencyAlert.filter({ is_active: true }).then(setAlerts).catch(() => {});
+
+    const unsub = base44.entities.EmergencyAlert.subscribe((event) => {
+      if (event.type === "create" && event.data?.is_active) {
+        setAlerts(prev => [...prev, event.data]);
+      } else if (event.type === "update") {
+        setAlerts(prev => event.data?.is_active
+          ? prev.map(a => a.id === event.id ? event.data : a)
+          : prev.filter(a => a.id !== event.id)
+        );
+      } else if (event.type === "delete") {
+        setAlerts(prev => prev.filter(a => a.id !== event.id));
+      }
+    });
+    return unsub;
+  }, []);
+
+  const noLayoutPages = ["Login"];
+  if (noLayoutPages.includes(currentPageName)) return children;
+
+  return (
+    <div className="min-h-screen bg-[#0a1128] text-white flex flex-col">
+      <style>{`
+        :root {
+          --navy: #0a1128;
+          --navy-light: #141f3d;
+          --navy-card: #1a2744;
+          --gold: #d4a843;
+          --gold-hover: #e0bb5e;
+          --red-alert: #dc2626;
+          --red-alert-hover: #ef4444;
+          --text-primary: #f1f5f9;
+          --text-secondary: #94a3b8;
+          --border-color: rgba(212, 168, 67, 0.15);
+        }
+        body { background: #0a1128; }
+        * { scrollbar-width: thin; scrollbar-color: #1a2744 #0a1128; }
+      `}</style>
+
+      {/* Active Emergency Banner */}
+      {alerts.length > 0 && (
+        <div className="bg-red-600 animate-pulse text-white text-center py-2 px-4 text-sm font-bold tracking-wider">
+          🚨 ACTIVE ALERT: {alerts[0]?.alert_type?.toUpperCase()} — {alerts[0]?.message}
+        </div>
+      )}
+
+      {/* Top Bar */}
+      <header className="bg-[#141f3d] border-b border-[rgba(212,168,67,0.15)] px-4 py-3 flex items-center justify-between sticky top-0 z-40">
+        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-1">
+          {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+
+        <div className="flex items-center gap-2">
+          <Shield className="w-6 h-6 text-[#d4a843]" />
+          <span className="font-bold text-sm tracking-widest uppercase hidden sm:inline">Shepherd Shield</span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Link to={createPageUrl("Dashboard")} className="relative">
+            <Bell className="w-5 h-5 text-slate-400 hover:text-[#d4a843] transition-colors" />
+            {alerts.length > 0 && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-ping" />
+            )}
+          </Link>
+          <div className="w-8 h-8 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-xs">
+            {user?.full_name?.charAt(0) || "U"}
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/60 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      {/* Main Content */}
+      <main className="flex-1 pb-20 lg:pb-6 overflow-auto">
+        {children}
+      </main>
+
+      {/* Bottom Navigation - Mobile */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#141f3d] border-t border-[rgba(212,168,67,0.15)] flex justify-around py-2 z-40 lg:hidden">
+        {NAV_ITEMS.map(item => {
+          const isActive = currentPageName === item.page;
+          return (
+            <Link
+              key={item.page}
+              to={createPageUrl(item.page)}
+              className={`flex flex-col items-center gap-0.5 px-2 py-1 transition-colors ${
+                isActive ? "text-[#d4a843]" : "text-slate-500 hover:text-slate-300"
+              }`}
+            >
+              <item.icon className="w-5 h-5" />
+              <span className="text-[10px] font-medium">{item.name}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Desktop Sidebar Nav (hidden on mobile) */}
+      <nav className="hidden lg:flex fixed left-0 top-[57px] bottom-0 w-56 bg-[#141f3d] border-r border-[rgba(212,168,67,0.15)] flex-col py-4 z-30">
+        {NAV_ITEMS.map(item => {
+          const isActive = currentPageName === item.page;
+          return (
+            <Link
+              key={item.page}
+              to={createPageUrl(item.page)}
+              className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-all ${
+                isActive
+                  ? "text-[#d4a843] bg-[rgba(212,168,67,0.08)] border-r-2 border-[#d4a843]"
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <item.icon className="w-4 h-4" />
+              {item.name === "Comm" ? "Communications" : item.name === "Assign" ? "Assignments" : item.name === "Reports" ? "Incident Reports" : item.name}
+            </Link>
+          );
+        })}
+
+        <div className="border-t border-[rgba(212,168,67,0.15)] mt-4 pt-4">
+          {[
+            { name: "Watch List", page: "WatchList" },
+            { name: "Equipment", page: "EquipmentInventory" },
+            { name: "SOP Library", page: "SOPLibrary" },
+          ].map(item => (
+            <Link
+              key={item.page}
+              to={createPageUrl(item.page)}
+              className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-all ${
+                currentPageName === item.page
+                  ? "text-[#d4a843] bg-[rgba(212,168,67,0.08)] border-r-2 border-[#d4a843]"
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              {item.name}
+            </Link>
+          ))}
+        </div>
+      </nav>
+    </div>
+  );
+}
