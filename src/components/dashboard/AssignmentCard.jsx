@@ -38,6 +38,9 @@ export default function AssignmentCard({ assignment, onUpdate }) {
         <div>
           <p className="text-[10px] uppercase tracking-widest text-[#d4a843] font-semibold mb-1">Today's Assignment</p>
           <h3 className="text-lg font-bold text-white">{assignment.position_name}</h3>
+          {assignment.service_type && assignment.service_type !== "Custom Date" && (
+            <p className="text-xs text-[#d4a843] font-medium mt-1">{assignment.service_type}</p>
+          )}
         </div>
         <span className={`text-[10px] px-2 py-1 rounded-full font-semibold ${
           assignment.status === "Confirmed" ? "bg-emerald-500/20 text-emerald-400" :
