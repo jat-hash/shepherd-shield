@@ -55,6 +55,7 @@ import WatchList from './pages/WatchList';
 import EquipmentInventory from './pages/EquipmentInventory';
 import SOPLibrary from './pages/SOPLibrary';
 import Profile from './pages/Profile';
+import AutoRotation from './pages/AutoRotation';
 import __Layout from './Layout.jsx';
 
 
@@ -67,6 +68,7 @@ export const PAGES = {
     "EquipmentInventory": EquipmentInventory,
     "SOPLibrary": SOPLibrary,
     "Profile": Profile,
+    "AutoRotation": AutoRotation,
 }
 
 export const pagesConfig = {
