@@ -4,6 +4,7 @@ import AssignmentCard from "@/components/dashboard/AssignmentCard";
 import EmergencyButton from "@/components/dashboard/EmergencyButton";
 import StatusBar from "@/components/dashboard/StatusBar";
 import QuickActionGrid from "@/components/dashboard/QuickActionGrid";
+import SOPQuickAccess from "@/components/dashboard/SOPQuickAccess";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
@@ -47,6 +48,7 @@ export default function Dashboard() {
       <AssignmentCard assignment={todayAssignment} onUpdate={loadData} />
       <EmergencyButton />
       <StatusBar />
+      <SOPQuickAccess />
       <QuickActionGrid />
     </div>
   );

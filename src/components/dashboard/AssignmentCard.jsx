@@ -1,6 +1,8 @@
-import { MapPin, Clock, CheckCircle } from "lucide-react";
+import { MapPin, Clock, CheckCircle, BookOpen } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "../../utils";
 
 export default function AssignmentCard({ assignment, onUpdate }) {
   if (!assignment) {
@@ -61,13 +63,27 @@ export default function AssignmentCard({ assignment, onUpdate }) {
 
       <div className="flex gap-2">
         {!assignment.checked_in ? (
-          <Button onClick={handleCheckIn} className="flex-1 bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-sm">
-            <CheckCircle className="w-4 h-4 mr-2" /> Check In
-          </Button>
+          <>
+            <Button onClick={handleCheckIn} className="flex-1 bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-sm">
+              <CheckCircle className="w-4 h-4 mr-2" /> Check In
+            </Button>
+            <Link to={createPageUrl("SOPLibrary")}>
+              <Button variant="outline" size="icon" className="border-[#d4a843]/30 text-[#d4a843] hover:bg-[#d4a843]/10">
+                <BookOpen className="w-4 h-4" />
+              </Button>
+            </Link>
+          </>
         ) : !assignment.checked_out ? (
-          <Button onClick={handleCheckOut} variant="outline" className="flex-1 border-[#d4a843] text-[#d4a843] hover:bg-[#d4a843]/10 font-bold text-sm">
-            Check Out
-          </Button>
+          <>
+            <Button onClick={handleCheckOut} variant="outline" className="flex-1 border-[#d4a843] text-[#d4a843] hover:bg-[#d4a843]/10 font-bold text-sm">
+              Check Out
+            </Button>
+            <Link to={createPageUrl("SOPLibrary")}>
+              <Button variant="outline" size="icon" className="border-[#d4a843]/30 text-[#d4a843] hover:bg-[#d4a843]/10">
+                <BookOpen className="w-4 h-4" />
+              </Button>
+            </Link>
+          </>
         ) : (
           <div className="flex-1 text-center text-emerald-400 text-sm font-medium py-2">
             ✓ Completed ({assignment.check_in_time} – {assignment.check_out_time})

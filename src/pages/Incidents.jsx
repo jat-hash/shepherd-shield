@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Plus, AlertTriangle, Clock, CheckCircle2, FileWarning } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import IncidentForm from "@/components/incidents/IncidentForm";
+import SOPReference from "@/components/incidents/SOPReference";
 
 const severityColors = {
   Low: "bg-blue-500/20 text-blue-400",
@@ -44,9 +45,12 @@ export default function Incidents() {
     <div className="max-w-2xl mx-auto px-4 py-6 lg:ml-60 space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-white">Incident Reports</h1>
-        <Button onClick={() => setFormOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-sm gap-1">
-          <Plus className="w-4 h-4" /> New Report
-        </Button>
+        <div className="flex gap-2">
+          <SOPReference category="Active Threat" />
+          <Button onClick={() => setFormOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-sm gap-1">
+            <Plus className="w-4 h-4" /> New Report
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
