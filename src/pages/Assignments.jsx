@@ -93,6 +93,9 @@ export default function Assignments() {
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="text-sm font-bold text-white">{a.position_name}</h3>
+                  {a.service_type && a.service_type !== "Custom Date" && (
+                    <p className="text-xs text-[#d4a843] font-medium mt-0.5">{a.service_type}</p>
+                  )}
                   <p className="text-xs text-slate-400 mt-1">{a.assigned_to_name} • {a.start_time} – {a.end_time}</p>
                 </div>
                 <div className="flex items-center gap-1.5">

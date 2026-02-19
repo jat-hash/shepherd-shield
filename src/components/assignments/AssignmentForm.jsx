@@ -44,6 +44,7 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
       setForm({
         position_name: "",
         service_date: new Date().toISOString().split("T")[0],
+        service_type: "",
         start_time: "09:00",
         end_time: "12:00",
         assigned_to_email: "",
