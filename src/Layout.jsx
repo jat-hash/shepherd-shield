@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
 import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell } from "lucide-react";
+import { Toaster } from "sonner";
+import NotificationProvider from "@/components/notifications/NotificationProvider";
 
 const NAV_ITEMS = [
   { name: "Dashboard", icon: Home, page: "Dashboard" },
@@ -40,7 +42,9 @@ export default function Layout({ children, currentPageName }) {
   if (noLayoutPages.includes(currentPageName)) return children;
 
   return (
-    <div className="min-h-screen bg-[#0a1128] text-white flex flex-col">
+    <NotificationProvider>
+      <Toaster richColors closeButton position="top-right" />
+      <div className="min-h-screen bg-[#0a1128] text-white flex flex-col">
       <style>{`
         :root {
           --navy: #0a1128;
@@ -159,5 +163,6 @@ export default function Layout({ children, currentPageName }) {
         </div>
       </nav>
     </div>
+    </NotificationProvider>
   );
 }
