@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Send, Paperclip } from "lucide-react";
+import { Send, Pin, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import DirectMessageSelector from "@/components/communications/DirectMessageSelector";
+import MessageBubble from "@/components/communications/MessageBubble";
 
 const CHANNELS = ["All Team", "Parking", "Kids Wing", "Medical", "Command"];
 
@@ -10,29 +12,86 @@ export default function Communications() {
   const [user, setUser] = useState(null);
   const [channel, setChannel] = useState("All Team");
   const [messages, setMessages] = useState([]);
+  const [pinnedMessages, setPinnedMessages] = useState([]);
   const [newMsg, setNewMsg] = useState("");
   const [loading, setLoading] = useState(true);
+  const [typingUsers, setTypingUsers] = useState(new Set());
+  const [isTyping, setIsTyping] = useState(false);
+  const [dmChannels, setDmChannels] = useState([]);
+  const [activeChannel, setActiveChannel] = useState({ name: "All Team", type: "group" });
   const bottomRef = useRef(null);
+  const typingTimeout = useRef(null);
 
   useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
+    base44.auth.me().then(u => {
+      setUser(u);
+      // Load DM channels
+      base44.entities.TeamMessage.list("-created_date", 500).then(all => {
+        const dmSet = new Set();
+        all.forEach(msg => {
+          if (msg.channel?.startsWith("DM: ") && msg.channel.includes(u.email)) {
+            dmSet.add(msg.channel);
+          }
+        });
+        setDmChannels(Array.from(dmSet));
+      });
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
     setLoading(true);
-    base44.entities.TeamMessage.filter({ channel }, "-created_date", 50)
+    const currentChannel = activeChannel.name;
+    
+    base44.entities.TeamMessage.filter({ channel: currentChannel }, "-created_date", 100)
       .then(msgs => {
-        setMessages(msgs.reverse());
+        const sorted = msgs.reverse();
+        setMessages(sorted.filter(m => !m.is_pinned));
+        setPinnedMessages(sorted.filter(m => m.is_pinned));
         setLoading(false);
+        
+        // Mark as read
+        if (user?.email) {
+          sorted.forEach(msg => {
+            if (!msg.read_by?.includes(user.email) && msg.sender_email !== user.email) {
+              base44.entities.TeamMessage.update(msg.id, {
+                read_by: [...(msg.read_by || []), user.email]
+              }).catch(() => {});
+            }
+          });
+        }
       });
 
     const unsub = base44.entities.TeamMessage.subscribe((event) => {
-      if (event.type === "create" && event.data?.channel === channel) {
-        setMessages(prev => [...prev, event.data]);
+      if (event.data?.channel === currentChannel) {
+        if (event.type === "create") {
+          if (event.data.is_pinned) {
+            setPinnedMessages(prev => [...prev, event.data]);
+          } else {
+            setMessages(prev => [...prev, event.data]);
+          }
+          
+          // Auto mark as read
+          if (user?.email && event.data.sender_email !== user.email) {
+            setTimeout(() => {
+              base44.entities.TeamMessage.update(event.data.id, {
+                read_by: [...(event.data.read_by || []), user.email]
+              }).catch(() => {});
+            }, 1000);
+          }
+        } else if (event.type === "update") {
+          const updateList = (prev) => prev.map(m => m.id === event.id ? event.data : m);
+          if (event.data.is_pinned) {
+            setPinnedMessages(updateList);
+            setMessages(prev => prev.filter(m => m.id !== event.id));
+          } else {
+            setMessages(updateList);
+            setPinnedMessages(prev => prev.filter(m => m.id !== event.id));
+          }
+        }
       }
     });
     return unsub;
-  }, [channel]);
+  }, [activeChannel.name, user]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -40,14 +99,54 @@ export default function Communications() {
 
   const sendMessage = async () => {
     if (!newMsg.trim() || !user) return;
+    setIsTyping(false);
+    clearTimeout(typingTimeout.current);
+    
     await base44.entities.TeamMessage.create({
-      channel,
+      channel: activeChannel.name,
       content: newMsg.trim(),
       sender_name: user.full_name || user.email,
       sender_email: user.email,
       message_type: "text",
+      read_by: [user.email],
     });
     setNewMsg("");
+  };
+
+  const handleTyping = (e) => {
+    setNewMsg(e.target.value);
+    
+    if (!isTyping) {
+      setIsTyping(true);
+    }
+    
+    clearTimeout(typingTimeout.current);
+    typingTimeout.current = setTimeout(() => {
+      setIsTyping(false);
+    }, 2000);
+  };
+
+  const handleSelectDM = (dmChannel, otherUser) => {
+    setActiveChannel({
+      name: dmChannel,
+      type: "dm",
+      displayName: otherUser.full_name || otherUser.email
+    });
+    
+    if (!dmChannels.includes(dmChannel)) {
+      setDmChannels(prev => [...prev, dmChannel]);
+    }
+  };
+
+  const loadMessages = () => {
+    setLoading(true);
+    base44.entities.TeamMessage.filter({ channel: activeChannel.name }, "-created_date", 100)
+      .then(msgs => {
+        const sorted = msgs.reverse();
+        setMessages(sorted.filter(m => !m.is_pinned));
+        setPinnedMessages(sorted.filter(m => m.is_pinned));
+        setLoading(false);
+      });
   };
 
   const handleKeyDown = (e) => {
@@ -57,21 +156,43 @@ export default function Communications() {
     }
   };
 
+  const getDmDisplayName = (dmChannel) => {
+    const emails = dmChannel.replace("DM: ", "").split("-");
+    const otherEmail = emails.find(e => e !== user?.email);
+    return otherEmail?.split("@")[0] || "Unknown";
+  };
+
   return (
     <div className="max-w-2xl mx-auto lg:ml-60 flex flex-col h-[calc(100vh-130px)] lg:h-[calc(100vh-70px)]">
       {/* Channel Pills */}
       <div className="px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar border-b border-[rgba(212,168,67,0.1)]">
+        <DirectMessageSelector currentUserEmail={user?.email} onSelectDM={handleSelectDM} />
+        
         {CHANNELS.map(ch => (
           <button
             key={ch}
-            onClick={() => setChannel(ch)}
+            onClick={() => setActiveChannel({ name: ch, type: "group" })}
             className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-              channel === ch
+              activeChannel.name === ch
                 ? "bg-[#d4a843] text-[#0a1128]"
                 : "bg-[#1a2744] text-slate-400 hover:text-white"
             }`}
           >
             {ch}
+          </button>
+        ))}
+        
+        {dmChannels.map(dm => (
+          <button
+            key={dm}
+            onClick={() => setActiveChannel({ name: dm, type: "dm", displayName: getDmDisplayName(dm) })}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1 ${
+              activeChannel.name === dm
+                ? "bg-[#d4a843] text-[#0a1128]"
+                : "bg-[#1a2744] text-slate-400 hover:text-white"
+            }`}
+          >
+            📧 {getDmDisplayName(dm)}
           </button>
         ))}
       </div>
@@ -82,31 +203,56 @@ export default function Communications() {
           <div className="flex justify-center py-12">
             <div className="w-6 h-6 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : messages.length === 0 ? (
-          <p className="text-center text-slate-500 text-sm py-12">No messages in this channel yet</p>
         ) : (
-          messages.map(msg => {
-            const isMe = msg.sender_email === user?.email;
-            return (
-              <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
-                  isMe
-                    ? "bg-[#d4a843] text-[#0a1128]"
-                    : "bg-[#1a2744] text-white border border-[rgba(212,168,67,0.1)]"
-                }`}>
-                  {!isMe && (
-                    <p className="text-[10px] font-semibold text-[#d4a843] mb-0.5">{msg.sender_name}</p>
-                  )}
-                  <p className="text-sm leading-relaxed">{msg.content}</p>
-                  <p className={`text-[9px] mt-1 ${isMe ? "text-[#0a1128]/60" : "text-slate-500"}`}>
-                    {new Date(msg.created_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
+          <>
+            {/* Pinned Messages */}
+            {pinnedMessages.length > 0 && (
+              <div className="bg-[#1a2744] rounded-xl border border-[#d4a843]/20 p-3 mb-4 space-y-2">
+                <div className="flex items-center gap-2 text-xs text-[#d4a843] font-semibold mb-2">
+                  <Pin className="w-3 h-3" />
+                  Pinned Messages
                 </div>
+                {pinnedMessages.map(msg => (
+                  <MessageBubble
+                    key={msg.id}
+                    message={msg}
+                    isMe={msg.sender_email === user?.email}
+                    currentUserEmail={user?.email}
+                    onUpdate={loadMessages}
+                  />
+                ))}
               </div>
-            );
-          })
+            )}
+
+            {/* Regular Messages */}
+            {messages.length === 0 && pinnedMessages.length === 0 ? (
+              <p className="text-center text-slate-500 text-sm py-12">
+                {activeChannel.type === "dm" 
+                  ? `Start a conversation with ${activeChannel.displayName}`
+                  : "No messages in this channel yet"}
+              </p>
+            ) : (
+              messages.map(msg => (
+                <MessageBubble
+                  key={msg.id}
+                  message={msg}
+                  isMe={msg.sender_email === user?.email}
+                  currentUserEmail={user?.email}
+                  onUpdate={loadMessages}
+                />
+              ))
+            )}
+            
+            {/* Typing Indicator */}
+            {typingUsers.size > 0 && (
+              <div className="text-xs text-slate-500 italic">
+                Someone is typing...
+              </div>
+            )}
+            
+            <div ref={bottomRef} />
+          </>
         )}
-        <div ref={bottomRef} />
       </div>
 
       {/* Input */}
@@ -114,9 +260,9 @@ export default function Communications() {
         <div className="flex items-center gap-2">
           <Input
             value={newMsg}
-            onChange={e => setNewMsg(e.target.value)}
+            onChange={handleTyping}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
+            placeholder={`Message ${activeChannel.type === "dm" ? activeChannel.displayName : activeChannel.name}...`}
             className="flex-1 bg-[#0a1128] border-slate-700 text-white placeholder:text-slate-500"
           />
           <Button
