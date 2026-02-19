@@ -47,30 +47,30 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
-import Dashboard from './pages/Dashboard';
-import Communications from './pages/Communications';
 import Assignments from './pages/Assignments';
-import Incidents from './pages/Incidents';
-import WatchList from './pages/WatchList';
-import EquipmentInventory from './pages/EquipmentInventory';
-import SOPLibrary from './pages/SOPLibrary';
-import Profile from './pages/Profile';
 import AutoRotation from './pages/AutoRotation';
+import Communications from './pages/Communications';
+import Dashboard from './pages/Dashboard';
+import EquipmentInventory from './pages/EquipmentInventory';
+import Incidents from './pages/Incidents';
 import Positions from './pages/Positions';
+import Profile from './pages/Profile';
+import SOPLibrary from './pages/SOPLibrary';
+import WatchList from './pages/WatchList';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "Dashboard": Dashboard,
-    "Communications": Communications,
     "Assignments": Assignments,
-    "Incidents": Incidents,
-    "WatchList": WatchList,
-    "EquipmentInventory": EquipmentInventory,
-    "SOPLibrary": SOPLibrary,
-    "Profile": Profile,
     "AutoRotation": AutoRotation,
+    "Communications": Communications,
+    "Dashboard": Dashboard,
+    "EquipmentInventory": EquipmentInventory,
+    "Incidents": Incidents,
     "Positions": Positions,
+    "Profile": Profile,
+    "SOPLibrary": SOPLibrary,
+    "WatchList": WatchList,
 }
 
 export const pagesConfig = {
