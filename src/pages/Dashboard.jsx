@@ -8,7 +8,7 @@ import SOPQuickAccess from "@/components/dashboard/SOPQuickAccess";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
-  const [todayAssignment, setTodayAssignment] = useState(null);
+  const [nextAssignment, setNextAssignment] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
@@ -16,11 +16,11 @@ export default function Dashboard() {
     const u = await base44.auth.me();
     setUser(u);
     const today = new Date().toISOString().split("T")[0];
-    const assignments = await base44.entities.Assignment.filter({
-      assigned_to_email: u.email,
-      service_date: today
-    });
-    setTodayAssignment(assignments?.[0] || null);
+    const allAssignments = await base44.entities.Assignment.filter({
+      assigned_to_email: u.email
+    }, "service_date");
+    const upcoming = allAssignments.filter(a => a.service_date >= today);
+    setNextAssignment(upcoming?.[0] || null);
     setLoading(false);
   };
 
@@ -45,7 +45,7 @@ export default function Dashboard() {
         </p>
       </div>
 
-      <AssignmentCard assignment={todayAssignment} onUpdate={loadData} />
+      <AssignmentCard assignment={nextAssignment} onUpdate={loadData} />
       <EmergencyButton />
       <StatusBar />
       <SOPQuickAccess />
