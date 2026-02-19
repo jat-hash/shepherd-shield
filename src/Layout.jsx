@@ -147,6 +147,7 @@ export default function Layout({ children, currentPageName }) {
             { name: "Watch List", page: "WatchList" },
             { name: "Equipment", page: "EquipmentInventory" },
             { name: "SOP Library", page: "SOPLibrary" },
+            { name: "Positions", page: "Positions" },
             { name: "AI Auto-Rotation", page: "AutoRotation" },
           ].map(item => (
             <Link
