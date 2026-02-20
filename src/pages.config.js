@@ -47,6 +47,7 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
+import AdminMonitor from './pages/AdminMonitor';
 import Assignments from './pages/Assignments';
 import AutoRotation from './pages/AutoRotation';
 import Communications from './pages/Communications';
@@ -58,11 +59,11 @@ import Profile from './pages/Profile';
 import SOPLibrary from './pages/SOPLibrary';
 import SpecialEvents from './pages/SpecialEvents';
 import WatchList from './pages/WatchList';
-import AdminMonitor from './pages/AdminMonitor';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
+    "AdminMonitor": AdminMonitor,
     "Assignments": Assignments,
     "AutoRotation": AutoRotation,
     "Communications": Communications,
@@ -74,7 +75,6 @@ export const PAGES = {
     "SOPLibrary": SOPLibrary,
     "SpecialEvents": SpecialEvents,
     "WatchList": WatchList,
-    "AdminMonitor": AdminMonitor,
 }
 
 export const pagesConfig = {
