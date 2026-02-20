@@ -144,6 +144,7 @@ export default function Layout({ children, currentPageName }) {
 
         <div className="border-t border-[rgba(212,168,67,0.15)] mt-4 pt-4">
           {[
+            ...(user?.role === 'admin' ? [{ name: "Admin Monitor", page: "AdminMonitor" }] : []),
             { name: "Watch List", page: "WatchList" },
             { name: "Equipment", page: "EquipmentInventory" },
             { name: "SOP Library", page: "SOPLibrary" },
