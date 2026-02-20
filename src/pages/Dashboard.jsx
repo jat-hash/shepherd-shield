@@ -8,7 +8,7 @@ import SOPQuickAccess from "@/components/dashboard/SOPQuickAccess";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
-  const [nextAssignment, setNextAssignment] = useState(null);
+  const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
@@ -16,12 +16,26 @@ export default function Dashboard() {
     try {
       const u = await base44.auth.me();
       setUser(u);
-      const today = new Date().toISOString().split("T")[0];
+      
+      // Get start of week (Sunday) and end of week (Saturday)
+      const today = new Date();
+      const dayOfWeek = today.getDay();
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - dayOfWeek);
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      
       const allAssignments = await base44.entities.Assignment.filter({
-        assigned_to_email: u.email,
-        service_date: today
-      }, "start_time");
-      setNextAssignment(allAssignments?.[0] || null);
+        assigned_to_email: u.email
+      }, "service_date");
+      
+      // Filter assignments for this week
+      const weekAssignments = allAssignments.filter(a => {
+        const assignmentDate = new Date(a.service_date);
+        return assignmentDate >= startOfWeek && assignmentDate <= endOfWeek;
+      });
+      
+      setAssignments(weekAssignments);
     } catch (error) {
       console.error("Error loading data:", error);
     }
@@ -64,7 +78,20 @@ export default function Dashboard() {
         </p>
       </div>
 
-      <AssignmentCard assignment={nextAssignment} onUpdate={loadData} />
+      {/* This Week's Assignments */}
+      <div className="space-y-3">
+        <h2 className="text-sm uppercase tracking-widest text-[#d4a843] font-semibold">This Week's Assignments</h2>
+        {assignments.length === 0 ? (
+          <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-6 text-center">
+            <p className="text-slate-400 text-sm">No assignments this week</p>
+          </div>
+        ) : (
+          assignments.map(assignment => (
+            <AssignmentCard key={assignment.id} assignment={assignment} onUpdate={loadData} />
+          ))
+        )}
+      </div>
+
       <EmergencyButton />
       <StatusBar />
       <SOPQuickAccess />

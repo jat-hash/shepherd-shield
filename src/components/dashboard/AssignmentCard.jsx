@@ -32,11 +32,20 @@ export default function AssignmentCard({ assignment, onUpdate }) {
     onUpdate?.();
   };
 
+  const assignmentDate = new Date(assignment.service_date);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  assignmentDate.setHours(0, 0, 0, 0);
+  const isToday = assignmentDate.getTime() === today.getTime();
+
   return (
     <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-5 space-y-4">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-[#d4a843] font-semibold mb-1">Today's Assignment</p>
+          <p className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-1">
+            {assignmentDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+            {isToday && <span className="ml-2 text-[#d4a843]">• Today</span>}
+          </p>
           <h3 className="text-lg font-bold text-white">{assignment.position_name}</h3>
           {assignment.service_type && assignment.service_type !== "Custom Date" && (
             <p className="text-xs text-[#d4a843] font-medium mt-1">{assignment.service_type}</p>
