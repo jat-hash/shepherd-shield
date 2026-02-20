@@ -88,7 +88,7 @@ export default function Layout({ children, currentPageName }) {
             )}
           </Link>
           <div className="w-8 h-8 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-xs">
-            {user?.full_name?.charAt(0) || "U"}
+            {(user?.display_name || user?.full_name)?.charAt(0) || "U"}
           </div>
         </div>
       </header>
