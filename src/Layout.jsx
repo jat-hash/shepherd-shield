@@ -225,23 +225,7 @@ export default function Layout({ children, currentPageName }) {
         {children}
       </main>
 
-      {/* Bottom Navigation - Mobile */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#141f3d] border-t border-[rgba(212,168,67,0.15)] flex justify-around py-3 z-40 lg:hidden">
-        {NAV_ITEMS.map(item => {
-          const isActive = currentPageName === item.page;
-          return (
-            <Link
-              key={item.page}
-              to={createPageUrl(item.page)}
-              className={`px-3 py-1 transition-colors ${
-                isActive ? "text-[#d4a843]" : "text-slate-500 hover:text-slate-300"
-              }`}
-            >
-              <span className="text-xs font-medium">{item.name}</span>
-            </Link>
-          );
-        })}
-      </nav>
+
 
       {/* Desktop Sidebar Nav (hidden on mobile) */}
       <nav className="hidden lg:flex fixed left-0 top-[57px] bottom-0 w-56 bg-[#141f3d] border-r border-[rgba(212,168,67,0.15)] flex-col py-4 z-30 overflow-y-auto">
