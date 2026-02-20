@@ -159,7 +159,7 @@ export default function MessageBubble({ message, isMe, currentUserEmail, onUpdat
                   <Edit2 className="w-3 h-3 mr-2" />
                   Edit Message
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDelete(e); }} className="text-red-400 hover:bg-red-500/10 cursor-pointer">
+                <DropdownMenuItem onClick={handleDelete} className="text-red-400 hover:bg-red-500/10 cursor-pointer">
                   <Trash2 className="w-3 h-3 mr-2" />
                   Delete Message
                 </DropdownMenuItem>
