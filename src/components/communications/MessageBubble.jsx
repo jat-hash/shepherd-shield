@@ -169,10 +169,11 @@ export default function MessageBubble({ message, isMe, currentUserEmail, onUpdat
                     <Trash2 className="w-3 h-3 mr-2" />
                     Delete Message
                   </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       )}
     </div>
   );
