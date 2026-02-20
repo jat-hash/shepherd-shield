@@ -16,20 +16,30 @@ export default function MessageBubble({ message, isMe, currentUserEmail, onUpdat
     onUpdate?.();
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (e) => {
+    e?.stopPropagation();
     if (confirm("Delete this message?")) {
-      await base44.entities.TeamMessage.delete(message.id);
-      toast.success("Message deleted");
-      onUpdate?.();
+      try {
+        await base44.entities.TeamMessage.delete(message.id);
+        toast.success("Message deleted");
+        onUpdate?.();
+      } catch (err) {
+        toast.error(err.message || "Failed to delete");
+      }
     }
   };
 
-  const handleEdit = async () => {
+  const handleEdit = async (e) => {
+    e?.stopPropagation();
     if (!editText.trim()) return;
-    await base44.entities.TeamMessage.update(message.id, { content: editText.trim() });
-    setIsEditing(false);
-    toast.success("Message updated");
-    onUpdate?.();
+    try {
+      await base44.entities.TeamMessage.update(message.id, { content: editText.trim() });
+      setIsEditing(false);
+      toast.success("Message updated");
+      onUpdate?.();
+    } catch (err) {
+      toast.error(err.message || "Failed to update");
+    }
   };
 
   const readCount = message.read_by?.length || 0;
@@ -134,18 +144,18 @@ export default function MessageBubble({ message, isMe, currentUserEmail, onUpdat
               <MoreVertical className="w-3 h-3 text-slate-500" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="bg-[#1a2744] border-slate-700">
-            <DropdownMenuItem onClick={handlePin} className="text-white hover:bg-white/10 cursor-pointer">
+          <DropdownMenuContent className="bg-[#1a2744] border-slate-700" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handlePin(); }} className="text-white hover:bg-white/10 cursor-pointer">
               <Pin className="w-3 h-3 mr-2" />
               {message.is_pinned ? "Unpin" : "Pin"} Message
             </DropdownMenuItem>
             {isMe && (
               <>
-                <DropdownMenuItem onClick={() => setIsEditing(true)} className="text-white hover:bg-white/10 cursor-pointer">
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} className="text-white hover:bg-white/10 cursor-pointer">
                   <Edit2 className="w-3 h-3 mr-2" />
                   Edit Message
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleDelete} className="text-red-400 hover:bg-red-500/10 cursor-pointer">
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDelete(e); }} className="text-red-400 hover:bg-red-500/10 cursor-pointer">
                   <Trash2 className="w-3 h-3 mr-2" />
                   Delete Message
                 </DropdownMenuItem>
