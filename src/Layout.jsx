@@ -65,8 +65,19 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Active Emergency Banner */}
       {alerts.length > 0 && (
-        <div className="bg-red-600 animate-pulse text-white text-center py-2 px-4 text-sm font-bold tracking-wider">
-          🚨 ACTIVE ALERT: {alerts[0]?.alert_type?.toUpperCase()} — {alerts[0]?.message}
+        <div className="bg-red-600 animate-pulse text-white py-2 px-4 text-sm font-bold tracking-wider flex items-center justify-between gap-2">
+          <div className="flex-1 text-center">
+            🚨 ACTIVE ALERT: {alerts[0]?.alert_type?.toUpperCase()} — {alerts[0]?.message}
+          </div>
+          <button
+            onClick={async () => {
+              await base44.entities.EmergencyAlert.update(alerts[0].id, { is_active: false });
+            }}
+            className="flex-shrink-0 hover:bg-white/20 rounded p-1 transition-colors"
+            title="Dismiss alert"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
