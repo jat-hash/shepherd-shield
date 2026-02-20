@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { CheckCircle, XCircle, Clock, Edit2, Search, Filter } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Edit2, Search, Filter, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import AssignmentForm from "@/components/assignments/AssignmentForm";
 import { toast } from "sonner";
 
@@ -18,6 +19,8 @@ export default function AdminMonitor() {
   const [checkInFilter, setCheckInFilter] = useState("all");
   const [editingAssignment, setEditingAssignment] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [timeEditDialog, setTimeEditDialog] = useState(false);
+  const [timeEditData, setTimeEditData] = useState(null);
 
   useEffect(() => {
     base44.auth.me().then(u => {
@@ -119,6 +122,48 @@ export default function AdminMonitor() {
       }
     } catch (error) {
       toast.error("Failed to update check-in status");
+    }
+  };
+
+  const handleEditTimes = (assignment) => {
+    setTimeEditData({
+      id: assignment.id,
+      name: assignment.assigned_to_name,
+      check_in_time: assignment.check_in_time ? new Date(assignment.check_in_time).toISOString().slice(0, 16) : "",
+      check_out_time: assignment.check_out_time ? new Date(assignment.check_out_time).toISOString().slice(0, 16) : "",
+    });
+    setTimeEditDialog(true);
+  };
+
+  const handleSaveTimes = async () => {
+    try {
+      await base44.entities.Assignment.update(timeEditData.id, {
+        checked_in: !!timeEditData.check_in_time,
+        checked_out: !!timeEditData.check_out_time,
+        check_in_time: timeEditData.check_in_time ? new Date(timeEditData.check_in_time).toISOString() : null,
+        check_out_time: timeEditData.check_out_time ? new Date(timeEditData.check_out_time).toISOString() : null,
+      });
+      toast.success("Times updated");
+      setTimeEditDialog(false);
+      setTimeEditData(null);
+    } catch (error) {
+      toast.error("Failed to update times");
+    }
+  };
+
+  const handleDeleteTimes = async () => {
+    try {
+      await base44.entities.Assignment.update(timeEditData.id, {
+        checked_in: false,
+        checked_out: false,
+        check_in_time: null,
+        check_out_time: null,
+      });
+      toast.success("Check-in/out times deleted");
+      setTimeEditDialog(false);
+      setTimeEditData(null);
+    } catch (error) {
+      toast.error("Failed to delete times");
     }
   };
 
@@ -256,28 +301,40 @@ export default function AdminMonitor() {
                   </div>
 
                   {/* Check-in Status */}
-                  <div className="flex items-center gap-4 text-sm">
-                    {assignment.checked_in && (
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-emerald-500" />
-                        <span className="text-emerald-400">
-                          In: {assignment.check_in_time ? new Date(assignment.check_in_time).toLocaleTimeString() : "N/A"}
-                        </span>
-                      </div>
-                    )}
-                    {assignment.checked_out && (
-                      <div className="flex items-center gap-2">
-                        <XCircle className="w-4 h-4 text-blue-500" />
-                        <span className="text-blue-400">
-                          Out: {assignment.check_out_time ? new Date(assignment.check_out_time).toLocaleTimeString() : "N/A"}
-                        </span>
-                      </div>
-                    )}
-                    {!assignment.checked_in && (
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-slate-500" />
-                        <span className="text-slate-400">Not checked in</span>
-                      </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4 text-sm">
+                      {assignment.checked_in && (
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-emerald-500" />
+                          <span className="text-emerald-400">
+                            In: {assignment.check_in_time ? new Date(assignment.check_in_time).toLocaleTimeString() : "N/A"}
+                          </span>
+                        </div>
+                      )}
+                      {assignment.checked_out && (
+                        <div className="flex items-center gap-2">
+                          <XCircle className="w-4 h-4 text-blue-500" />
+                          <span className="text-blue-400">
+                            Out: {assignment.check_out_time ? new Date(assignment.check_out_time).toLocaleTimeString() : "N/A"}
+                          </span>
+                        </div>
+                      )}
+                      {!assignment.checked_in && (
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-slate-500" />
+                          <span className="text-slate-400">Not checked in</span>
+                        </div>
+                      )}
+                    </div>
+                    {(assignment.checked_in || assignment.checked_out) && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleEditTimes(assignment)}
+                        className="text-slate-400 hover:text-[#d4a843]"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -317,7 +374,7 @@ export default function AdminMonitor() {
         )}
       </div>
 
-      {/* Edit Dialog */}
+      {/* Edit Assignment Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-[#1a2744] border-[rgba(212,168,67,0.2)]">
           <DialogHeader>
@@ -335,6 +392,60 @@ export default function AdminMonitor() {
               setEditingAssignment(null);
             }}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Check-in/out Times Dialog */}
+      <Dialog open={timeEditDialog} onOpenChange={setTimeEditDialog}>
+        <DialogContent className="bg-[#1a2744] border-[rgba(212,168,67,0.2)]">
+          <DialogHeader>
+            <DialogTitle className="text-white">Edit Check-in/out Times</DialogTitle>
+          </DialogHeader>
+          {timeEditData && (
+            <div className="space-y-4">
+              <div>
+                <Label className="text-slate-300">Person</Label>
+                <p className="text-white font-medium mt-1">{timeEditData.name}</p>
+              </div>
+
+              <div>
+                <Label className="text-slate-300">Check-in Time</Label>
+                <Input
+                  type="datetime-local"
+                  value={timeEditData.check_in_time}
+                  onChange={(e) => setTimeEditData({ ...timeEditData, check_in_time: e.target.value })}
+                  className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] text-white mt-1"
+                />
+              </div>
+
+              <div>
+                <Label className="text-slate-300">Check-out Time</Label>
+                <Input
+                  type="datetime-local"
+                  value={timeEditData.check_out_time}
+                  onChange={(e) => setTimeEditData({ ...timeEditData, check_out_time: e.target.value })}
+                  className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] text-white mt-1"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={handleSaveTimes}
+                  className="flex-1 bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]"
+                >
+                  Save Times
+                </Button>
+                <Button
+                  onClick={handleDeleteTimes}
+                  variant="destructive"
+                  className="gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
