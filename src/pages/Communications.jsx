@@ -106,7 +106,7 @@ export default function Communications() {
     setIsTyping(false);
     clearTimeout(typingTimeout.current);
     
-    await base44.entities.TeamMessage.create({
+    const messageData = {
       channel: activeChannel.name,
       content: newMsg.trim() || (attachment ? "Shared a file" : ""),
       sender_name: user.full_name || user.email,
@@ -114,8 +114,33 @@ export default function Communications() {
       message_type: messageType,
       attachment: attachment,
       read_by: [user.email],
-    });
-    setNewMsg("");
+    };
+
+    // If offline, save to pending messages
+    if (!navigator.onLine) {
+      await savePendingMessage(messageData);
+      
+      // Add to UI optimistically
+      setMessages(prev => [...prev, {
+        ...messageData,
+        id: 'pending-' + Date.now(),
+        created_date: new Date().toISOString(),
+        isPending: true
+      }]);
+      
+      toast.info('Message saved - will send when online');
+      setNewMsg("");
+      return;
+    }
+
+    try {
+      await base44.entities.TeamMessage.create(messageData);
+      setNewMsg("");
+    } catch (error) {
+      // If online but request failed, save as pending
+      await savePendingMessage(messageData);
+      toast.error('Send failed - saved for later');
+    }
   };
 
   const handleFileUpload = async (e) => {
