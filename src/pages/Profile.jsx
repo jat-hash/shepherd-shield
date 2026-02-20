@@ -1,14 +1,18 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { LogOut, Shield, Users, RefreshCw, FileText } from "lucide-react";
+import { LogOut, Shield, Users, RefreshCw, FileText, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
+import { toast } from "sonner";
 
 export default function Profile() {
   const [user, setUser] = useState(null);
   const [stats, setStats] = useState({ assignments: 0, incidents: 0, equipment: 0 });
   const [loading, setLoading] = useState(true);
+  const [editingName, setEditingName] = useState(false);
+  const [newName, setNewName] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -31,6 +35,14 @@ export default function Profile() {
     load();
   }, []);
 
+  const handleUpdateName = async () => {
+    if (!newName.trim()) return;
+    await base44.auth.updateMe({ full_name: newName.trim() });
+    setUser({ ...user, full_name: newName.trim() });
+    setEditingName(false);
+    toast.success("Name updated");
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -46,7 +58,26 @@ export default function Profile() {
         <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#d4a843] to-[#b8902a] flex items-center justify-center text-[#0a1128] text-3xl font-bold mx-auto mb-4">
           {user?.full_name?.charAt(0) || "U"}
         </div>
-        <h2 className="text-xl font-bold text-white">{user?.full_name || "User"}</h2>
+        {editingName ? (
+          <div className="flex items-center gap-2 max-w-xs mx-auto mb-2">
+            <Input
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              placeholder="Enter your name"
+              className="bg-[#0a1128] border-slate-700 text-white text-center"
+              autoFocus
+            />
+            <Button onClick={handleUpdateName} size="sm" className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]">Save</Button>
+            <Button onClick={() => setEditingName(false)} size="sm" variant="ghost" className="text-slate-400">Cancel</Button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <h2 className="text-xl font-bold text-white">{user?.full_name || "User"}</h2>
+            <button onClick={() => { setNewName(user?.full_name || ""); setEditingName(true); }} className="text-slate-400 hover:text-[#d4a843] transition-colors">
+              <Edit2 className="w-4 h-4" />
+            </button>
+          </div>
+        )}
         <p className="text-sm text-slate-400 mt-1">{user?.email}</p>
         <span className="inline-block mt-2 px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-[#d4a843]/20 text-[#d4a843] border border-[#d4a843]/30">
           {user?.role || "Team Member"}
