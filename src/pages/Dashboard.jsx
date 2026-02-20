@@ -29,14 +29,21 @@ export default function Dashboard() {
   };
 
   useEffect(() => { 
-    loadData(); 
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
     
     const unsub = base44.entities.Assignment.subscribe((event) => {
-      loadData();
+      if (event.data?.assigned_to_email === user.email || 
+          event.old_data?.assigned_to_email === user.email) {
+        loadData();
+      }
     });
     
     return unsub;
-  }, []);
+  }, [user]);
 
   if (loading) {
     return (
