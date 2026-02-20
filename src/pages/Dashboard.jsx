@@ -24,7 +24,15 @@ export default function Dashboard() {
     setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { 
+    loadData(); 
+    
+    const unsub = base44.entities.Assignment.subscribe((event) => {
+      loadData();
+    });
+    
+    return unsub;
+  }, []);
 
   if (loading) {
     return (
