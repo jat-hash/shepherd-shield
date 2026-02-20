@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
-    const { service_type, service_date, start_time, end_time } = await req.json();
+    const { week_start } = await req.json();
 
     // Get all active positions marked for auto-rotation
     const positions = await base44.asServiceRole.entities.Position.filter({ is_active: true, auto_rotate: true });
@@ -35,13 +35,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check for existing assignments on this date
-    const existingAssignments = await base44.asServiceRole.entities.Assignment.filter({ service_date });
+    // Define weekly services with their typical schedule
+    const weeklyServices = [
+      { day: 0, name: "Sunday AM", start_time: "09:00", end_time: "12:00" },
+      { day: 0, name: "Sunday Spanish Services", start_time: "13:00", end_time: "15:00" },
+      { day: 0, name: "Sunday PM", start_time: "18:00", end_time: "20:00" },
+      { day: 2, name: "Tuesday Bible Study", start_time: "19:00", end_time: "21:00" },
+      { day: 3, name: "Wednesday Spanish Bible Study", start_time: "19:00", end_time: "21:00" },
+      { day: 4, name: "Thursday Services", start_time: "19:00", end_time: "21:00" },
+    ];
 
     // Get week start and end dates
-    const serviceDate = new Date(service_date);
-    const weekStart = new Date(serviceDate);
-    weekStart.setDate(serviceDate.getDate() - serviceDate.getDay());
+    const weekStart = new Date(week_start);
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6);
 
@@ -77,11 +82,14 @@ Deno.serve(async (req) => {
       });
     });
 
-    // Prepare data for AI
+    // Prepare data for AI - generate for entire week
     const aiPrompt = `You are an intelligent assignment rotation system for a church security team.
 
-POSITIONS TO FILL (${positions.length} positions):
+POSITIONS TO FILL (${positions.length} positions for EACH service):
 ${positions.map(p => `- ${p.name}: ${p.description || 'No description'}`).join('\n')}
+
+SERVICES THIS WEEK (${weeklyServices.length} services):
+${weeklyServices.map(s => `- ${s.name} (Day ${s.day}, ${s.start_time}-${s.end_time})`).join('\n')}
 
 AVAILABLE TEAM MEMBERS (${users.length} users):
 ${users.map(u => {
@@ -91,41 +99,56 @@ ${users.map(u => {
 }).join('\n')}
 
 CONSTRAINTS:
-1. NO user should receive more than 1 assignment this week
-2. Prioritize users with fewer recent assignments
-3. Ensure fair rotation across all team members
-4. Consider assignment history for balanced distribution
+1. NO user should receive more than 1 assignment this week across ALL services
+2. Each service needs all ${positions.length} positions filled
+3. Prioritize users with fewer recent assignments
+4. Ensure fair rotation across all team members
+5. Consider assignment history for balanced distribution
 
-EXISTING ASSIGNMENTS FOR ${service_date}:
-${existingAssignments.map(a => `- ${a.position_name}: ${a.assigned_to_name}`).join('\n') || 'None'}
+EXISTING ASSIGNMENTS THIS WEEK:
+${weekAssignmentsFiltered.map(a => `- ${a.service_type}: ${a.position_name} = ${a.assigned_to_name}`).join('\n') || 'None'}
 
-TASK: Assign each position to a different user. Output ONLY valid JSON (no markdown, no explanation):
+TASK: Create assignments for ALL services this week (${weeklyServices.length} services × ${positions.length} positions = ${weeklyServices.length * positions.length} assignments). 
+Each service must have all positions filled. No user can appear more than once across the entire week.
+Output ONLY valid JSON (no markdown, no explanation):
 {
-  "assignments": [
+  "weekly_assignments": [
     {
-      "position_name": "Position Name",
-      "assigned_to_email": "user@email.com",
-      "assigned_to_name": "User Full Name",
-      "reason": "Brief reason for selection"
+      "service_name": "Service Name",
+      "assignments": [
+        {
+          "position_name": "Position Name",
+          "assigned_to_email": "user@email.com",
+          "assigned_to_name": "User Full Name"
+        }
+      ]
     }
   ]
 }`;
 
-    // Call AI to generate assignments
+    // Call AI to generate assignments for entire week
     const aiResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt: aiPrompt,
       response_json_schema: {
         type: "object",
         properties: {
-          assignments: {
+          weekly_assignments: {
             type: "array",
             items: {
               type: "object",
               properties: {
-                position_name: { type: "string" },
-                assigned_to_email: { type: "string" },
-                assigned_to_name: { type: "string" },
-                reason: { type: "string" }
+                service_name: { type: "string" },
+                assignments: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      position_name: { type: "string" },
+                      assigned_to_email: { type: "string" },
+                      assigned_to_name: { type: "string" }
+                    }
+                  }
+                }
               }
             }
           }
@@ -133,29 +156,39 @@ TASK: Assign each position to a different user. Output ONLY valid JSON (no markd
       }
     });
 
-    const aiAssignments = aiResult.assignments || [];
+    const weeklyAssignments = aiResult.weekly_assignments || [];
 
-    // Create assignments
+    // Create assignments for each service
     const createdAssignments = [];
-    for (const assignment of aiAssignments) {
-      const position = positions.find(p => p.name === assignment.position_name);
+    for (const serviceAssignment of weeklyAssignments) {
+      const serviceInfo = weeklyServices.find(s => s.name === serviceAssignment.service_name);
       
-      if (position) {
-        const newAssignment = await base44.asServiceRole.entities.Assignment.create({
-          position_name: assignment.position_name,
-          service_date,
-          service_type,
-          start_time,
-          end_time,
-          assigned_to_email: assignment.assigned_to_email,
-          assigned_to_name: assignment.assigned_to_name,
-          supervisor: "",
-          radio_channel: position.default_radio_channel || "",
-          status: "Pending",
-          area_responsibilities: position.area_responsibilities?.join(", ") || "",
-          notes: `Auto-assigned by AI: ${assignment.reason}`
-        });
-        createdAssignments.push(newAssignment);
+      if (!serviceInfo) continue;
+
+      const serviceDate = new Date(weekStart);
+      serviceDate.setDate(weekStart.getDate() + serviceInfo.day);
+      const serviceDateStr = serviceDate.toISOString().split('T')[0];
+
+      for (const assignment of serviceAssignment.assignments) {
+        const position = positions.find(p => p.name === assignment.position_name);
+        
+        if (position) {
+          const newAssignment = await base44.asServiceRole.entities.Assignment.create({
+            position_name: assignment.position_name,
+            service_date: serviceDateStr,
+            service_type: serviceInfo.name,
+            start_time: serviceInfo.start_time,
+            end_time: serviceInfo.end_time,
+            assigned_to_email: assignment.assigned_to_email,
+            assigned_to_name: assignment.assigned_to_name,
+            supervisor: "",
+            radio_channel: position.default_radio_channel || "",
+            status: "Pending",
+            area_responsibilities: position.area_responsibilities?.join(", ") || "",
+            notes: "Auto-assigned by AI for weekly rotation"
+          });
+          createdAssignments.push(newAssignment);
+        }
       }
     }
 

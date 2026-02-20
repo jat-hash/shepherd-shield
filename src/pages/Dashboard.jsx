@@ -17,25 +17,22 @@ export default function Dashboard() {
       const u = await base44.auth.me();
       setUser(u);
       
-      // Get start of week (Sunday) and end of week (Saturday)
+      // Get start and end of current month
       const today = new Date();
-      const dayOfWeek = today.getDay();
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - dayOfWeek);
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
       
       const allAssignments = await base44.entities.Assignment.filter({
         assigned_to_email: u.email
       }, "service_date");
       
-      // Filter assignments for this week
-      const weekAssignments = allAssignments.filter(a => {
+      // Filter assignments for this month
+      const monthAssignments = allAssignments.filter(a => {
         const assignmentDate = new Date(a.service_date);
-        return assignmentDate >= startOfWeek && assignmentDate <= endOfWeek;
+        return assignmentDate >= startOfMonth && assignmentDate <= endOfMonth;
       });
       
-      setAssignments(weekAssignments);
+      setAssignments(monthAssignments);
     } catch (error) {
       console.error("Error loading data:", error);
     }
@@ -78,12 +75,12 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* This Week's Assignments */}
+      {/* This Month's Assignments */}
       <div className="space-y-3">
-        <h2 className="text-sm uppercase tracking-widest text-[#d4a843] font-semibold">This Week's Assignments</h2>
+        <h2 className="text-sm uppercase tracking-widest text-[#d4a843] font-semibold">This Month's Assignments</h2>
         {assignments.length === 0 ? (
           <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-6 text-center">
-            <p className="text-slate-400 text-sm">No assignments this week</p>
+            <p className="text-slate-400 text-sm">No assignments this month</p>
           </div>
         ) : (
           assignments.map(assignment => (

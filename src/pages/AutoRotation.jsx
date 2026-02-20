@@ -14,10 +14,7 @@ export default function AutoRotation() {
   const [loading, setLoading] = useState(true);
   const [rotating, setRotating] = useState(false);
   const [config, setConfig] = useState({
-    service_type: "Sunday AM",
-    service_date: new Date().toISOString().split("T")[0],
-    start_time: "09:00",
-    end_time: "12:00",
+    week_start: new Date().toISOString().split("T")[0],
   });
 
   useEffect(() => {
@@ -44,14 +41,11 @@ export default function AutoRotation() {
     setRotating(true);
     try {
       const result = await base44.functions.invoke('autoRotateAssignments', {
-        service_type: config.service_type,
-        service_date: config.service_date,
-        start_time: config.start_time,
-        end_time: config.end_time,
+        week_start: config.week_start,
       });
       
       if (result.data.success) {
-        toast.success(`✓ Created ${result.data.assignments_created} assignments`);
+        toast.success(`✓ Created ${result.data.assignments_created} assignments for the week`);
       } else {
         toast.error(result.data.message || "Failed to create assignments");
       }
@@ -76,56 +70,20 @@ export default function AutoRotation() {
       <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-5 space-y-4">
         <h3 className="text-sm font-bold text-[#d4a843] flex items-center gap-2">
           <Calendar className="w-4 h-4" />
-          Service Configuration
+          Week Configuration
         </h3>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label className="text-slate-300 text-xs">Service Type</Label>
-            <Select value={config.service_type} onValueChange={v => setConfig({ ...config, service_type: v })}>
-              <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-[#1a2744] border-slate-700">
-                <SelectItem value="Sunday AM" className="text-white">Sunday AM</SelectItem>
-                <SelectItem value="Sunday Spanish Services" className="text-white">Sunday Spanish Services</SelectItem>
-                <SelectItem value="Sunday PM" className="text-white">Sunday PM</SelectItem>
-                <SelectItem value="Tuesday Bible Study" className="text-white">Tuesday Bible Study</SelectItem>
-                <SelectItem value="Wednesday Spanish Bible Study" className="text-white">Wednesday Spanish Bible Study</SelectItem>
-                <SelectItem value="Thursday Services" className="text-white">Thursday Services</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label className="text-slate-300 text-xs">Service Date</Label>
-            <Input
-              type="date"
-              value={config.service_date}
-              onChange={e => setConfig({ ...config, service_date: e.target.value })}
-              className="bg-[#0a1128] border-slate-700 text-white mt-1"
-            />
-          </div>
-
-          <div>
-            <Label className="text-slate-300 text-xs">Start Time</Label>
-            <Input
-              type="time"
-              value={config.start_time}
-              onChange={e => setConfig({ ...config, start_time: e.target.value })}
-              className="bg-[#0a1128] border-slate-700 text-white mt-1"
-            />
-          </div>
-
-          <div>
-            <Label className="text-slate-300 text-xs">End Time</Label>
-            <Input
-              type="time"
-              value={config.end_time}
-              onChange={e => setConfig({ ...config, end_time: e.target.value })}
-              className="bg-[#0a1128] border-slate-700 text-white mt-1"
-            />
-          </div>
+        <div>
+          <Label className="text-slate-300 text-xs">Week Start Date (Sunday)</Label>
+          <Input
+            type="date"
+            value={config.week_start}
+            onChange={e => setConfig({ ...config, week_start: e.target.value })}
+            className="bg-[#0a1128] border-slate-700 text-white mt-1"
+          />
+          <p className="text-xs text-slate-500 mt-1">
+            This will create assignments for all services during the week starting on this date
+          </p>
         </div>
       </div>
 
@@ -190,9 +148,9 @@ export default function AutoRotation() {
 
       <div className="bg-[#1a2744]/50 rounded-lg border border-[rgba(212,168,67,0.1)] p-4">
         <p className="text-xs text-slate-400 leading-relaxed">
-          <strong className="text-[#d4a843]">How it works:</strong> AI analyzes past assignments, ensures fair rotation, 
-          and prevents any user from receiving more than one assignment per week. The system considers user history, 
-          position requirements, and team availability.
+          <strong className="text-[#d4a843]">How it works:</strong> AI generates assignments for an entire week of services. 
+          It analyzes past assignments, ensures fair rotation, and prevents any user from receiving more than one assignment 
+          per week. The system considers user history, position requirements, and team availability to create a balanced schedule.
         </p>
       </div>
     </div>
