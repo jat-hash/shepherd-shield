@@ -142,27 +142,33 @@ export default function MessageBubble({ message, isMe, currentUserEmail, onUpdat
       </div>
 
       {hovering && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild className={isMe ? "order-1" : ""}>
-            <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0">
-              <MoreVertical className="w-3 h-3 text-slate-500" />
+        <div className="flex gap-1">
+          {isMe && (
+            <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0 text-red-400 hover:bg-red-500/10" onClick={(e) => { e.stopPropagation(); handleDelete(e); }} title="Delete message">
+              <Trash2 className="w-3 h-3" />
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="bg-[#1a2744] border-slate-700" onClick={(e) => e.stopPropagation()}>
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handlePin(); }} className="text-white hover:bg-white/10 cursor-pointer">
-              <Pin className="w-3 h-3 mr-2" />
-              {message.is_pinned ? "Unpin" : "Pin"} Message
-            </DropdownMenuItem>
-            {isMe && (
-              <>
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} className="text-white hover:bg-white/10 cursor-pointer">
-                  <Edit2 className="w-3 h-3 mr-2" />
-                  Edit Message
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDelete(e); }} className="text-red-400 hover:bg-red-500/10 cursor-pointer">
-                  <Trash2 className="w-3 h-3 mr-2" />
-                  Delete Message
-                </DropdownMenuItem>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild className={isMe ? "order-1" : ""}>
+              <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0">
+                <MoreVertical className="w-3 h-3 text-slate-500" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-[#1a2744] border-slate-700" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handlePin(); }} className="text-white hover:bg-white/10 cursor-pointer">
+                <Pin className="w-3 h-3 mr-2" />
+                {message.is_pinned ? "Unpin" : "Pin"} Message
+              </DropdownMenuItem>
+              {isMe && (
+                <>
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} className="text-white hover:bg-white/10 cursor-pointer">
+                    <Edit2 className="w-3 h-3 mr-2" />
+                    Edit Message
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDelete(e); }} className="text-red-400 hover:bg-red-500/10 cursor-pointer">
+                    <Trash2 className="w-3 h-3 mr-2" />
+                    Delete Message
+                  </DropdownMenuItem>
               </>
             )}
           </DropdownMenuContent>
