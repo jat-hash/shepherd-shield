@@ -56,8 +56,8 @@ import Incidents from './pages/Incidents';
 import Positions from './pages/Positions';
 import Profile from './pages/Profile';
 import SOPLibrary from './pages/SOPLibrary';
-import WatchList from './pages/WatchList';
 import SpecialEvents from './pages/SpecialEvents';
+import WatchList from './pages/WatchList';
 import __Layout from './Layout.jsx';
 
 
@@ -71,8 +71,8 @@ export const PAGES = {
     "Positions": Positions,
     "Profile": Profile,
     "SOPLibrary": SOPLibrary,
-    "WatchList": WatchList,
     "SpecialEvents": SpecialEvents,
+    "WatchList": WatchList,
 }
 
 export const pagesConfig = {
