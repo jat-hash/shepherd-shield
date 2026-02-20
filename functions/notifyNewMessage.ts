@@ -9,18 +9,35 @@ Deno.serve(async (req) => {
       return Response.json({ success: true });
     }
 
-    // Get all users
-    const users = await base44.asServiceRole.entities.User.list();
-    
-    // Create notifications for all users except the sender
-    const notifications = users
-      .filter(u => u.email !== data.sender_email)
-      .map(u => ({
-        user_email: u.email,
-        title: `New message in ${data.channel}`,
-        message: `${data.sender_name}: ${data.content.substring(0, 100)}${data.content.length > 100 ? '...' : ''}`,
-        type: 'general'
-      }));
+    // Check if this is a direct message
+    const isDM = data.channel?.startsWith('DM: ');
+    let notifications = [];
+
+    if (isDM) {
+      // For DM, only notify the recipient
+      const emails = data.channel.replace('DM: ', '').split('-');
+      const recipientEmail = emails.find(e => e !== data.sender_email);
+      
+      if (recipientEmail) {
+        notifications = [{
+          user_email: recipientEmail,
+          title: `New direct message from ${data.sender_name}`,
+          message: data.content.substring(0, 100) + (data.content.length > 100 ? '...' : ''),
+          type: 'general'
+        }];
+      }
+    } else {
+      // For group channels, notify all users except the sender
+      const users = await base44.asServiceRole.entities.User.list();
+      notifications = users
+        .filter(u => u.email !== data.sender_email)
+        .map(u => ({
+          user_email: u.email,
+          title: `New message in ${data.channel}`,
+          message: `${data.sender_name}: ${data.content.substring(0, 100)}${data.content.length > 100 ? '...' : ''}`,
+          type: 'general'
+        }));
+    }
 
     if (notifications.length > 0) {
       await base44.asServiceRole.entities.Notification.bulkCreate(notifications);
