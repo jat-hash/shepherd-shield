@@ -8,7 +8,7 @@ import MessageBubble from "@/components/communications/MessageBubble";
 import { toast } from "sonner";
 import { savePendingMessage, getCachedData } from "@/components/notifications/offlineStorage";
 
-const CHANNELS = ["All Team", "Parking", "Kids Wing", "Medical", "Command"];
+const CHANNELS = ["All Team"];
 
 export default function Communications() {
   const [user, setUser] = useState(null);
