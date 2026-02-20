@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, BookOpen, FileCheck, Upload, MessageCircle, Send, Loader2, X } from "lucide-react";
+import { Plus, BookOpen, FileCheck, Upload, MessageCircle, Send, Loader2, X, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +30,7 @@ export default function SOPLibrary() {
   const [form, setForm] = useState({ title: "", category: "General Security", content: "", version: "1.0", document_file: "" });
   const [saving, setSaving] = useState(false);
   const [acknowledging, setAcknowledging] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
@@ -53,10 +54,15 @@ export default function SOPLibrary() {
 
   const handleSave = async () => {
     setSaving(true);
-    await base44.entities.SOP.create(form);
+    if (editingId) {
+      await base44.entities.SOP.update(editingId, form);
+    } else {
+      await base44.entities.SOP.create(form);
+    }
     setSaving(false);
     setFormOpen(false);
     setForm({ title: "", category: "General Security", content: "", version: "1.0", document_file: "" });
+    setEditingId(null);
     load();
   };
 
@@ -158,10 +164,10 @@ Provide a helpful, accurate answer based on the SOP content above.`
         </div>
       )}
 
-      {/* Add Form */}
-      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+      {/* Add/Edit Form */}
+      <Dialog open={formOpen} onOpenChange={(open) => { setFormOpen(open); if (!open) { setEditingId(null); setForm({ title: "", category: "General Security", content: "", version: "1.0", document_file: "" }); } }}>
         <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="text-[#d4a843]">New SOP</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-[#d4a843]">{editingId ? "Edit SOP" : "New SOP"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
               <Label className="text-slate-300 text-xs">Title</Label>
