@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { LogOut, Shield, Users, RefreshCw, FileText, Edit2 } from "lucide-react";
+import { LogOut, Shield, Users, RefreshCw, FileText, Edit2, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { toast } from "sonner";
@@ -48,6 +50,12 @@ export default function Profile() {
     await base44.auth.updateMe({ display_name: newDisplayName.trim() });
     toast.success("Display name updated");
     setTimeout(() => window.location.reload(), 500);
+  };
+
+  const handleNotificationToggle = async (field, value) => {
+    await base44.auth.updateMe({ [field]: value });
+    setUser(prev => ({ ...prev, [field]: value }));
+    toast.success("Notification preferences updated");
   };
 
   if (loading) {
@@ -127,6 +135,60 @@ export default function Profile() {
             <p className="text-[10px] text-slate-500 uppercase tracking-wider mt-1">{stat.label}</p>
           </div>
         ))}
+      </div>
+
+      {/* Notification Preferences */}
+      <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-5 space-y-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Bell className="w-4 h-4 text-[#d4a843]" />
+          <h3 className="text-sm font-bold text-white">Notification Preferences</h3>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label className="text-slate-300 text-sm">Email Notifications</Label>
+            <Switch
+              checked={user?.notifications_email ?? true}
+              onCheckedChange={(val) => handleNotificationToggle('notifications_email', val)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <Label className="text-slate-300 text-sm">In-App Notifications</Label>
+            <Switch
+              checked={user?.notifications_in_app ?? true}
+              onCheckedChange={(val) => handleNotificationToggle('notifications_in_app', val)}
+            />
+          </div>
+
+          <div className="border-t border-[rgba(212,168,67,0.08)] pt-4 space-y-3">
+            <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Notify me about:</p>
+            
+            <div className="flex items-center justify-between">
+              <Label className="text-slate-300 text-sm">New Assignments</Label>
+              <Switch
+                checked={user?.notify_new_assignments ?? true}
+                onCheckedChange={(val) => handleNotificationToggle('notify_new_assignments', val)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label className="text-slate-300 text-sm">Assignment Changes</Label>
+              <Switch
+                checked={user?.notify_assignment_changes ?? true}
+                onCheckedChange={(val) => handleNotificationToggle('notify_assignment_changes', val)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label className="text-slate-300 text-sm">Upcoming Reminders (24h before)</Label>
+              <Switch
+                checked={user?.notify_upcoming_assignments ?? true}
+                onCheckedChange={(val) => handleNotificationToggle('notify_upcoming_assignments', val)}
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Menu Items */}
