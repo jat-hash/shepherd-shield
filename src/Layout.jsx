@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
-import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X } from "lucide-react";
+import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell } from "lucide-react";
 import { Toaster } from "sonner";
 import NotificationProvider from "@/components/notifications/NotificationProvider";
 import NotificationBell from "@/components/notifications/NotificationBell";
@@ -82,12 +82,7 @@ export default function Layout({ children, currentPageName }) {
         </div>
 
         <div className="flex items-center gap-3">
-          <Link to={createPageUrl("Dashboard")} className="relative">
-            <Bell className="w-5 h-5 text-slate-400 hover:text-[#d4a843] transition-colors" />
-            {alerts.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-ping" />
-            )}
-          </Link>
+          <NotificationBell userEmail={user?.email} />
           <div className="w-8 h-8 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-xs">
             {(user?.display_name || user?.full_name)?.charAt(0) || "U"}
           </div>
