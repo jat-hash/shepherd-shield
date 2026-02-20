@@ -271,27 +271,142 @@ export default function EquipmentInventory() {
 
       {/* Detail */}
       <Dialog open={!!detailItem} onOpenChange={() => setDetailItem(null)}>
-        <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-md">
-          <DialogHeader><DialogTitle className="text-[#d4a843]">{detailItem?.name}</DialogTitle></DialogHeader>
+        <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-[#d4a843] flex items-center gap-2">
+              {detailItem?.name}
+              {detailItem?.checked_out && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-500/20 text-orange-400">Checked Out</span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
           {detailItem && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div><span className="text-slate-500 text-xs">Category</span><p className="text-white">{detailItem.category}</p></div>
-                <div><span className="text-slate-500 text-xs">Condition</span><p className={conditionColors[detailItem.condition]?.split(" ")[1]}>{detailItem.condition}</p></div>
-                <div><span className="text-slate-500 text-xs">Serial #</span><p className="text-white">{detailItem.serial_number || "N/A"}</p></div>
-                <div><span className="text-slate-500 text-xs">Assigned To</span><p className="text-white">{detailItem.assigned_to || "Unassigned"}</p></div>
+                <div><span className="text-slate-500 text-xs">Condition</span><p className={`font-semibold ${detailItem.condition === "Good" ? "text-emerald-400" : detailItem.condition === "Fair" ? "text-amber-400" : "text-red-400"}`}>{detailItem.condition}</p></div>
+                {detailItem.serial_number && <div><span className="text-slate-500 text-xs">Serial</span><p className="text-white font-mono text-xs">{detailItem.serial_number}</p></div>}
+                {detailItem.qr_code && <div><span className="text-slate-500 text-xs">QR Code</span><p className="text-white font-mono text-xs">{detailItem.qr_code}</p></div>}
+                {detailItem.assigned_to && <div><span className="text-slate-500 text-xs">Assigned</span><p className="text-white">{detailItem.assigned_to}</p></div>}
+                {detailItem.checked_out && detailItem.checked_out_by && (
+                  <div className="col-span-2">
+                    <span className="text-slate-500 text-xs">Checked Out By</span>
+                    <p className="text-orange-400">{detailItem.checked_out_by}</p>
+                    <p className="text-[10px] text-slate-500">{new Date(detailItem.checked_out_at).toLocaleString()}</p>
+                  </div>
+                )}
               </div>
-              {detailItem.last_inspection_date && (
-                <p className="text-xs text-slate-400">Last inspection: {detailItem.last_inspection_date}</p>
+
+              {detailItem.maintenance_frequency_days && (
+                <div className="bg-[#0a1128] rounded-lg p-3 border border-slate-700">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Calendar className="w-4 h-4 text-[#d4a843]" />
+                    <span className="text-xs font-semibold text-slate-300">Maintenance Schedule</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-slate-500">Frequency</span>
+                      <p className="text-white">Every {detailItem.maintenance_frequency_days} days</p>
+                    </div>
+                    {detailItem.last_inspection_date && (
+                      <div>
+                        <span className="text-slate-500">Last Done</span>
+                        <p className="text-white">{detailItem.last_inspection_date}</p>
+                      </div>
+                    )}
+                    {detailItem.next_maintenance_date && (
+                      <div className="col-span-2">
+                        <span className="text-slate-500">Next Due</span>
+                        <p className={new Date(detailItem.next_maintenance_date) < new Date() ? "text-orange-400 font-semibold" : "text-emerald-400"}>
+                          {detailItem.next_maintenance_date}
+                          {new Date(detailItem.next_maintenance_date) < new Date() && " (Overdue)"}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
+
+              {detailItem.equipment_manual && (
+                <a href={detailItem.equipment_manual} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-[#0a1128] rounded-lg p-3 border border-slate-700 hover:border-[#d4a843]/50 transition-colors">
+                  <FileText className="w-4 h-4 text-[#d4a843]" />
+                  <span className="text-sm text-white">View Equipment Manual</span>
+                </a>
+              )}
+
               {detailItem.maintenance_notes && (
-                <div><span className="text-slate-500 text-xs">Notes</span><p className="text-sm text-slate-300">{detailItem.maintenance_notes}</p></div>
+                <div>
+                  <span className="text-slate-500 text-xs">Maintenance Notes</span>
+                  <p className="text-white text-sm mt-1 bg-[#0a1128] rounded-lg p-3 border border-slate-700">{detailItem.maintenance_notes}</p>
+                </div>
               )}
-              <Button onClick={() => markInspected(detailItem.id)} className="w-full bg-emerald-600 hover:bg-emerald-500 font-bold gap-2">
-                <CheckCircle className="w-4 h-4" /> Mark Inspected
-              </Button>
+
+              {detailItem.usage_history?.length > 0 && (
+                <div>
+                  <span className="text-slate-500 text-xs block mb-2">Usage History</span>
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                    {detailItem.usage_history.slice(-5).reverse().map((entry, i) => (
+                      <div key={i} className="text-xs bg-[#0a1128] rounded p-2 border border-slate-700">
+                        <span className={entry.action === "check-out" ? "text-orange-400" : "text-emerald-400"}>{entry.action}</span>
+                        <span className="text-slate-500"> by {entry.user}</span>
+                        <span className="text-slate-600 ml-2">{new Date(entry.timestamp).toLocaleDateString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                {detailItem.checked_out ? (
+                  <Button onClick={() => handleCheckIn(detailItem)} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm">
+                    <LogIn className="w-4 h-4 mr-2" /> Check In
+                  </Button>
+                ) : (
+                  <Button onClick={() => handleCheckOut(detailItem)} className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold text-sm">
+                    <LogOut className="w-4 h-4 mr-2" /> Check Out
+                  </Button>
+                )}
+                <Button onClick={() => markInspected(detailItem.id, detailItem)} variant="outline" className="border-[#d4a843] text-[#d4a843] hover:bg-[#d4a843]/10 text-sm">
+                  <CheckCircle className="w-4 h-4 mr-2" /> Inspect
+                </Button>
+              </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Scan Mode */}
+      <Dialog open={scanMode} onOpenChange={setScanMode}>
+        <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-[#d4a843] flex items-center gap-2">
+              <QrCode className="w-5 h-5" />
+              Scan Equipment
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-[#0a1128] rounded-lg p-8 border-2 border-dashed border-slate-700 text-center">
+              <Camera className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+              <p className="text-sm text-slate-400">Scan QR code or enter manually</p>
+            </div>
+            <div>
+              <Label className="text-slate-300 text-xs">QR Code or Serial Number</Label>
+              <Input
+                value={scannedCode}
+                onChange={e => setScannedCode(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleScan()}
+                className="bg-[#0a1128] border-slate-700 text-white mt-1"
+                placeholder="Enter code..."
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setScanMode(false); setScannedCode(""); }} className="text-slate-400">Cancel</Button>
+            <Button onClick={handleScan} disabled={!scannedCode.trim()} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
+              Find Equipment
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
