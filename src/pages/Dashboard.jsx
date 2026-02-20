@@ -13,14 +13,18 @@ export default function Dashboard() {
 
   const loadData = async () => {
     setLoading(true);
-    const u = await base44.auth.me();
-    setUser(u);
-    const today = new Date().toISOString().split("T")[0];
-    const allAssignments = await base44.entities.Assignment.filter({
-      assigned_to_email: u.email
-    }, "service_date");
-    const upcoming = allAssignments.filter(a => a.service_date >= today);
-    setNextAssignment(upcoming?.[0] || null);
+    try {
+      const u = await base44.auth.me();
+      setUser(u);
+      const today = new Date().toISOString().split("T")[0];
+      const allAssignments = await base44.entities.Assignment.filter({
+        assigned_to_email: u.email
+      }, "service_date");
+      const upcoming = allAssignments.filter(a => a.service_date >= today);
+      setNextAssignment(upcoming?.[0] || null);
+    } catch (error) {
+      console.error("Error loading data:", error);
+    }
     setLoading(false);
   };
 
