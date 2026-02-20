@@ -1,0 +1,342 @@
+import { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { CheckCircle, XCircle, Clock, Edit2, Search, Filter } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import AssignmentForm from "@/components/assignments/AssignmentForm";
+import { toast } from "sonner";
+
+export default function AdminMonitor() {
+  const [user, setUser] = useState(null);
+  const [assignments, setAssignments] = useState([]);
+  const [filteredAssignments, setFilteredAssignments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [checkInFilter, setCheckInFilter] = useState("all");
+  const [editingAssignment, setEditingAssignment] = useState(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  useEffect(() => {
+    base44.auth.me().then(u => {
+      setUser(u);
+      if (u.role !== 'admin') {
+        window.location.href = '/';
+      }
+    });
+  }, []);
+
+  const loadAssignments = async () => {
+    setLoading(true);
+    try {
+      const today = new Date();
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - today.getDay());
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+      const all = await base44.entities.Assignment.list("service_date");
+      const thisWeek = all.filter(a => {
+        const assignmentDate = new Date(a.service_date);
+        return assignmentDate >= startOfWeek && assignmentDate <= endOfWeek;
+      });
+      setAssignments(thisWeek);
+      setFilteredAssignments(thisWeek);
+    } catch (error) {
+      toast.error("Failed to load assignments");
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      loadAssignments();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const unsub = base44.entities.Assignment.subscribe(() => {
+      loadAssignments();
+    });
+    return unsub;
+  }, [user]);
+
+  useEffect(() => {
+    let filtered = assignments;
+
+    if (searchQuery) {
+      filtered = filtered.filter(a =>
+        a.assigned_to_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        a.position_name?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(a => a.status === statusFilter);
+    }
+
+    if (checkInFilter === "checked_in") {
+      filtered = filtered.filter(a => a.checked_in && !a.checked_out);
+    } else if (checkInFilter === "checked_out") {
+      filtered = filtered.filter(a => a.checked_out);
+    } else if (checkInFilter === "not_checked_in") {
+      filtered = filtered.filter(a => !a.checked_in);
+    }
+
+    setFilteredAssignments(filtered);
+  }, [searchQuery, statusFilter, checkInFilter, assignments]);
+
+  const handleEdit = (assignment) => {
+    setEditingAssignment(assignment);
+    setEditDialogOpen(true);
+  };
+
+  const handleCheckInToggle = async (assignment) => {
+    try {
+      if (!assignment.checked_in) {
+        await base44.entities.Assignment.update(assignment.id, {
+          checked_in: true,
+          check_in_time: new Date().toISOString()
+        });
+        toast.success(`${assignment.assigned_to_name} checked in`);
+      } else if (!assignment.checked_out) {
+        await base44.entities.Assignment.update(assignment.id, {
+          checked_out: true,
+          check_out_time: new Date().toISOString()
+        });
+        toast.success(`${assignment.assigned_to_name} checked out`);
+      } else {
+        await base44.entities.Assignment.update(assignment.id, {
+          checked_in: false,
+          checked_out: false,
+          check_in_time: null,
+          check_out_time: null
+        });
+        toast.info("Check-in status reset");
+      }
+    } catch (error) {
+      toast.error("Failed to update check-in status");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const checkedInCount = assignments.filter(a => a.checked_in && !a.checked_out).length;
+  const checkedOutCount = assignments.filter(a => a.checked_out).length;
+  const notCheckedInCount = assignments.filter(a => !a.checked_in).length;
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-6 lg:ml-60 space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-white">Admin Monitor</h1>
+        <p className="text-slate-400 text-sm mt-1">Real-time check-in/check-out tracking</p>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle className="w-5 h-5 text-emerald-500" />
+            <span className="text-emerald-400 text-sm font-medium">Checked In</span>
+          </div>
+          <p className="text-3xl font-bold text-white">{checkedInCount}</p>
+        </div>
+
+        <div className="bg-blue-900/20 border border-blue-500/30 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <XCircle className="w-5 h-5 text-blue-500" />
+            <span className="text-blue-400 text-sm font-medium">Checked Out</span>
+          </div>
+          <p className="text-3xl font-bold text-white">{checkedOutCount}</p>
+        </div>
+
+        <div className="bg-orange-900/20 border border-orange-500/30 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Clock className="w-5 h-5 text-orange-500" />
+            <span className="text-orange-400 text-sm font-medium">Not Checked In</span>
+          </div>
+          <p className="text-3xl font-bold text-white">{notCheckedInCount}</p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              placeholder="Search by name or position..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-[#0a1128] border-[rgba(212,168,67,0.2)] text-white"
+            />
+          </div>
+
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] text-white">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="Confirmed">Confirmed</SelectItem>
+              <SelectItem value="Pending">Pending</SelectItem>
+              <SelectItem value="Declined">Declined</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={checkInFilter} onValueChange={setCheckInFilter}>
+            <SelectTrigger className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] text-white">
+              <SelectValue placeholder="Filter by check-in" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Check-in States</SelectItem>
+              <SelectItem value="checked_in">Checked In</SelectItem>
+              <SelectItem value="checked_out">Checked Out</SelectItem>
+              <SelectItem value="not_checked_in">Not Checked In</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Assignments List */}
+      <div className="space-y-3">
+        {filteredAssignments.length === 0 ? (
+          <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-8 text-center">
+            <p className="text-slate-400">No assignments found</p>
+          </div>
+        ) : (
+          filteredAssignments.map(assignment => (
+            <div
+              key={assignment.id}
+              className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-4 hover:border-[#d4a843] transition-colors"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="text-white font-semibold">{assignment.assigned_to_name}</h3>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      assignment.status === 'Confirmed' ? 'bg-emerald-500/20 text-emerald-400' :
+                      assignment.status === 'Pending' ? 'bg-amber-500/20 text-amber-400' :
+                      'bg-red-500/20 text-red-400'
+                    }`}>
+                      {assignment.status}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                    <div>
+                      <span className="text-slate-500">Position: </span>
+                      <span className="text-white">{assignment.position_name}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Date: </span>
+                      <span className="text-white">
+                        {new Date(assignment.service_date).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Time: </span>
+                      <span className="text-white">
+                        {assignment.start_time} - {assignment.end_time}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Channel: </span>
+                      <span className="text-white">{assignment.radio_channel || "N/A"}</span>
+                    </div>
+                  </div>
+
+                  {/* Check-in Status */}
+                  <div className="flex items-center gap-4 text-sm">
+                    {assignment.checked_in && (
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-emerald-500" />
+                        <span className="text-emerald-400">
+                          In: {assignment.check_in_time ? new Date(assignment.check_in_time).toLocaleTimeString() : "N/A"}
+                        </span>
+                      </div>
+                    )}
+                    {assignment.checked_out && (
+                      <div className="flex items-center gap-2">
+                        <XCircle className="w-4 h-4 text-blue-500" />
+                        <span className="text-blue-400">
+                          Out: {assignment.check_out_time ? new Date(assignment.check_out_time).toLocaleTimeString() : "N/A"}
+                        </span>
+                      </div>
+                    )}
+                    {!assignment.checked_in && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-slate-500" />
+                        <span className="text-slate-400">Not checked in</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => handleEdit(assignment)}
+                    className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleCheckInToggle(assignment)}
+                    variant="outline"
+                    className={`${
+                      !assignment.checked_in
+                        ? "border-emerald-500 text-emerald-400 hover:bg-emerald-500/10"
+                        : !assignment.checked_out
+                        ? "border-blue-500 text-blue-400 hover:bg-blue-500/10"
+                        : "border-slate-500 text-slate-400 hover:bg-slate-500/10"
+                    }`}
+                  >
+                    {!assignment.checked_in ? (
+                      <>In</>
+                    ) : !assignment.checked_out ? (
+                      <>Out</>
+                    ) : (
+                      <>Reset</>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-[#1a2744] border-[rgba(212,168,67,0.2)]">
+          <DialogHeader>
+            <DialogTitle className="text-white">Edit Assignment</DialogTitle>
+          </DialogHeader>
+          <AssignmentForm
+            editData={editingAssignment}
+            onSuccess={() => {
+              setEditDialogOpen(false);
+              setEditingAssignment(null);
+              loadAssignments();
+            }}
+            onCancel={() => {
+              setEditDialogOpen(false);
+              setEditingAssignment(null);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

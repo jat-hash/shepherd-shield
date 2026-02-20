@@ -58,6 +58,7 @@ import Profile from './pages/Profile';
 import SOPLibrary from './pages/SOPLibrary';
 import SpecialEvents from './pages/SpecialEvents';
 import WatchList from './pages/WatchList';
+import AdminMonitor from './pages/AdminMonitor';
 import __Layout from './Layout.jsx';
 
 
@@ -73,6 +74,7 @@ export const PAGES = {
     "SOPLibrary": SOPLibrary,
     "SpecialEvents": SpecialEvents,
     "WatchList": WatchList,
+    "AdminMonitor": AdminMonitor,
 }
 
 export const pagesConfig = {
