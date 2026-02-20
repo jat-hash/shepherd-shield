@@ -66,7 +66,7 @@ export default function Communications() {
       });
 
     const unsub = base44.entities.TeamMessage.subscribe((event) => {
-      if (event.data?.channel === currentChannel) {
+      if (event.data?.channel === currentChannel || (event.type === "delete" && messages.some(m => m.id === event.id)) || (event.type === "delete" && pinnedMessages.some(m => m.id === event.id))) {
         if (event.type === "create") {
           if (event.data.is_pinned) {
             setPinnedMessages(prev => [...prev, event.data]);
@@ -91,6 +91,9 @@ export default function Communications() {
             setMessages(updateList);
             setPinnedMessages(prev => prev.filter(m => m.id !== event.id));
           }
+        } else if (event.type === "delete") {
+          setMessages(prev => prev.filter(m => m.id !== event.id));
+          setPinnedMessages(prev => prev.filter(m => m.id !== event.id));
         }
       }
     });
