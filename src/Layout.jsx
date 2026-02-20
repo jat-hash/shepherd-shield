@@ -226,19 +226,18 @@ export default function Layout({ children, currentPageName }) {
       </main>
 
       {/* Bottom Navigation - Mobile */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#141f3d] border-t border-[rgba(212,168,67,0.15)] flex justify-around py-2 z-40 lg:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#141f3d] border-t border-[rgba(212,168,67,0.15)] flex justify-around py-3 z-40 lg:hidden">
         {NAV_ITEMS.map(item => {
           const isActive = currentPageName === item.page;
           return (
             <Link
               key={item.page}
               to={createPageUrl(item.page)}
-              className={`flex flex-col items-center gap-0.5 px-2 py-1 transition-colors ${
+              className={`px-3 py-1 transition-colors ${
                 isActive ? "text-[#d4a843]" : "text-slate-500 hover:text-slate-300"
               }`}
             >
-              <item.icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium">{item.name}</span>
+              <span className="text-xs font-medium">{item.name}</span>
             </Link>
           );
         })}
