@@ -213,7 +213,32 @@ Provide a helpful, accurate answer based on the SOP content above.`
       {/* Detail View */}
       <Dialog open={!!detailSop} onOpenChange={() => setDetailSop(null)}>
         <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="text-[#d4a843]">{detailSop?.title}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <DialogTitle className="text-[#d4a843]">{detailSop?.title}</DialogTitle>
+              </div>
+              <Button
+                onClick={() => {
+                  setForm({
+                    title: detailSop.title,
+                    category: detailSop.category,
+                    content: detailSop.content,
+                    version: detailSop.version,
+                    document_file: detailSop.document_file || ""
+                  });
+                  setEditingId(detailSop.id);
+                  setDetailSop(null);
+                  setFormOpen(true);
+                }}
+                size="sm"
+                variant="outline"
+                className="border-[#d4a843]/30 text-[#d4a843] hover:bg-[#d4a843]/10 gap-1"
+              >
+                <Edit2 className="w-3 h-3" /> Edit
+              </Button>
+            </div>
+          </DialogHeader>
           {detailSop && (
             <div className="space-y-4">
               <div className="flex items-center gap-3 text-xs text-slate-400">
