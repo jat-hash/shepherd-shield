@@ -38,9 +38,8 @@ export default function Profile() {
   const handleUpdateName = async () => {
     if (!newName.trim()) return;
     await base44.auth.updateMe({ full_name: newName.trim() });
-    setUser({ ...user, full_name: newName.trim() });
-    setEditingName(false);
     toast.success("Name updated");
+    setTimeout(() => window.location.reload(), 500);
   };
 
   if (loading) {
