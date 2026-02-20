@@ -24,7 +24,11 @@ export default function MessageBubble({ message, isMe, currentUserEmail, onUpdat
         toast.success("Message deleted");
         onUpdate?.();
       } catch (err) {
-        toast.error(err.message || "Failed to delete");
+        if (err.message?.includes("429") || err.message?.includes("Rate limit")) {
+          toast.error("Too many requests - please wait a moment");
+        } else {
+          toast.error(err.message || "Failed to delete");
+        }
       }
     }
   };
