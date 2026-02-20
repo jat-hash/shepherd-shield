@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Wrench, CheckCircle, Upload } from "lucide-react";
+import { Plus, Wrench, CheckCircle, Upload, QrCode, Camera, FileText, LogIn, LogOut, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 const CATEGORIES = ["Radio", "First Aid", "Safety Gear", "Camera", "Signage", "Other"];
 const CONDITIONS = ["Good", "Fair", "Needs Repair", "Out of Service"];
@@ -24,8 +25,10 @@ export default function EquipmentInventory() {
   const [formOpen, setFormOpen] = useState(false);
   const [detailItem, setDetailItem] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [form, setForm] = useState({ name: "", category: "Radio", serial_number: "", assigned_to: "", condition: "Good", last_inspection_date: "", maintenance_notes: "", inspection_photo: "" });
+  const [form, setForm] = useState({ name: "", category: "Radio", serial_number: "", qr_code: "", assigned_to: "", condition: "Good", maintenance_frequency_days: 30, equipment_manual: "", maintenance_notes: "" });
   const [saving, setSaving] = useState(false);
+  const [scanMode, setScanMode] = useState(false);
+  const [scannedCode, setScannedCode] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -38,24 +41,91 @@ export default function EquipmentInventory() {
 
   const filtered = categoryFilter === "all" ? items : items.filter(i => i.category === categoryFilter);
 
-  const handlePhotoUpload = async (e) => {
+  const handleManualUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setForm(prev => ({ ...prev, inspection_photo: file_url }));
+    setForm(prev => ({ ...prev, equipment_manual: file_url }));
+    toast.success("Manual uploaded");
   };
 
   const handleSave = async () => {
     setSaving(true);
-    await base44.entities.Equipment.create(form);
+    const nextMaintenance = form.maintenance_frequency_days 
+      ? new Date(Date.now() + form.maintenance_frequency_days * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+      : null;
+    await base44.entities.Equipment.create({
+      ...form,
+      next_maintenance_date: nextMaintenance,
+      last_inspection_date: new Date().toISOString().split("T")[0]
+    });
     setSaving(false);
     setFormOpen(false);
-    setForm({ name: "", category: "Radio", serial_number: "", assigned_to: "", condition: "Good", last_inspection_date: "", maintenance_notes: "", inspection_photo: "" });
+    setForm({ name: "", category: "Radio", serial_number: "", qr_code: "", assigned_to: "", condition: "Good", maintenance_frequency_days: 30, equipment_manual: "", maintenance_notes: "" });
+    load();
+    toast.success("Equipment added");
+  };
+
+  const generateQRCode = () => {
+    const code = `EQ-${Date.now().toString(36).toUpperCase()}`;
+    setForm(prev => ({ ...prev, qr_code: code }));
+    toast.success("QR Code generated");
+  };
+
+  const handleScan = async () => {
+    if (!scannedCode.trim()) return;
+    const found = items.find(i => i.qr_code === scannedCode.trim() || i.serial_number === scannedCode.trim());
+    if (found) {
+      setDetailItem(found);
+      setScanMode(false);
+      setScannedCode("");
+    } else {
+      toast.error("Equipment not found");
+    }
+  };
+
+  const handleCheckOut = async (item) => {
+    const user = await base44.auth.me();
+    await base44.entities.Equipment.update(item.id, {
+      checked_out: true,
+      checked_out_by: user.full_name || user.email,
+      checked_out_at: new Date().toISOString(),
+      usage_history: [
+        ...(item.usage_history || []),
+        { action: "check-out", user: user.full_name || user.email, timestamp: new Date().toISOString() }
+      ]
+    });
+    toast.success("Equipment checked out");
+    setDetailItem(null);
     load();
   };
 
-  const markInspected = async (id) => {
-    await base44.entities.Equipment.update(id, { last_inspection_date: new Date().toISOString().split("T")[0] });
+  const handleCheckIn = async (item) => {
+    const user = await base44.auth.me();
+    await base44.entities.Equipment.update(item.id, {
+      checked_out: false,
+      checked_out_by: null,
+      checked_out_at: null,
+      usage_history: [
+        ...(item.usage_history || []),
+        { action: "check-in", user: user.full_name || user.email, timestamp: new Date().toISOString() }
+      ]
+    });
+    toast.success("Equipment checked in");
+    setDetailItem(null);
+    load();
+  };
+
+  const markInspected = async (id, item) => {
+    const today = new Date().toISOString().split("T")[0];
+    const nextMaintenance = item.maintenance_frequency_days
+      ? new Date(Date.now() + item.maintenance_frequency_days * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+      : null;
+    await base44.entities.Equipment.update(id, { 
+      last_inspection_date: today,
+      next_maintenance_date: nextMaintenance
+    });
+    toast.success("Inspection recorded");
     setDetailItem(null);
     load();
   };
@@ -64,9 +134,14 @@ export default function EquipmentInventory() {
     <div className="max-w-2xl mx-auto px-4 py-6 lg:ml-60 space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-white">Equipment</h1>
-        <Button onClick={() => setFormOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-sm gap-1">
-          <Plus className="w-4 h-4" /> Add Item
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setScanMode(true)} variant="outline" className="border-[#d4a843] text-[#d4a843] hover:bg-[#d4a843]/10 text-sm gap-1">
+            <QrCode className="w-4 h-4" /> Scan
+          </Button>
+          <Button onClick={() => setFormOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-sm gap-1">
+            <Plus className="w-4 h-4" /> Add
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-2 overflow-x-auto no-scrollbar">
@@ -91,18 +166,30 @@ export default function EquipmentInventory() {
           {filtered.map(item => (
             <button key={item.id} onClick={() => setDetailItem(item)} className="w-full text-left bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-4 hover:border-[#d4a843]/30 transition-all">
               <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-white">{item.name}</h3>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-white">{item.name}</h3>
+                    {item.checked_out && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-500/20 text-orange-400">Out</span>
+                    )}
+                  </div>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    {item.assigned_to ? `Assigned: ${item.assigned_to}` : "Unassigned"}
+                    {item.checked_out ? `Checked out by: ${item.checked_out_by}` : item.assigned_to ? `Assigned: ${item.assigned_to}` : "Available"}
                     {item.serial_number && ` • SN: ${item.serial_number}`}
                   </p>
                 </div>
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${conditionColors[item.condition]}`}>{item.condition}</span>
               </div>
-              {item.last_inspection_date && (
-                <p className="text-[10px] text-slate-500 mt-2">Last inspected: {item.last_inspection_date}</p>
-              )}
+              <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-500">
+                {item.last_inspection_date && (
+                  <span>Inspected: {item.last_inspection_date}</span>
+                )}
+                {item.next_maintenance_date && (
+                  <span className={new Date(item.next_maintenance_date) < new Date() ? "text-orange-400" : ""}>
+                    Next: {item.next_maintenance_date}
+                  </span>
+                )}
+              </div>
             </button>
           ))}
         </div>
@@ -137,13 +224,36 @@ export default function EquipmentInventory() {
                 </Select>
               </div>
             </div>
-            <div>
-              <Label className="text-slate-300 text-xs">Serial Number</Label>
-              <Input value={form.serial_number} onChange={e => setForm({ ...form, serial_number: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-slate-300 text-xs">Serial Number</Label>
+                <Input value={form.serial_number} onChange={e => setForm({ ...form, serial_number: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" />
+              </div>
+              <div>
+                <Label className="text-slate-300 text-xs">QR Code</Label>
+                <div className="flex gap-1 mt-1">
+                  <Input value={form.qr_code} onChange={e => setForm({ ...form, qr_code: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white flex-1" placeholder="Auto" />
+                  <Button type="button" onClick={generateQRCode} size="sm" variant="outline" className="border-slate-700 text-slate-400">
+                    <QrCode className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
             </div>
             <div>
               <Label className="text-slate-300 text-xs">Assigned To</Label>
               <Input value={form.assigned_to} onChange={e => setForm({ ...form, assigned_to: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" />
+            </div>
+            <div>
+              <Label className="text-slate-300 text-xs">Maintenance Schedule (days)</Label>
+              <Input type="number" value={form.maintenance_frequency_days} onChange={e => setForm({ ...form, maintenance_frequency_days: parseInt(e.target.value) || 0 })} className="bg-[#0a1128] border-slate-700 text-white mt-1" placeholder="e.g. 30" />
+            </div>
+            <div>
+              <Label className="text-slate-300 text-xs">Equipment Manual/Guide</Label>
+              <label className="mt-1 flex items-center gap-2 cursor-pointer bg-[#0a1128] border border-dashed border-slate-600 rounded-lg p-3 hover:border-[#d4a843]/40 transition-colors">
+                <Upload className="w-4 h-4 text-slate-400" />
+                <span className="text-xs text-slate-400">{form.equipment_manual ? "Manual uploaded ✓" : "Upload PDF manual"}</span>
+                <input type="file" accept=".pdf" className="hidden" onChange={handleManualUpload} />
+              </label>
             </div>
             <div>
               <Label className="text-slate-300 text-xs">Maintenance Notes</Label>
