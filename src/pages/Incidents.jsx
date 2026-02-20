@@ -50,13 +50,13 @@ export default function Incidents() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 lg:ml-60 space-y-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-white">Incident Reports</h1>
-        <div className="flex gap-2">
+    <div className="max-w-2xl mx-auto px-3 py-4 lg:px-4 lg:py-6 lg:ml-60 space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-lg sm:text-xl font-bold text-white">Incident Reports</h1>
+        <div className="flex gap-1 sm:gap-2">
           <SOPReference category="Active Threat" />
-          <Button onClick={() => setFormOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-sm gap-1">
-            <Plus className="w-4 h-4" /> New Report
+          <Button onClick={() => setFormOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-4">
+            <Plus className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">New</span>
           </Button>
         </div>
       </div>

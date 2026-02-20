@@ -67,10 +67,10 @@ export default function Profile() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 lg:ml-60 space-y-6">
+    <div className="max-w-2xl mx-auto px-3 py-4 lg:px-4 lg:py-6 lg:ml-60 space-y-4 sm:space-y-6">
       {/* Profile Header */}
-      <div className="bg-[#1a2744] rounded-2xl border border-[rgba(212,168,67,0.1)] p-6 text-center">
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#d4a843] to-[#b8902a] flex items-center justify-center text-[#0a1128] text-3xl font-bold mx-auto mb-4">
+      <div className="bg-[#1a2744] rounded-2xl border border-[rgba(212,168,67,0.1)] p-4 sm:p-6 text-center">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#d4a843] to-[#b8902a] flex items-center justify-center text-[#0a1128] text-2xl sm:text-3xl font-bold mx-auto mb-3 sm:mb-4">
           {(user?.display_name || user?.full_name)?.charAt(0) || "U"}
         </div>
         
@@ -124,15 +124,15 @@ export default function Profile() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         {[
           { label: "Assignments", value: stats.assignments, color: "text-blue-400" },
           { label: "Incidents", value: stats.incidents, color: "text-orange-400" },
           { label: "Equipment", value: stats.equipment, color: "text-emerald-400" },
         ].map(stat => (
-          <div key={stat.label} className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-4 text-center">
-            <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
-            <p className="text-[10px] text-slate-500 uppercase tracking-wider mt-1">{stat.label}</p>
+          <div key={stat.label} className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-3 sm:p-4 text-center">
+            <p className={`text-xl sm:text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+            <p className="text-[9px] sm:text-[10px] text-slate-500 uppercase tracking-wider mt-1">{stat.label}</p>
           </div>
         ))}
       </div>

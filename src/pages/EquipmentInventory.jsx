@@ -131,22 +131,22 @@ export default function EquipmentInventory() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 lg:ml-60 space-y-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-white">Equipment</h1>
-        <div className="flex gap-2">
-          <Button onClick={() => setScanMode(true)} variant="outline" className="border-[#d4a843] text-[#d4a843] hover:bg-[#d4a843]/10 text-sm gap-1">
-            <QrCode className="w-4 h-4" /> Scan
+    <div className="max-w-2xl mx-auto px-3 py-4 lg:px-4 lg:py-6 lg:ml-60 space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-lg sm:text-xl font-bold text-white">Equipment</h1>
+        <div className="flex gap-1 sm:gap-2">
+          <Button onClick={() => setScanMode(true)} variant="outline" className="border-[#d4a843] text-[#d4a843] hover:bg-[#d4a843]/10 text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-3">
+            <QrCode className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Scan</span>
           </Button>
-          <Button onClick={() => setFormOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-sm gap-1">
-            <Plus className="w-4 h-4" /> Add
+          <Button onClick={() => setFormOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-4">
+            <Plus className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Add</span>
           </Button>
         </div>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto no-scrollbar">
+      <div className="flex gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar">
         {["all", ...CATEGORIES].map(c => (
-          <button key={c} onClick={() => setCategoryFilter(c)} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${categoryFilter === c ? "bg-[#d4a843] text-[#0a1128]" : "bg-[#1a2744] text-slate-400"}`}>
+          <button key={c} onClick={() => setCategoryFilter(c)} className={`px-2.5 sm:px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-medium whitespace-nowrap transition-all ${categoryFilter === c ? "bg-[#d4a843] text-[#0a1128]" : "bg-[#1a2744] text-slate-400"}`}>
             {c === "all" ? "All" : c}
           </button>
         ))}
