@@ -1,14 +1,34 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Pin, MoreVertical, Check, CheckCheck } from "lucide-react";
+import { Pin, MoreVertical, Check, CheckCheck, Trash2, Edit2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 export default function MessageBubble({ message, isMe, currentUserEmail, onUpdate }) {
   const [hovering, setHovering] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(message.content);
 
   const handlePin = async () => {
     await base44.entities.TeamMessage.update(message.id, { is_pinned: !message.is_pinned });
+    onUpdate?.();
+  };
+
+  const handleDelete = async () => {
+    if (confirm("Delete this message?")) {
+      await base44.entities.TeamMessage.delete(message.id);
+      toast.success("Message deleted");
+      onUpdate?.();
+    }
+  };
+
+  const handleEdit = async () => {
+    if (!editText.trim()) return;
+    await base44.entities.TeamMessage.update(message.id, { content: editText.trim() });
+    setIsEditing(false);
+    toast.success("Message updated");
     onUpdate?.();
   };
 
@@ -66,11 +86,29 @@ export default function MessageBubble({ message, isMe, currentUserEmail, onUpdat
             </div>
           )}
           
-          <p className="text-sm leading-relaxed">{message.content}</p>
+          {isEditing ? (
+            <div className="flex gap-2 items-center">
+              <Input
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleEdit();
+                  if (e.key === "Escape") setIsEditing(false);
+                }}
+                className="bg-[#0a1128]/50 border-[#d4a843]/30 text-white text-sm"
+                autoFocus
+              />
+              <Button size="sm" onClick={handleEdit} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] h-7 px-2">
+                Save
+              </Button>
+            </div>
+          ) : (
+            <p className="text-sm leading-relaxed">{message.content}</p>
+          )}
           
           <div className="flex items-center justify-between mt-1 gap-3">
             <p className={`text-[9px] ${isMe ? "text-[#0a1128]/60" : "text-slate-500"}`}>
-              {new Date(message.created_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {new Date(message.created_date).toLocaleDateString([], { month: 'short', day: 'numeric' })} {new Date(message.created_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
             
             {isMe && (
@@ -101,6 +139,18 @@ export default function MessageBubble({ message, isMe, currentUserEmail, onUpdat
               <Pin className="w-3 h-3 mr-2" />
               {message.is_pinned ? "Unpin" : "Pin"} Message
             </DropdownMenuItem>
+            {isMe && (
+              <>
+                <DropdownMenuItem onClick={() => setIsEditing(true)} className="text-white hover:bg-white/10 cursor-pointer">
+                  <Edit2 className="w-3 h-3 mr-2" />
+                  Edit Message
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDelete} className="text-red-400 hover:bg-red-500/10 cursor-pointer">
+                  <Trash2 className="w-3 h-3 mr-2" />
+                  Delete Message
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       )}
