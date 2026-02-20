@@ -98,14 +98,15 @@ export default function Assignments() {
           {/* Day Headers */}
           <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2">
             {dayNames.map(name => (
-              <div key={name} className="text-center text-[10px] sm:text-xs font-semibold text-slate-400 py-1 sm:py-2">
-                {name}
+              <div key={name} className="text-center text-xs sm:text-sm font-semibold text-slate-400 py-2">
+                <span className="hidden sm:inline">{name}</span>
+                <span className="sm:hidden">{name.charAt(0)}</span>
               </div>
             ))}
           </div>
 
           {/* Calendar Days */}
-          <div className="grid grid-cols-7 gap-1 sm:gap-2">
+          <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
             {days.map((date, i) => {
               const dayAssignments = date ? getAssignmentsForDate(date) : [];
               const isToday = date && date.toISOString().split("T")[0] === new Date().toISOString().split("T")[0];
@@ -113,28 +114,28 @@ export default function Assignments() {
               return (
                 <div
                   key={i}
-                  className={`min-h-[80px] sm:min-h-[100px] bg-[#1a2744] rounded-lg border p-1 sm:p-2 ${
+                  className={`min-h-[90px] sm:min-h-[110px] bg-[#1a2744] rounded-lg border p-1.5 sm:p-2 ${
                     date ? "border-[rgba(212,168,67,0.1)]" : "border-transparent bg-transparent"
                   }`}
                 >
                   {date && (
                     <>
-                      <div className={`text-[10px] sm:text-xs font-bold mb-0.5 sm:mb-1 ${isToday ? "text-[#d4a843]" : "text-slate-300"}`}>
+                      <div className={`text-xs sm:text-sm font-bold mb-1 ${isToday ? "text-[#d4a843]" : "text-slate-300"}`}>
                         {date.getDate()}
                       </div>
-                      <div className="space-y-0.5 sm:space-y-1">
+                      <div className="space-y-1">
                         {dayAssignments.map(a => (
                           <button
                             key={a.id}
                             onClick={() => { setEditData(a); setFormOpen(true); }}
-                            className="w-full text-left bg-[#0a1128] rounded p-1 sm:p-1.5 hover:bg-[#d4a843]/10 border border-transparent hover:border-[#d4a843]/30 transition-all"
+                            className="w-full text-left bg-[#0a1128] rounded p-1.5 hover:bg-[#d4a843]/10 border border-transparent hover:border-[#d4a843]/30 transition-all"
                           >
-                            <div className="flex items-center gap-0.5 sm:gap-1">
+                            <div className="flex items-center gap-1 mb-0.5">
                               {statusIcon(a.status)}
-                              <span className="text-[9px] sm:text-[10px] text-white font-medium truncate">{a.position_name}</span>
+                              <span className="text-[10px] sm:text-xs text-white font-medium truncate">{a.position_name}</span>
                             </div>
-                            <p className="text-[8px] sm:text-[9px] text-slate-400 truncate mt-0.5 hidden sm:block">{a.assigned_to_name}</p>
-                            <p className="text-[8px] sm:text-[9px] text-slate-500 hidden sm:block">{a.start_time}</p>
+                            <p className="text-[9px] sm:text-[10px] text-slate-400 truncate">{a.assigned_to_name}</p>
+                            <p className="text-[9px] sm:text-[10px] text-slate-500">{a.start_time}</p>
                           </button>
                         ))}
                       </div>
