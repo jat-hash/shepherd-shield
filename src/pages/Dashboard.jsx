@@ -18,10 +18,10 @@ export default function Dashboard() {
       setUser(u);
       const today = new Date().toISOString().split("T")[0];
       const allAssignments = await base44.entities.Assignment.filter({
-        assigned_to_email: u.email
-      }, "service_date");
-      const upcoming = allAssignments.filter(a => a.service_date >= today);
-      setNextAssignment(upcoming?.[0] || null);
+        assigned_to_email: u.email,
+        service_date: today
+      }, "start_time");
+      setNextAssignment(allAssignments?.[0] || null);
     } catch (error) {
       console.error("Error loading data:", error);
     }
