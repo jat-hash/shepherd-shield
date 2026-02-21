@@ -3,9 +3,13 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const body = await req.json();
+    const payload = await req.json();
     
-    if (!body.alert_id || !body.alert_type || !body.message) {
+    const alertData = payload.data || payload;
+    const alert_type = alertData.alert_type;
+    const message = alertData.message;
+    
+    if (!alert_type || !message) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
