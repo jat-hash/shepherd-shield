@@ -6,6 +6,55 @@ import EmergencyOverlay from "./EmergencyOverlay";
 import OfflineIndicator from "./OfflineIndicator";
 import { cacheData, syncPendingMessages } from "./offlineStorage";
 
+// Loud sound notification helper
+const playNotificationSound = (type = 'message') => {
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    if (type === 'emergency') {
+      // LOUD urgent alarm - multiple beeps
+      for (let i = 0; i < 3; i++) {
+        setTimeout(() => {
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          oscillator.frequency.value = 880;
+          oscillator.type = 'square';
+          gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.3);
+        }, i * 400);
+      }
+    } else if (type === 'alert') {
+      // Alert message - double beep
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.frequency.value = 660;
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.25);
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.25);
+    } else {
+      // Regular message - single ping
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.frequency.value = 520;
+      gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.2);
+    }
+  } catch (error) {
+    console.log('Audio not supported');
+  }
+};
+
 export default function NotificationProvider({ children }) {
   const [user, setUser] = useState(null);
   const [emergencyAlert, setEmergencyAlert] = useState(null);
@@ -38,13 +87,22 @@ export default function NotificationProvider({ children }) {
         // Cache alert for offline access
         cacheData('alerts', event.data);
 
+        // LOUD emergency sound
+        playNotificationSound('emergency');
+        
+        // Vibrate if supported
+        if (navigator.vibrate) {
+          navigator.vibrate([300, 100, 300, 100, 300, 100, 300]);
+        }
+
         // Browser notification if permission granted
         if (Notification.permission === 'granted') {
           new Notification('🚨 EMERGENCY ALERT', {
             body: `${event.data.alert_type}: ${event.data.message}`,
             requireInteraction: true,
-            vibrate: [200, 100, 200, 100, 200],
-            tag: 'emergency-' + event.data.id
+            vibrate: [300, 100, 300, 100, 300],
+            tag: 'emergency-' + event.data.id,
+            silent: false
           });
         }
       } else if (event.type === "update" && !event.data?.is_active) {
@@ -74,6 +132,14 @@ export default function NotificationProvider({ children }) {
                                msg.content?.toLowerCase().includes(user.email?.toLowerCase());
 
         if (isHighPriority) {
+          // Play alert sound for priority messages
+          playNotificationSound(msg.message_type === 'alert' ? 'alert' : 'message');
+          
+          // Vibrate
+          if (navigator.vibrate) {
+            navigator.vibrate(msg.message_type === 'alert' ? [200, 100, 200] : [100]);
+          }
+          
           toast.info(
             <div className="flex items-start gap-3">
               <MessageSquare className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
@@ -90,12 +156,13 @@ export default function NotificationProvider({ children }) {
             }
           );
 
-          // Browser notification if app is in background
-          if (Notification.permission === 'granted' && document.hidden) {
+          // Browser notification
+          if (Notification.permission === 'granted') {
             new Notification(`Message from ${msg.sender_name}`, {
               body: msg.content.substring(0, 100),
-              vibrate: [100, 50, 100],
-              tag: 'message-' + msg.id
+              vibrate: msg.message_type === 'alert' ? [200, 100, 200] : [100],
+              tag: 'message-' + msg.id,
+              silent: false
             });
           }
         }
@@ -121,6 +188,14 @@ export default function NotificationProvider({ children }) {
         const today = new Date().toISOString().split("T")[0];
         const isToday = assignment.service_date === today;
 
+        // Play sound for new assignment
+        playNotificationSound(isToday ? 'alert' : 'message');
+        
+        // Vibrate
+        if (navigator.vibrate) {
+          navigator.vibrate(isToday ? [200, 100, 200] : [100]);
+        }
+
         toast.success(
           <div className="flex items-start gap-3">
             <CalendarCheck className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
@@ -140,6 +215,16 @@ export default function NotificationProvider({ children }) {
             className: isToday ? "border-amber-500 bg-amber-50" : "border-emerald-500 bg-emerald-50",
           }
         );
+        
+        // Browser notification
+        if (Notification.permission === 'granted') {
+          new Notification(isToday ? '🔔 URGENT: New Assignment' : 'New Assignment', {
+            body: `${assignment.position_name} - ${new Date(assignment.service_date).toLocaleDateString()}`,
+            vibrate: isToday ? [200, 100, 200] : [100],
+            tag: 'assignment-' + assignment.id,
+            silent: false
+          });
+        }
       } else if (event.type === "update") {
         const assignment = event.data;
         const statusChanged = event.data?.status !== event.old_data?.status;
