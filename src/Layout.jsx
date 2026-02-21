@@ -73,9 +73,10 @@ export default function Layout({ children, currentPageName }) {
           </div>
           <button
             onClick={() => {
-              if (alerts[0]?.id) {
-                base44.entities.EmergencyAlert.update(alerts[0].id, { is_active: false })
-                  .then(() => setAlerts(prev => prev.filter(a => a.id !== alerts[0].id)))
+              const alertId = alerts[0]?.id;
+              if (alertId) {
+                setAlerts([]);
+                base44.entities.EmergencyAlert.update(alertId, { is_active: false })
                   .catch(error => console.error('Failed to dismiss alert:', error));
               }
             }}
