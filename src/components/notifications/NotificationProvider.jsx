@@ -83,19 +83,19 @@ export default function NotificationProvider({ children }) {
     const unsubscribe = base44.entities.EmergencyAlert.subscribe((event) => {
       if (event.type === "create" && event.data?.is_active) {
         setEmergencyAlert(event.data);
-        
+
         // Cache alert for offline access
         cacheData('alerts', event.data);
 
         // LOUD emergency sound
         playNotificationSound('emergency');
-        
+
         // Vibrate if supported
         if (navigator.vibrate) {
           navigator.vibrate([300, 100, 300, 100, 300, 100, 300]);
         }
 
-        // Browser notification if permission granted
+        // Browser notification with sound if permission granted
         if (Notification.permission === 'granted') {
           new Notification('🚨 EMERGENCY ALERT', {
             body: `${event.data.alert_type}: ${event.data.message}`,
@@ -105,8 +105,16 @@ export default function NotificationProvider({ children }) {
             silent: false
           });
         }
-      } else if (event.type === "update" && !event.data?.is_active) {
-        setEmergencyAlert(null);
+      } else if (event.type === "update") {
+        if (!event.data?.is_active) {
+          setEmergencyAlert(null);
+        } else {
+          setEmergencyAlert(event.data);
+          playNotificationSound('emergency');
+          if (navigator.vibrate) {
+            navigator.vibrate([300, 100, 300]);
+          }
+        }
       }
     });
     return unsubscribe;
