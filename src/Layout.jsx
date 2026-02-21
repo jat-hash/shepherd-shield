@@ -77,9 +77,10 @@ export default function Layout({ children, currentPageName }) {
               if (alertId) {
                 setAlerts([]);
                 try {
-                  await base44.functions.invoke('dismissAlert', { alertId });
+                  await base44.entities.EmergencyAlert.update(alertId, { is_active: false });
                 } catch (error) {
                   console.error('Failed to dismiss alert:', error);
+                  setAlerts(prev => [...prev, alerts[0]]);
                 }
               }
             }}
