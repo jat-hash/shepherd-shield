@@ -20,20 +20,20 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, notified: 0 });
     }
 
-    // Send browser notifications to all users
+    // Send email notifications to all users
     const notificationPromises = allUsers.map(user => {
       return base44.asServiceRole.integrations.Core.SendEmail({
         to: user.email,
-        subject: `🚨 EMERGENCY ALERT: ${body.alert_type}`,
+        subject: `🚨 EMERGENCY ALERT: ${alert_type}`,
         body: `
           <div style="font-family: Arial, sans-serif; color: #333;">
             <div style="background-color: #dc2626; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
               <h2 style="margin: 0;">🚨 EMERGENCY ALERT</h2>
-              <p style="margin: 10px 0 0 0; font-size: 18px;"><strong>${body.alert_type}</strong></p>
+              <p style="margin: 10px 0 0 0; font-size: 18px;"><strong>${alert_type}</strong></p>
             </div>
             <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; border-left: 4px solid #dc2626;">
               <p style="margin: 0;"><strong>Message:</strong></p>
-              <p style="margin: 10px 0 0 0; font-size: 16px;">${body.message}</p>
+              <p style="margin: 10px 0 0 0; font-size: 16px;">${message}</p>
               <p style="margin: 20px 0 0 0; font-size: 12px; color: #666;">
                 <strong>Time:</strong> ${new Date().toLocaleString()}
               </p>
