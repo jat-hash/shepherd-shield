@@ -67,7 +67,7 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Active Emergency Banner */}
       {alerts.length > 0 && (
-        <div className="bg-red-600 animate-pulse text-white py-2 px-4 text-sm font-bold tracking-wider flex items-center justify-between gap-2">
+        <div className="bg-red-600 animate-pulse text-white py-2 px-4 text-sm font-bold tracking-wider flex items-center justify-between gap-2 relative z-50">
           <div className="flex-1 text-center">
             🚨 ACTIVE ALERT: {alerts[0]?.alert_type?.toUpperCase()} — {alerts[0]?.message}
           </div>
@@ -76,16 +76,15 @@ export default function Layout({ children, currentPageName }) {
               const alertId = alerts[0]?.id;
               if (alertId) {
                 setAlerts([]);
-                try {
-                  await base44.entities.EmergencyAlert.update(alertId, { is_active: false });
-                } catch (error) {
+                await base44.entities.EmergencyAlert.update(alertId, { is_active: false }).catch(error => {
                   console.error('Failed to dismiss alert:', error);
                   setAlerts(prev => [...prev, alerts[0]]);
-                }
+                });
               }
             }}
-            className="flex-shrink-0 hover:bg-white/20 rounded p-1 transition-colors"
+            className="flex-shrink-0 hover:bg-white/20 rounded p-1 transition-colors cursor-pointer relative z-50"
             title="Dismiss alert"
+            type="button"
           >
             <X className="w-4 h-4" />
           </button>
