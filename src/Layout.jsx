@@ -72,12 +72,15 @@ export default function Layout({ children, currentPageName }) {
             🚨 ACTIVE ALERT: {alerts[0]?.alert_type?.toUpperCase()} — {alerts[0]?.message}
           </div>
           <button
-            onClick={() => {
+            onClick={async () => {
               const alertId = alerts[0]?.id;
               if (alertId) {
                 setAlerts([]);
-                base44.entities.EmergencyAlert.update(alertId, { is_active: false })
-                  .catch(error => console.error('Failed to dismiss alert:', error));
+                try {
+                  await base44.functions.invoke('dismissAlert', { alertId });
+                } catch (error) {
+                  console.error('Failed to dismiss alert:', error);
+                }
               }
             }}
             className="flex-shrink-0 hover:bg-white/20 rounded p-1 transition-colors"
