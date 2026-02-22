@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
-import { getFCMToken } from "@/components/firebase";
+import { getFCMToken } from "./firebase";
 
 export default function ServiceWorkerRegister() {
   useEffect(() => {
