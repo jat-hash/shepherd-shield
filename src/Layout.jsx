@@ -76,17 +76,20 @@ export default function Layout({ children, currentPageName }) {
             🚨 ACTIVE ALERT: {alerts[0]?.alert_type?.toUpperCase()} — {alerts[0]?.message}
           </div>
           <button
-            onClick={async () => {
+            onClick={async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
               const alertId = alerts[0]?.id;
               if (alertId) {
-                setAlerts([]);
-                await base44.entities.EmergencyAlert.update(alertId, { is_active: false }).catch(error => {
+                try {
+                  await base44.entities.EmergencyAlert.update(alertId, { is_active: false });
+                  setAlerts([]);
+                } catch (error) {
                   console.error('Failed to dismiss alert:', error);
-                  setAlerts(prev => [...prev, alerts[0]]);
-                });
+                }
               }
             }}
-            className="flex-shrink-0 hover:bg-white/20 rounded p-1 transition-colors cursor-pointer relative z-50"
+            className="flex-shrink-0 hover:bg-white/20 rounded p-1 transition-colors cursor-pointer z-[9999]"
             title="Dismiss alert"
             type="button"
           >

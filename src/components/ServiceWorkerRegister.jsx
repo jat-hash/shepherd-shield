@@ -43,13 +43,13 @@ export default function ServiceWorkerRegister() {
       }
 
       // Register for background sync
-      if ('sync' in registration) {
-        navigator.serviceWorker.ready.then((registration) => {
+      navigator.serviceWorker.ready.then((registration) => {
+        if ('sync' in registration) {
           return registration.sync.register('sync-messages');
-        }).catch(() => {
-          console.log('Background sync not available');
-        });
-      }
+        }
+      }).catch(() => {
+        console.log('Background sync not available');
+      });
     }
   }, []);
 
