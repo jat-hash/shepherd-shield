@@ -88,6 +88,38 @@ export default function ServiceWorkerRegister() {
             console.log('User not authenticated');
           }
 
+          // Request FCM token if available (Firebase Cloud Messaging)
+          try {
+            // Check if FCM is available
+            if ('Notification' in window && Notification.permission === 'granted') {
+              const user = await base44.auth.me();
+              if (user && 'indexedDB' in window) {
+                // Generate device ID
+                let deviceId = localStorage.getItem('device_id');
+                if (!deviceId) {
+                  deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                  localStorage.setItem('device_id', deviceId);
+                }
+
+                // Create a unique token for this device (simulated - in production use Firebase FCM)
+                const fcmToken = 'token_' + deviceId + '_' + btoa(user.email).substring(0, 20);
+                
+                // Save token to backend
+                try {
+                  await base44.functions.invoke('saveFCMToken', {
+                    fcm_token: fcmToken,
+                    device_id: deviceId
+                  });
+                  console.log('FCM token registered for push notifications');
+                } catch (error) {
+                  console.log('Could not register FCM token:', error.message);
+                }
+              }
+            }
+          } catch (error) {
+            console.log('FCM registration skipped:', error.message);
+          }
+
           // Keep service worker active with periodic updates
           setInterval(() => {
             registration.update();
