@@ -1,16 +1,67 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
-import { Button } from "@/components/ui/button";
-import { AlertCircle, X } from "lucide-react";
 
 export default function ServiceWorkerRegister() {
-  const [showSetupPrompt, setShowSetupPrompt] = useState(false);
-
   useEffect(() => {
     if ('serviceWorker' in navigator) {
+      // Create inline service worker
+      const swCode = `
+        self.addEventListener('install', (event) => {
+          console.log('Emergency alert system installed');
+          self.skipWaiting();
+        });
+
+        self.addEventListener('activate', (event) => {
+          console.log('Emergency alert system activated');
+          event.waitUntil(self.clients.claim());
+        });
+
+        self.addEventListener('notificationclick', async (event) => {
+          event.notification.close();
+          const urlToOpen = self.location.origin;
+          event.waitUntil(
+            self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+              .then((clientList) => {
+                for (const client of clientList) {
+                  if (client.url === urlToOpen && 'focus' in client) {
+                    return client.focus();
+                  }
+                }
+                if (self.clients.openWindow) {
+                  return self.clients.openWindow(urlToOpen);
+                }
+              })
+          );
+        });
+
+        self.addEventListener('message', async (event) => {
+          if (event.data && event.data.type === 'EMERGENCY_ALERT') {
+            const { alert } = event.data;
+            await self.registration.showNotification('🚨 EMERGENCY ALERT', {
+              body: alert.alert_type.toUpperCase() + '\\n\\n' + alert.message,
+              vibrate: [1000, 200, 1000, 200, 1000, 200, 1000],
+              tag: 'emergency-' + alert.id,
+              requireInteraction: true,
+              renotify: true,
+              silent: false,
+              data: { url: self.location.origin, alertId: alert.id }
+            });
+            const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+            if (clients.length > 0) {
+              clients[0].focus();
+            } else {
+              await self.clients.openWindow(self.location.origin);
+            }
+          }
+        });
+      `;
+
+      const blob = new Blob([swCode], { type: 'application/javascript' });
+      const swUrl = URL.createObjectURL(blob);
+
       navigator.serviceWorker
-        .register('/service-worker.js')
+        .register(swUrl)
         .then(async (registration) => {
           console.log('Service Worker registered - app will run in background');
 
@@ -52,41 +103,10 @@ export default function ServiceWorkerRegister() {
         })
         .catch((error) => {
           console.error('Service Worker registration failed:', error);
-          setShowSetupPrompt(true);
+          toast.error('Background alerts unavailable - browser restrictions');
         });
-    } else {
-      setShowSetupPrompt(true);
     }
   }, []);
-
-  if (showSetupPrompt) {
-    return (
-      <div className="fixed top-16 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-red-900/90 border border-red-500 rounded-lg p-4 shadow-xl z-50">
-        <button
-          onClick={() => setShowSetupPrompt(false)}
-          className="absolute top-2 right-2 text-red-200 hover:text-white"
-        >
-          <X className="w-4 h-4" />
-        </button>
-        
-        <div className="flex items-start gap-3">
-          <AlertCircle className="w-6 h-6 text-red-300 flex-shrink-0 mt-1" />
-          <div className="flex-1">
-            <h3 className="text-white font-bold text-sm mb-2">⚠️ Background Alerts Not Working</h3>
-            <p className="text-red-100 text-xs mb-3">
-              To receive emergency alerts when the app is closed, you need to add a service worker file.
-            </p>
-            <p className="text-red-100 text-xs mb-2">
-              Create <code className="bg-red-800/50 px-1 py-0.5 rounded">public/service-worker.js</code> with the service worker code.
-            </p>
-            <p className="text-red-100 text-xs">
-              Contact your admin to enable background notifications.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return null;
 }
