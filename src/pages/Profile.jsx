@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { LogOut, Shield, Users, RefreshCw, FileText, Edit2, Bell } from "lucide-react";
+import { LogOut, Shield, Users, RefreshCw, FileText, Edit2, Bell, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -8,6 +8,17 @@ import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function Profile() {
   const [user, setUser] = useState(null);
@@ -17,6 +28,7 @@ export default function Profile() {
   const [newName, setNewName] = useState("");
   const [editingDisplayName, setEditingDisplayName] = useState(false);
   const [newDisplayName, setNewDisplayName] = useState("");
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -56,6 +68,20 @@ export default function Profile() {
     await base44.auth.updateMe({ [field]: value });
     setUser(prev => ({ ...prev, [field]: value }));
     toast.success("Notification preferences updated");
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "DELETE") {
+      toast.error("Please type DELETE to confirm");
+      return;
+    }
+    try {
+      await base44.entities.User.delete(user.id);
+      toast.success("Account deleted successfully");
+      setTimeout(() => base44.auth.logout(), 1000);
+    } catch (error) {
+      toast.error("Failed to delete account. Please contact an administrator.");
+    }
   };
 
   if (loading) {
@@ -222,6 +248,45 @@ export default function Profile() {
       >
         <LogOut className="w-4 h-4" /> Logout
       </Button>
+
+      {/* Delete Account */}
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            variant="outline"
+            className="w-full border-red-600/40 text-red-500 hover:bg-red-600/20 hover:text-red-400 gap-2"
+          >
+            <Trash2 className="w-4 h-4" /> Delete Account
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent className="bg-[#1a2744] border-red-500/30">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-400">Delete Account Permanently?</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              This action cannot be undone. All your data, assignments, and incidents will be permanently deleted.
+              <div className="mt-4">
+                <Label className="text-slate-300 text-sm">Type <span className="font-bold text-red-400">DELETE</span> to confirm:</Label>
+                <Input
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="DELETE"
+                  className="mt-2 bg-[#0a1128] border-slate-700 text-white"
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-slate-700 text-white hover:bg-slate-600">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAccount}
+              disabled={deleteConfirmText !== "DELETE"}
+              className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Delete Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
