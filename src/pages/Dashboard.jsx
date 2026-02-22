@@ -5,15 +5,11 @@ import EmergencyButton from "@/components/dashboard/EmergencyButton";
 import StatusBar from "@/components/dashboard/StatusBar";
 import QuickActionGrid from "@/components/dashboard/QuickActionGrid";
 import SOPQuickAccess from "@/components/dashboard/SOPQuickAccess";
-import { RefreshCw } from "lucide-react";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [pullStartY, setPullStartY] = useState(0);
-  const [pullDistance, setPullDistance] = useState(0);
 
   const loadData = async () => {
     setLoading(true);
@@ -47,46 +43,6 @@ export default function Dashboard() {
     loadData();
   }, []);
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadData();
-    setTimeout(() => setRefreshing(false), 500);
-  };
-
-  const handleTouchStart = (e) => {
-    if (window.scrollY === 0) {
-      setPullStartY(e.touches[0].clientY);
-    }
-  };
-
-  const handleTouchMove = (e) => {
-    if (pullStartY > 0 && window.scrollY === 0) {
-      const distance = e.touches[0].clientY - pullStartY;
-      if (distance > 0 && distance < 150) {
-        setPullDistance(distance);
-      }
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (pullDistance > 80) {
-      handleRefresh();
-    }
-    setPullStartY(0);
-    setPullDistance(0);
-  };
-
-  useEffect(() => {
-    document.addEventListener('touchstart', handleTouchStart);
-    document.addEventListener('touchmove', handleTouchMove);
-    document.addEventListener('touchend', handleTouchEnd);
-    return () => {
-      document.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [pullStartY, pullDistance]);
-
   useEffect(() => {
     if (!user) return;
     
@@ -109,17 +65,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-3 py-4 lg:px-4 lg:py-6 lg:ml-60 space-y-4 relative">
-      {/* Pull to refresh indicator */}
-      {pullDistance > 0 && (
-        <div 
-          className="absolute top-0 left-1/2 -translate-x-1/2 transition-all"
-          style={{ transform: `translateX(-50%) translateY(${Math.min(pullDistance - 40, 40)}px)` }}
-        >
-          <RefreshCw className={`w-6 h-6 text-[#d4a843] ${pullDistance > 80 || refreshing ? 'animate-spin' : ''}`} />
-        </div>
-      )}
-
+    <div className="max-w-2xl mx-auto px-3 py-4 lg:px-4 lg:py-6 lg:ml-60 space-y-4">
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-white">
           Welcome back, <span className="text-[#d4a843]">{(user?.display_name || user?.full_name)?.split(" ")[0] || "Officer"}</span>

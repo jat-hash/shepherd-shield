@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
-import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, ArrowLeft } from "lucide-react";
+import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot } from "lucide-react";
 import { Toaster } from "sonner";
 import NotificationProvider from "@/components/notifications/NotificationProvider";
 import NotificationBell from "@/components/notifications/NotificationBell";
@@ -17,17 +17,12 @@ const NAV_ITEMS = [
   { name: "Profile", icon: User, page: "Profile" },
 ];
 
-const MAIN_PAGES = ["Dashboard", "Communications", "Assignments", "Incidents", "Profile"];
-
 export default function Layout({ children, currentPageName }) {
   const [user, setUser] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
-  const navigate = useNavigate();
-  const isMainPage = MAIN_PAGES.includes(currentPageName);
-  const showBackButton = !isMainPage;
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
@@ -58,54 +53,20 @@ export default function Layout({ children, currentPageName }) {
       <PWAInstaller />
       <div className="min-h-screen bg-[#0a1128] text-white flex flex-col">
       <style>{`
-        @media (prefers-color-scheme: dark) {
-          :root {
-            --bg-primary: #0a1128;
-            --bg-secondary: #141f3d;
-            --bg-card: #1a2744;
-            --accent-primary: #d4a843;
-            --accent-hover: #e0bb5e;
-            --alert-danger: #dc2626;
-            --alert-danger-hover: #ef4444;
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --border-color: rgba(212, 168, 67, 0.15);
-          }
+        :root {
+          --navy: #0a1128;
+          --navy-light: #141f3d;
+          --navy-card: #1a2744;
+          --gold: #d4a843;
+          --gold-hover: #e0bb5e;
+          --red-alert: #dc2626;
+          --red-alert-hover: #ef4444;
+          --text-primary: #f1f5f9;
+          --text-secondary: #94a3b8;
+          --border-color: rgba(212, 168, 67, 0.15);
         }
-        @media (prefers-color-scheme: light) {
-          :root {
-            --bg-primary: #ffffff;
-            --bg-secondary: #f8fafc;
-            --bg-card: #ffffff;
-            --accent-primary: #d4a843;
-            --accent-hover: #c29638;
-            --alert-danger: #dc2626;
-            --alert-danger-hover: #b91c1c;
-            --text-primary: #0f172a;
-            --text-secondary: #475569;
-            --border-color: rgba(212, 168, 67, 0.2);
-          }
-        }
-        body { 
-          background: var(--bg-primary); 
-          color: var(--text-primary);
-          overscroll-behavior: none;
-          -webkit-user-select: none;
-          user-select: none;
-        }
-        * { 
-          scrollbar-width: thin; 
-          scrollbar-color: var(--bg-card) var(--bg-primary);
-        }
-        button, a, svg, [role="button"] {
-          -webkit-user-select: none;
-          user-select: none;
-          -webkit-tap-highlight-color: transparent;
-        }
-        input, textarea {
-          -webkit-user-select: text;
-          user-select: text;
-        }
+        body { background: #0a1128; }
+        * { scrollbar-width: thin; scrollbar-color: #1a2744 #0a1128; }
       `}</style>
 
       {/* Active Emergency Banner */}
@@ -152,25 +113,19 @@ export default function Layout({ children, currentPageName }) {
       )}
 
       {/* Top Bar */}
-      <header className="bg-[var(--bg-secondary)] border-b border-[var(--border-color)] px-4 py-3 flex items-center justify-between sticky top-0 z-40" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))', paddingLeft: 'max(1rem, env(safe-area-inset-left))', paddingRight: 'max(1rem, env(safe-area-inset-right))' }}>
-        {showBackButton ? (
-          <button onClick={() => navigate(-1)} className="p-1 text-[var(--text-primary)] hover:text-[var(--accent-primary)] transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-        ) : (
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-1">
-            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-        )}
+      <header className="bg-[#141f3d] border-b border-[rgba(212,168,67,0.15)] px-4 py-3 flex items-center justify-between sticky top-0 z-40">
+        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-1">
+          {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
 
         <div className="flex items-center gap-2">
-          <Shield className="w-6 h-6 text-[var(--accent-primary)]" />
-          <span className="font-bold text-sm tracking-widest uppercase hidden sm:inline text-[var(--text-primary)]">Shepherd Shield</span>
+          <Shield className="w-6 h-6 text-[#d4a843]" />
+          <span className="font-bold text-sm tracking-widest uppercase hidden sm:inline">Shepherd Shield</span>
         </div>
 
         <div className="flex items-center gap-3">
           <NotificationBell userEmail={user?.email} />
-          <div className="w-8 h-8 rounded-full bg-[var(--accent-primary)] flex items-center justify-center text-[var(--bg-primary)] font-bold text-xs">
+          <div className="w-8 h-8 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-xs">
             {(user?.display_name || user?.full_name)?.charAt(0) || "U"}
           </div>
         </div>
@@ -180,7 +135,7 @@ export default function Layout({ children, currentPageName }) {
       {sidebarOpen && (
         <>
           <div className="fixed inset-0 bg-black/60 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
-          <nav className="fixed left-0 top-[57px] bottom-0 w-64 bg-[var(--bg-secondary)] border-r border-[var(--border-color)] flex flex-col py-4 z-40 lg:hidden overflow-y-auto">
+          <nav className="fixed left-0 top-[57px] bottom-0 w-64 bg-[#141f3d] border-r border-[rgba(212,168,67,0.15)] flex flex-col py-4 z-40 lg:hidden overflow-y-auto">
             {NAV_ITEMS.map(item => {
               const isActive = currentPageName === item.page;
               return (
@@ -295,35 +250,14 @@ export default function Layout({ children, currentPageName }) {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 pb-20 lg:pb-6 overflow-auto">
+      <main className="flex-1 pb-6 overflow-auto">
         {children}
       </main>
-
-      {/* Bottom Tab Bar (Mobile Only) */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-secondary)] border-t border-[var(--border-color)] flex justify-around items-center z-40" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
-        {NAV_ITEMS.map(item => {
-          const isActive = currentPageName === item.page;
-          return (
-            <Link
-              key={item.page}
-              to={createPageUrl(item.page)}
-              className={`flex flex-col items-center gap-1 py-2 px-3 transition-all ${
-                isActive
-                  ? "text-[var(--accent-primary)]"
-                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-              }`}
-            >
-              <item.icon className="w-5 h-5" />
-              <span className="text-[9px] font-medium">{item.name}</span>
-            </Link>
-          );
-        })}
-      </nav>
 
 
 
       {/* Desktop Sidebar Nav (hidden on mobile) */}
-      <nav className="hidden lg:flex fixed left-0 top-[57px] bottom-0 w-56 bg-[var(--bg-secondary)] border-r border-[var(--border-color)] flex-col py-4 z-30 overflow-y-auto">
+      <nav className="hidden lg:flex fixed left-0 top-[57px] bottom-0 w-56 bg-[#141f3d] border-r border-[rgba(212,168,67,0.15)] flex-col py-4 z-30 overflow-y-auto">
         {NAV_ITEMS.map(item => {
           const isActive = currentPageName === item.page;
           return (

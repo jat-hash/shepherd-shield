@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Send, Pin, X, Paperclip, Loader2, RefreshCw } from "lucide-react";
+import { Send, Pin, X, Paperclip, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import DirectMessageSelector from "@/components/communications/DirectMessageSelector";
@@ -22,9 +22,6 @@ export default function Communications() {
   const [dmChannels, setDmChannels] = useState([]);
   const [activeChannel, setActiveChannel] = useState({ name: "All Team", type: "group" });
   const [uploading, setUploading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [pullStartY, setPullStartY] = useState(0);
-  const [pullDistance, setPullDistance] = useState(0);
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
   const fileInputRef = useRef(null);
@@ -220,37 +217,6 @@ export default function Communications() {
     }
   };
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadMessages();
-    setTimeout(() => setRefreshing(false), 500);
-  };
-
-  const handleTouchStart = (e) => {
-    const scrollContainer = e.currentTarget.querySelector('.messages-container');
-    if (scrollContainer && scrollContainer.scrollTop === 0) {
-      setPullStartY(e.touches[0].clientY);
-    }
-  };
-
-  const handleTouchMove = (e) => {
-    const scrollContainer = e.currentTarget.querySelector('.messages-container');
-    if (pullStartY > 0 && scrollContainer && scrollContainer.scrollTop === 0) {
-      const distance = e.touches[0].clientY - pullStartY;
-      if (distance > 0 && distance < 150) {
-        setPullDistance(distance);
-      }
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (pullDistance > 80) {
-      handleRefresh();
-    }
-    setPullStartY(0);
-    setPullDistance(0);
-  };
-
   const getDmDisplayName = (dmChannel) => {
     const emails = dmChannel.replace("DM: ", "").split("-");
     const otherEmail = emails.find(e => e !== user?.email);
@@ -258,22 +224,7 @@ export default function Communications() {
   };
 
   return (
-    <div 
-      className="max-w-2xl mx-auto lg:ml-60 flex flex-col h-[calc(100vh-130px)] lg:h-[calc(100vh-70px)] relative"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* Pull to refresh indicator */}
-      {pullDistance > 0 && (
-        <div 
-          className="absolute top-2 left-1/2 -translate-x-1/2 transition-all z-10"
-          style={{ transform: `translateX(-50%) translateY(${Math.min(pullDistance - 40, 40)}px)` }}
-        >
-          <RefreshCw className={`w-6 h-6 text-[#d4a843] ${pullDistance > 80 || refreshing ? 'animate-spin' : ''}`} />
-        </div>
-      )}
-      
+    <div className="max-w-2xl mx-auto lg:ml-60 flex flex-col h-[calc(100vh-130px)] lg:h-[calc(100vh-70px)]">
       {/* Channel Pills */}
       <div className="px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar border-b border-[rgba(212,168,67,0.1)]">
         <DirectMessageSelector currentUserEmail={user?.email} onSelectDM={handleSelectDM} />
@@ -308,7 +259,7 @@ export default function Communications() {
       </div>
 
       {/* Messages */}
-      <div className="messages-container flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {loading ? (
           <div className="flex justify-center py-12">
             <div className="w-6 h-6 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
