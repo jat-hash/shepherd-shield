@@ -3,11 +3,6 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-
-    if (!user || user.role !== 'admin') {
-      return Response.json({ error: 'Admin access required' }, { status: 403 });
-    }
 
     const { recipient_email, title, body, alert_id } = await req.json();
 
@@ -34,55 +29,48 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Firebase server key not configured' }, { status: 500 });
     }
 
-    // Parse server key to get project ID (format: project_id:token)
-    const projectId = serverKey.split(':')[0];
-
     const results = [];
 
     for (const device of devices) {
       try {
-        // Use Firebase Cloud Messaging v1 API
-        const response = await fetch(
-          `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${serverKey}`,
-              'Content-Type': 'application/json'
+        // Use Firebase legacy API with server key
+        const response = await fetch('https://fcm.googleapis.com/fcm/send', {
+          method: 'POST',
+          headers: {
+            'Authorization': `key=${serverKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            to: device.fcm_token,
+            priority: 'high',
+            notification: {
+              title,
+              body,
+              sound: 'default'
             },
-            body: JSON.stringify({
-              message: {
-                token: device.fcm_token,
-                notification: {
-                  title,
-                  body
-                },
-                data: {
-                  alertId: alert_id || ''
-                },
-                webpush: {
-                  priority: 'high',
-                  notification: {
-                    title,
-                    body,
-                    icon: '/icon-192x192.png',
-                    badge: '/badge-72x72.png',
-                    sound: 'default',
-                    vibrate: [1000, 200, 1000],
-                    requireInteraction: true,
-                    tag: 'emergency-alert'
-                  }
-                }
+            webpush: {
+              notification: {
+                title,
+                body,
+                icon: '/icon-192x192.png',
+                badge: '/badge-72x72.png',
+                sound: 'default',
+                vibrate: '[1000, 200, 1000]',
+                requireInteraction: true,
+                tag: 'emergency-alert'
               }
-            })
-          }
-        );
+            },
+            data: {
+              alertId: alert_id || ''
+            }
+          })
+        });
 
         const data = await response.json();
         results.push({
           device_id: device.device_id,
-          success: response.ok && !!data.name,
-          messageId: data.name || null
+          success: data.success === 1,
+          messageId: data.message_id
         });
       } catch (error) {
         console.error(`Error sending to device ${device.device_id}:`, error);
