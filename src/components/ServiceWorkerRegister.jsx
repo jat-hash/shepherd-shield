@@ -7,7 +7,7 @@ export default function ServiceWorkerRegister() {
   useEffect(() => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
-        .register('/service-worker.js')
+        .register(swUrl)
         .then(async (registration) => {
           console.log('Service Worker registered - app will run in background');
 
