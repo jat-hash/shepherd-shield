@@ -6,44 +6,8 @@ import { getFCMToken } from "./firebase";
 export default function ServiceWorkerRegister() {
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      const swCode = `
-        self.addEventListener('install', () => self.skipWaiting());
-        self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
-        self.addEventListener('push', (e) => {
-          if (e.data) {
-            const payload = e.data.json();
-            e.waitUntil(self.registration.showNotification(payload.notification?.title || 'Alert', {
-              body: payload.notification?.body || 'New notification',
-              icon: '/icon-192x192.png'
-            }));
-          }
-        });
-      `;
-      const blob = new Blob([swCode], { type: 'application/javascript' });
-      const swUrl = URL.createObjectURL(blob);
-
       navigator.serviceWorker
-        .register(swUrl)
-        .catch(() => {
-          console.log('Blob service worker registration failed, trying fallback');
-          // Fallback: create service worker with minimal code for environments that don't support blob URLs
-          const fallbackCode = `
-            self.addEventListener('install', () => self.skipWaiting());
-            self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
-            self.addEventListener('push', (e) => {
-              if (e.data) {
-                const payload = e.data.json();
-                e.waitUntil(self.registration.showNotification(payload.notification?.title || 'Alert', {
-                  body: payload.notification?.body || 'New notification',
-                  icon: '/icon-192x192.png'
-                }));
-              }
-            });
-          `;
-          const fallbackBlob = new Blob([fallbackCode], { type: 'application/javascript' });
-          const fallbackUrl = URL.createObjectURL(fallbackBlob);
-          return navigator.serviceWorker.register(fallbackUrl);
-        })
+        .register('/service-worker.js')
         .then(async (registration) => {
           console.log('Service Worker registered - app will run in background');
 
