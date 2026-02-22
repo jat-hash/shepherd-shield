@@ -71,8 +71,8 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Active Emergency Banner */}
       {alerts.length > 0 && (
-        <div className="bg-red-600 animate-pulse text-white py-2 px-4 text-sm font-bold tracking-wider flex items-center justify-between gap-2 relative z-50">
-          <div className="flex-1 text-center">
+        <div className="bg-red-600 animate-pulse text-white py-3 px-3 text-sm font-bold tracking-wider flex items-center justify-between gap-2 relative z-50">
+          <div className="flex-1 text-center pr-2">
             🚨 ACTIVE ALERT: {alerts[0]?.alert_type?.toUpperCase()} — {alerts[0]?.message}
           </div>
           <button
@@ -89,11 +89,25 @@ export default function Layout({ children, currentPageName }) {
                 }
               }
             }}
-            className="flex-shrink-0 hover:bg-white/20 rounded p-1 transition-colors cursor-pointer z-[9999]"
+            onTouchEnd={async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const alertId = alerts[0]?.id;
+              if (alertId) {
+                try {
+                  await base44.entities.EmergencyAlert.update(alertId, { is_active: false });
+                  setAlerts([]);
+                } catch (error) {
+                  console.error('Failed to dismiss alert:', error);
+                }
+              }
+            }}
+            className="flex-shrink-0 hover:bg-white/20 active:bg-white/30 rounded p-2 transition-colors cursor-pointer touch-manipulation min-w-[40px] min-h-[40px] flex items-center justify-center"
             title="Dismiss alert"
             type="button"
+            aria-label="Dismiss alert"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
       )}
