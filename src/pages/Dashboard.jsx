@@ -5,6 +5,7 @@ import EmergencyButton from "@/components/dashboard/EmergencyButton";
 import StatusBar from "@/components/dashboard/StatusBar";
 import QuickActionGrid from "@/components/dashboard/QuickActionGrid";
 import SOPQuickAccess from "@/components/dashboard/SOPQuickAccess";
+import SpecialEventsDropdown from "@/components/dashboard/SpecialEventsDropdown";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
@@ -74,6 +75,8 @@ export default function Dashboard() {
           {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
         </p>
       </div>
+
+      <SpecialEventsDropdown />
 
       {/* This Month's Assignments */}
       <div className="space-y-3">
