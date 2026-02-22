@@ -304,12 +304,32 @@ export default function NotificationProvider({ children }) {
     return unsubscribe;
   }, [user]);
 
-  // Request notification permission on mount
+  // Request notification permission on mount (critical for background alerts)
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
+      // Auto-request permission for emergency alert system
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          console.log('Background notifications enabled - alerts will work when app is closed');
+        }
+      });
     }
-  }, []);
+
+    // Keep app alive in background by pinging periodically
+    const keepAlive = setInterval(() => {
+      if (document.visibilityState === 'hidden') {
+        // App is in background - check for alerts
+        base44.entities.EmergencyAlert.filter({ is_active: true }).then(alerts => {
+          if (alerts.length > 0 && !emergencyAlert) {
+            // Trigger alert if one exists but isn't showing
+            setEmergencyAlert(alerts[0]);
+          }
+        }).catch(() => {});
+      }
+    }, 5000); // Check every 5 seconds when backgrounded
+
+    return () => clearInterval(keepAlive);
+  }, [emergencyAlert]);
 
   return (
     <>
