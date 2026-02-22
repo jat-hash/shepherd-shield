@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
+import { getFCMToken } from "@/lib/firebase";
 
 export default function ServiceWorkerRegister() {
   useEffect(() => {
@@ -88,12 +89,12 @@ export default function ServiceWorkerRegister() {
             console.log('User not authenticated');
           }
 
-          // Request FCM token if available (Firebase Cloud Messaging)
+          // Request FCM token from Firebase
           try {
-            // Check if FCM is available
-            if ('Notification' in window && Notification.permission === 'granted') {
-              const user = await base44.auth.me();
-              if (user && 'indexedDB' in window) {
+            const user = await base44.auth.me();
+            if (user) {
+              const fcmToken = await getFCMToken();
+              if (fcmToken) {
                 // Generate device ID
                 let deviceId = localStorage.getItem('device_id');
                 if (!deviceId) {
@@ -101,16 +102,13 @@ export default function ServiceWorkerRegister() {
                   localStorage.setItem('device_id', deviceId);
                 }
 
-                // Create a unique token for this device (simulated - in production use Firebase FCM)
-                const fcmToken = 'token_' + deviceId + '_' + btoa(user.email).substring(0, 20);
-                
-                // Save token to backend
+                // Save real FCM token to backend
                 try {
                   await base44.functions.invoke('saveFCMToken', {
                     fcm_token: fcmToken,
                     device_id: deviceId
                   });
-                  console.log('FCM token registered for push notifications');
+                  console.log('Real FCM token registered - push notifications enabled');
                 } catch (error) {
                   console.log('Could not register FCM token:', error.message);
                 }
