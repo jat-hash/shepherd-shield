@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Plus, CheckCircle, Clock, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AssignmentForm from "@/components/assignments/AssignmentForm";
+import EventCalendar from "@/components/calendar/EventCalendar";
 
 export default function Assignments() {
   const [assignments, setAssignments] = useState([]);
@@ -68,6 +69,11 @@ export default function Assignments() {
     return <XCircle className="w-3.5 h-3.5 text-red-400" />;
   };
 
+  const handleEventClick = (event) => {
+    setEditData(event);
+    setFormOpen(true);
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-3 py-4 lg:px-4 lg:py-6 lg:ml-60 space-y-4">
       <div className="flex items-center justify-between">
@@ -76,6 +82,9 @@ export default function Assignments() {
           <Plus className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Create</span>
         </Button>
       </div>
+
+      {/* Calendar View */}
+      {!loading && <EventCalendar events={assignments} onEventClick={handleEventClick} />}
 
       {/* Month Navigation */}
       <div className="flex items-center justify-between bg-[#1a2744] rounded-xl p-3 border border-[rgba(212,168,67,0.1)]">
