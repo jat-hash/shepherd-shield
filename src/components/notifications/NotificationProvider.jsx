@@ -95,38 +95,47 @@ export default function NotificationProvider({ children }) {
           navigator.vibrate([300, 100, 300, 100, 300, 100, 300]);
         }
 
-        // Send push notification for background delivery
+        // Send CRITICAL push notification (like Amber Alert)
         if ('serviceWorker' in navigator && Notification.permission === 'granted') {
           navigator.serviceWorker.ready.then((registration) => {
             registration.showNotification('🚨 EMERGENCY ALERT', {
-              body: `${event.data.alert_type}: ${event.data.message}`,
+              body: `${event.data.alert_type.toUpperCase()}\n\n${event.data.message}`,
               icon: '/icon-192x192.png',
               badge: '/icon-192x192.png',
-              vibrate: [300, 100, 300, 100, 300, 100, 300],
+              vibrate: [500, 200, 500, 200, 500, 200, 500, 200, 500],
               tag: 'emergency-' + event.data.id,
               requireInteraction: true,
+              renotify: true,
               silent: false,
+              urgency: 'high',
               data: {
                 url: '/',
-                alertId: event.data.id
-              }
+                alertId: event.data.id,
+                priority: 'critical'
+              },
+              actions: [
+                { action: 'open', title: 'Open App' },
+                { action: 'dismiss', title: 'Dismiss' }
+              ]
             });
           }).catch(() => {
             // Fallback to regular notification
             new Notification('🚨 EMERGENCY ALERT', {
-              body: `${event.data.alert_type}: ${event.data.message}`,
+              body: `${event.data.alert_type.toUpperCase()}\n\n${event.data.message}`,
               requireInteraction: true,
-              vibrate: [300, 100, 300, 100, 300],
+              vibrate: [500, 200, 500, 200, 500],
               tag: 'emergency-' + event.data.id,
+              renotify: true,
               silent: false
             });
           });
         } else if (Notification.permission === 'granted') {
           new Notification('🚨 EMERGENCY ALERT', {
-            body: `${event.data.alert_type}: ${event.data.message}`,
+            body: `${event.data.alert_type.toUpperCase()}\n\n${event.data.message}`,
             requireInteraction: true,
-            vibrate: [300, 100, 300, 100, 300],
+            vibrate: [500, 200, 500, 200, 500],
             tag: 'emergency-' + event.data.id,
+            renotify: true,
             silent: false
           });
         }

@@ -34,12 +34,12 @@ Deno.serve(async (req) => {
       })
     );
 
-    // Send URGENT email notifications to all users
+    // Send SMS-style URGENT email notifications to all users (like Amber Alert)
     const emailPromises = users.map(user =>
       base44.asServiceRole.integrations.Core.SendEmail({
-        from_name: '🚨 EMERGENCY - Shepherd Shield',
+        from_name: '🚨 EMERGENCY ALERT',
         to: user.email,
-        subject: `🚨 URGENT: ${alert.alert_type} - EMERGENCY ALERT`,
+        subject: `🚨 ${alert.alert_type} - IMMEDIATE ACTION REQUIRED`,
         body: `
           <div style="background-color: #dc2626; color: white; padding: 30px; font-family: Arial, sans-serif; border: 5px solid #991b1b;">
             <h1 style="margin: 0 0 15px 0; font-size: 28px; text-transform: uppercase;">🚨 EMERGENCY ALERT 🚨</h1>
@@ -64,10 +64,13 @@ Deno.serve(async (req) => {
 
     await Promise.all([...notificationPromises, ...emailPromises]);
 
+    console.log(`Emergency alert broadcast to ${users.length} users: ${alert.alert_type}`);
+
     return Response.json({ 
       success: true, 
       users_notified: users.length,
-      alert_type: alert.alert_type
+      alert_type: alert.alert_type,
+      alert_message: alert.message
     });
 
   } catch (error) {
