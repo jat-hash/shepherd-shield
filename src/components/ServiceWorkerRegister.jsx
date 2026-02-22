@@ -6,8 +6,8 @@ import { getFCMToken } from "./firebase";
 export default function ServiceWorkerRegister() {
   useEffect(() => {
     if ('serviceWorker' in navigator && 'Notification' in window) {
-          navigator.serviceWorker
-            .register('/service-worker.js', { scope: '/' })
+      navigator.serviceWorker
+        .register('/service-worker.js', { scope: '/' })
         .then(async (registration) => {
           console.log('Service Worker registered - app will run in background');
 
