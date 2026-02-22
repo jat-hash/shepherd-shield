@@ -6,6 +6,8 @@ import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bel
 import { Toaster } from "sonner";
 import NotificationProvider from "@/components/notifications/NotificationProvider";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import PWAInstaller from "@/components/PWAInstaller";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
 const NAV_ITEMS = [
   { name: "Dashboard", icon: Home, page: "Dashboard" },
@@ -46,7 +48,9 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <NotificationProvider>
+      <ServiceWorkerRegister />
       <Toaster richColors closeButton position="top-right" />
+      <PWAInstaller />
       <div className="min-h-screen bg-[#0a1128] text-white flex flex-col">
       <style>{`
         :root {
