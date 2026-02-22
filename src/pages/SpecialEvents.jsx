@@ -9,12 +9,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Calendar, Clock, MapPin, Users, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import EventCalendar from "@/components/calendar/EventCalendar";
+import ReminderSettings from "@/components/calendar/ReminderSettings";
 
 export default function SpecialEvents() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [reminders, setReminders] = useState([]);
   const [formData, setFormData] = useState({
     event_name: "",
     event_type: "Other",
@@ -40,7 +43,8 @@ export default function SpecialEvents() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const data = { ...formData };
+    const reminderMinutes = reminders[0]?.minutes || 0;
+    const data = { ...formData, reminder_minutes: reminderMinutes };
     if (data.expected_attendance) data.expected_attendance = parseInt(data.expected_attendance);
     
     let eventId;
@@ -52,6 +56,19 @@ export default function SpecialEvents() {
       const result = await base44.entities.SpecialEvent.create(data);
       eventId = result.id;
       toast.success("Event created");
+    }
+    
+    // Create or update reminder
+    if (reminderMinutes > 0) {
+      await base44.functions.invoke('createOrUpdateCalendarReminder', {
+        event_type: 'special_event',
+        event_id: eventId,
+        user_email: (await base44.auth.me()).email,
+        reminder_minutes: reminderMinutes,
+        event_title: formData.event_name,
+        event_date: formData.event_date,
+        start_time: formData.start_time
+      }).catch(err => console.log('Reminder setup skipped:', err.message));
     }
     
     // Broadcast notification to all users
@@ -99,6 +116,7 @@ export default function SpecialEvents() {
       coordinator_contact: event.coordinator_contact || "",
       status: event.status
     });
+    setReminders(event.reminder_minutes ? [{ id: 1, minutes: event.reminder_minutes }] : []);
     setDialogOpen(true);
   };
 
@@ -346,10 +364,14 @@ export default function SpecialEvents() {
                   onChange={(e) => setFormData({ ...formData, coordinator_contact: e.target.value })}
                   className="bg-[#0a1128] border-[rgba(212,168,67,0.15)]"
                 />
-              </div>
-            </div>
+                </div>
+                </div>
 
-            <div className="flex gap-3 pt-4">
+                <div>
+                <ReminderSettings reminders={reminders} onRemindersChange={setReminders} />
+                </div>
+
+                <div className="flex gap-3 pt-4">
               <Button type="submit" className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]">
                 {editingEvent ? "Update" : "Create"} Event
               </Button>
