@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import ReminderSettings from "@/components/calendar/ReminderSettings";
 
 export default function AssignmentForm({ open, onClose, onSaved, editData }) {
   const [form, setForm] = useState({
@@ -30,6 +31,7 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
   const [showNewPosition, setShowNewPosition] = useState(false);
   const [newPosition, setNewPosition] = useState({ name: "", description: "", area_responsibilities: [], default_radio_channel: "" });
   const [newResponsibility, setNewResponsibility] = useState("");
+  const [reminders, setReminders] = useState([]);
 
   useEffect(() => {
     base44.entities.User.list().then(setUsers).catch(() => {});
@@ -40,6 +42,7 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
     if (editData) {
       setForm({ ...form, ...editData });
       setSelectedResponsibilities(editData.area_responsibilities?.split(", ") || []);
+      setReminders(editData.reminder_minutes ? [{ id: 1, minutes: editData.reminder_minutes }] : []);
     } else {
       setForm({
         position_name: "",
@@ -56,20 +59,40 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
         notes: "",
       });
       setSelectedResponsibilities([]);
+      setReminders([]);
     }
   }, [editData, open]);
 
   const handleSave = async () => {
     setSaving(true);
+    const reminderMinutes = reminders[0]?.minutes || 0;
     const dataToSave = {
       ...form,
-      area_responsibilities: selectedResponsibilities.join(", ")
+      area_responsibilities: selectedResponsibilities.join(", "),
+      reminder_minutes: reminderMinutes
     };
+    let assignmentId;
     if (editData?.id) {
       await base44.entities.Assignment.update(editData.id, dataToSave);
+      assignmentId = editData.id;
     } else {
-      await base44.entities.Assignment.create(dataToSave);
+      const result = await base44.entities.Assignment.create(dataToSave);
+      assignmentId = result.id;
     }
+    
+    // Create or update reminder
+    if (reminderMinutes > 0) {
+      await base44.functions.invoke('createOrUpdateCalendarReminder', {
+        event_type: 'assignment',
+        event_id: assignmentId,
+        user_email: form.assigned_to_email,
+        reminder_minutes: reminderMinutes,
+        event_title: form.position_name,
+        event_date: form.service_date,
+        start_time: form.start_time
+      }).catch(err => console.log('Reminder setup skipped:', err.message));
+    }
+    
     setSaving(false);
     onSaved?.();
     onClose();
@@ -242,6 +265,10 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
           <div>
             <Label className="text-slate-300 text-xs">Notes</Label>
             <Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" rows={2} />
+          </div>
+
+          <div>
+            <ReminderSettings reminders={reminders} onRemindersChange={setReminders} />
           </div>
         </div>
 
