@@ -100,6 +100,14 @@ export default function NotificationProvider({ children }) {
           ]);
         }
 
+        // Send alert to service worker to open app automatically
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            type: 'EMERGENCY_ALERT',
+            alert: event.data
+          });
+        }
+
         // Send CRITICAL push notification (like Amber Alert)
         if ('serviceWorker' in navigator && Notification.permission === 'granted') {
           navigator.serviceWorker.ready.then((registration) => {
