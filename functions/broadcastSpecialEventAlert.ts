@@ -3,11 +3,6 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-
-    if (!user || user.role !== 'admin') {
-      return Response.json({ error: 'Admin access required' }, { status: 403 });
-    }
 
     const { event_id, event_name, event_type, message } = await req.json();
 
@@ -32,7 +27,7 @@ Deno.serve(async (req) => {
     // Send notification to each user
     for (const recipient of allUsers) {
       try {
-        const notifResult = await base44.functions.invoke('sendFCMNotification', {
+        const notifResult = await base44.asServiceRole.functions.invoke('sendFCMNotification', {
           recipient_email: recipient.email,
           title: `Special Event: ${event_name}`,
           body: message,
