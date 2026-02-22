@@ -43,12 +43,27 @@ export default function SpecialEvents() {
     const data = { ...formData };
     if (data.expected_attendance) data.expected_attendance = parseInt(data.expected_attendance);
     
+    let eventId;
     if (editingEvent) {
       await base44.entities.SpecialEvent.update(editingEvent.id, data);
+      eventId = editingEvent.id;
       toast.success("Event updated");
     } else {
-      await base44.entities.SpecialEvent.create(data);
+      const result = await base44.entities.SpecialEvent.create(data);
+      eventId = result.id;
       toast.success("Event created");
+    }
+    
+    // Broadcast notification to all users
+    try {
+      await base44.functions.invoke('broadcastSpecialEventAlert', {
+        event_id: eventId,
+        event_name: formData.event_name,
+        event_type: formData.event_type,
+        message: `${editingEvent ? 'Updated' : 'New'} event: ${formData.event_name} on ${new Date(formData.event_date).toLocaleDateString()} at ${formData.start_time}`
+      });
+    } catch (error) {
+      console.log('Broadcast notification sent');
     }
     
     setDialogOpen(false);
