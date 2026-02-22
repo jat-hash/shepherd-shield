@@ -90,9 +90,14 @@ export default function NotificationProvider({ children }) {
         // LOUD emergency sound
         playNotificationSound('emergency');
 
-        // Vibrate if supported
+        // INTENSE vibration pattern (like Amber Alert)
         if (navigator.vibrate) {
-          navigator.vibrate([300, 100, 300, 100, 300, 100, 300]);
+          // Long vibration bursts - 10 seconds of vibration
+          navigator.vibrate([
+            1000, 200, 1000, 200, 1000, 200,
+            1000, 200, 1000, 200, 1000, 200,
+            1000, 200, 1000, 200, 1000
+          ]);
         }
 
         // Send CRITICAL push notification (like Amber Alert)
@@ -102,7 +107,7 @@ export default function NotificationProvider({ children }) {
               body: `${event.data.alert_type.toUpperCase()}\n\n${event.data.message}`,
               icon: '/icon-192x192.png',
               badge: '/icon-192x192.png',
-              vibrate: [500, 200, 500, 200, 500, 200, 500, 200, 500],
+              vibrate: [1000, 200, 1000, 200, 1000, 200, 1000, 200, 1000],
               tag: 'emergency-' + event.data.id,
               requireInteraction: true,
               renotify: true,
@@ -123,7 +128,7 @@ export default function NotificationProvider({ children }) {
             new Notification('🚨 EMERGENCY ALERT', {
               body: `${event.data.alert_type.toUpperCase()}\n\n${event.data.message}`,
               requireInteraction: true,
-              vibrate: [500, 200, 500, 200, 500],
+              vibrate: [1000, 200, 1000, 200, 1000],
               tag: 'emergency-' + event.data.id,
               renotify: true,
               silent: false
@@ -133,7 +138,7 @@ export default function NotificationProvider({ children }) {
           new Notification('🚨 EMERGENCY ALERT', {
             body: `${event.data.alert_type.toUpperCase()}\n\n${event.data.message}`,
             requireInteraction: true,
-            vibrate: [500, 200, 500, 200, 500],
+            vibrate: [1000, 200, 1000, 200, 1000],
             tag: 'emergency-' + event.data.id,
             renotify: true,
             silent: false
@@ -146,7 +151,7 @@ export default function NotificationProvider({ children }) {
           setEmergencyAlert(event.data);
           playNotificationSound('emergency');
           if (navigator.vibrate) {
-            navigator.vibrate([300, 100, 300]);
+            navigator.vibrate([1000, 200, 1000, 200, 1000, 200, 1000]);
           }
         }
       }
