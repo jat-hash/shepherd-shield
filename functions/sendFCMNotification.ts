@@ -34,36 +34,55 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Firebase server key not configured' }, { status: 500 });
     }
 
+    // Parse server key to get project ID (format: project_id:token)
+    const projectId = serverKey.split(':')[0];
+
     const results = [];
 
     for (const device of devices) {
       try {
-        const response = await fetch('https://fcm.googleapis.com/fcm/send', {
-          method: 'POST',
-          headers: {
-            'Authorization': `key=${serverKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            to: device.fcm_token,
-            notification: {
-              title,
-              body,
-              sound: 'default',
-              priority: 'high'
+        // Use Firebase Cloud Messaging v1 API
+        const response = await fetch(
+          `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${serverKey}`,
+              'Content-Type': 'application/json'
             },
-            data: {
-              alertId: alert_id || '',
-              click_action: 'FLUTTER_NOTIFICATION_CLICK'
-            }
-          })
-        });
+            body: JSON.stringify({
+              message: {
+                token: device.fcm_token,
+                notification: {
+                  title,
+                  body
+                },
+                data: {
+                  alertId: alert_id || ''
+                },
+                webpush: {
+                  priority: 'high',
+                  notification: {
+                    title,
+                    body,
+                    icon: '/icon-192x192.png',
+                    badge: '/badge-72x72.png',
+                    sound: 'default',
+                    vibrate: [1000, 200, 1000],
+                    requireInteraction: true,
+                    tag: 'emergency-alert'
+                  }
+                }
+              }
+            })
+          }
+        );
 
         const data = await response.json();
         results.push({
           device_id: device.device_id,
-          success: data.success === 1,
-          messageId: data.message_id
+          success: response.ok && !!data.name,
+          messageId: data.name || null
         });
       } catch (error) {
         console.error(`Error sending to device ${device.device_id}:`, error);
