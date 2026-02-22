@@ -95,8 +95,33 @@ export default function NotificationProvider({ children }) {
           navigator.vibrate([300, 100, 300, 100, 300, 100, 300]);
         }
 
-        // Browser notification with sound if permission granted
-        if (Notification.permission === 'granted') {
+        // Send push notification for background delivery
+        if ('serviceWorker' in navigator && Notification.permission === 'granted') {
+          navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification('🚨 EMERGENCY ALERT', {
+              body: `${event.data.alert_type}: ${event.data.message}`,
+              icon: '/icon-192x192.png',
+              badge: '/icon-192x192.png',
+              vibrate: [300, 100, 300, 100, 300, 100, 300],
+              tag: 'emergency-' + event.data.id,
+              requireInteraction: true,
+              silent: false,
+              data: {
+                url: '/',
+                alertId: event.data.id
+              }
+            });
+          }).catch(() => {
+            // Fallback to regular notification
+            new Notification('🚨 EMERGENCY ALERT', {
+              body: `${event.data.alert_type}: ${event.data.message}`,
+              requireInteraction: true,
+              vibrate: [300, 100, 300, 100, 300],
+              tag: 'emergency-' + event.data.id,
+              silent: false
+            });
+          });
+        } else if (Notification.permission === 'granted') {
           new Notification('🚨 EMERGENCY ALERT', {
             body: `${event.data.alert_type}: ${event.data.message}`,
             requireInteraction: true,
