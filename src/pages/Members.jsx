@@ -29,10 +29,17 @@ export default function Members() {
   const [newPositionDescription, setNewPositionDescription] = useState("");
 
   useEffect(() => {
-    loadUsers();
     loadCurrentUser();
-    loadCommandPositions();
   }, []);
+
+  useEffect(() => {
+    if (currentUser?.role === 'admin') {
+      loadUsers();
+      loadCommandPositions();
+    } else if (currentUser) {
+      setLoading(false);
+    }
+  }, [currentUser]);
 
   const loadCurrentUser = async () => {
     try {
@@ -40,11 +47,11 @@ export default function Members() {
       setCurrentUser(user);
     } catch (error) {
       console.error("Failed to load current user:", error);
+      setLoading(false);
     }
   };
 
   const loadUsers = async () => {
-    setLoading(true);
     try {
       const data = await base44.entities.User.list();
       const formattedUsers = data.map(user => ({
@@ -53,10 +60,10 @@ export default function Members() {
         display_name: user.data?.display_name || user.display_name || user.full_name
       }));
       setUsers(formattedUsers);
-      setLoading(false);
     } catch (error) {
       console.error("Failed to load users:", error);
       setUsers([]);
+    } finally {
       setLoading(false);
     }
   };
