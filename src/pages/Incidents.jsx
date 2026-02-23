@@ -28,6 +28,7 @@ export default function Incidents() {
   const [severityFilter, setSeverityFilter] = useState("all");
   const [sortBy, setSortBy] = useState("-created_date");
   const [viewingIncident, setViewingIncident] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const loadIncidents = async () => {
     setLoading(true);
@@ -36,7 +37,10 @@ export default function Incidents() {
     setLoading(false);
   };
 
-  useEffect(() => { loadIncidents(); }, [sortBy]);
+  useEffect(() => { 
+    loadIncidents();
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, [sortBy]);
 
   const filtered = incidents.filter(i => {
     if (filter !== "all" && i.status !== filter) return false;
@@ -55,9 +59,11 @@ export default function Incidents() {
         <h1 className="text-lg sm:text-xl font-bold text-white">Incident Reports</h1>
         <div className="flex gap-1 sm:gap-2">
           <SOPReference category="Active Threat" />
-          <Button onClick={() => setFormOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-4">
-            <Plus className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">New</span>
-          </Button>
+          {currentUser?.role === 'admin' && (
+            <Button onClick={() => setFormOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-4">
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">New</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -142,11 +148,15 @@ export default function Incidents() {
                 </span>
                 <div className="flex items-center gap-2">
                   <span className={`font-semibold ${statusColors[inc.status]}`}>{inc.status}</span>
-                  {inc.status === "Open" && (
-                    <button onClick={(e) => { e.stopPropagation(); updateStatus(inc.id, "In Progress"); }} className="text-amber-400 hover:text-amber-300 underline">Take</button>
-                  )}
-                  {inc.status === "In Progress" && (
-                    <button onClick={(e) => { e.stopPropagation(); updateStatus(inc.id, "Resolved"); }} className="text-emerald-400 hover:text-emerald-300 underline">Resolve</button>
+                  {currentUser?.role === 'admin' && (
+                    <>
+                      {inc.status === "Open" && (
+                        <button onClick={(e) => { e.stopPropagation(); updateStatus(inc.id, "In Progress"); }} className="text-amber-400 hover:text-amber-300 underline">Take</button>
+                      )}
+                      {inc.status === "In Progress" && (
+                        <button onClick={(e) => { e.stopPropagation(); updateStatus(inc.id, "Resolved"); }} className="text-emerald-400 hover:text-emerald-300 underline">Resolve</button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
