@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { name: "Comm", icon: MessageSquare, page: "Communications" },
   { name: "Assign", icon: CalendarDays, page: "Assignments" },
   { name: "Reports", icon: FileText, page: "Incidents" },
+  { name: "Members", icon: User, page: "Members" },
   { name: "Profile", icon: User, page: "Profile" },
 ];
 
