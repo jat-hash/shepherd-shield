@@ -44,6 +44,7 @@ export default function Members() {
   };
 
   const loadUsers = async () => {
+    setLoading(true);
     try {
       const data = await base44.entities.User.list();
       const formattedUsers = data.map(user => ({
@@ -52,10 +53,10 @@ export default function Members() {
         display_name: user.data?.display_name || user.display_name || user.full_name
       }));
       setUsers(formattedUsers);
+      setLoading(false);
     } catch (error) {
       console.error("Failed to load users:", error);
-      toast.error("Failed to load team members");
-    } finally {
+      setUsers([]);
       setLoading(false);
     }
   };
@@ -442,7 +443,17 @@ export default function Members() {
           ))}
         </div>
 
-        {filteredUsers.length === 0 && (
+        {filteredUsers.length === 0 && users.length === 0 && !loading && currentUser?.role !== 'admin' && (
+          <div className="text-center py-12">
+            <Shield className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+            <p className="text-slate-400 font-semibold">Admin Access Required</p>
+            <p className="text-slate-500 text-sm mt-1">
+              Only administrators can view the team members list
+            </p>
+          </div>
+        )}
+        
+        {filteredUsers.length === 0 && (users.length > 0 || currentUser?.role === 'admin') && (
           <div className="text-center py-12">
             <User className="w-16 h-16 text-slate-600 mx-auto mb-4" />
             <p className="text-slate-400">No members found</p>
