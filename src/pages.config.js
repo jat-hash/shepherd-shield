@@ -54,12 +54,12 @@ import Communications from './pages/Communications';
 import Dashboard from './pages/Dashboard';
 import EquipmentInventory from './pages/EquipmentInventory';
 import Incidents from './pages/Incidents';
+import Members from './pages/Members';
 import Positions from './pages/Positions';
 import Profile from './pages/Profile';
 import SOPLibrary from './pages/SOPLibrary';
 import SpecialEvents from './pages/SpecialEvents';
 import WatchList from './pages/WatchList';
-import Members from './pages/Members';
 import __Layout from './Layout.jsx';
 
 
@@ -71,12 +71,12 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "EquipmentInventory": EquipmentInventory,
     "Incidents": Incidents,
+    "Members": Members,
     "Positions": Positions,
     "Profile": Profile,
     "SOPLibrary": SOPLibrary,
     "SpecialEvents": SpecialEvents,
     "WatchList": WatchList,
-    "Members": Members,
 }
 
 export const pagesConfig = {
