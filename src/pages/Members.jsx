@@ -49,7 +49,11 @@ export default function Members() {
       setUsers(data);
     } catch (error) {
       console.error("Failed to load users:", error);
-      toast.error("Failed to load team members");
+      if (error.status === 403) {
+        toast.error("Only administrators can view team members");
+      } else {
+        toast.error("Failed to load team members");
+      }
     } finally {
       setLoading(false);
     }
