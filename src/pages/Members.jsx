@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { User, Search, Mail, Shield, UserPlus } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { User, Search, Mail, Shield, UserPlus, Award, ChevronDown, ChevronUp } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -18,6 +18,10 @@ export default function Members() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("user");
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [showChainOfCommand, setShowChainOfCommand] = useState(true);
+  const [editingCommandUser, setEditingCommandUser] = useState(null);
+  const [commandDialogOpen, setCommandDialogOpen] = useState(false);
+  const [selectedCommandPosition, setSelectedCommandPosition] = useState("");
 
   useEffect(() => {
     loadUsers();
@@ -60,6 +64,48 @@ export default function Members() {
       toast.error("Failed to send invitation");
     }
   };
+
+  const handleAssignCommand = async () => {
+    if (!editingCommandUser || !selectedCommandPosition) return;
+
+    try {
+      await base44.entities.User.update(editingCommandUser.id, {
+        command_position: selectedCommandPosition
+      });
+      toast.success("Command position assigned");
+      setCommandDialogOpen(false);
+      setEditingCommandUser(null);
+      setSelectedCommandPosition("");
+      loadUsers();
+    } catch (error) {
+      console.error("Failed to assign command position:", error);
+      toast.error("Failed to assign position");
+    }
+  };
+
+  const handleRemoveCommand = async (userId) => {
+    try {
+      await base44.entities.User.update(userId, {
+        command_position: null
+      });
+      toast.success("Command position removed");
+      loadUsers();
+    } catch (error) {
+      console.error("Failed to remove command position:", error);
+      toast.error("Failed to remove position");
+    }
+  };
+
+  const commandPositions = [
+    "Pastor",
+    "Incident Commander",
+    "Team Lead Commander",
+    "Administrator",
+    "Medical Specialist",
+    "Head Usher"
+  ];
+
+  const commandUsers = users.filter(u => u.command_position);
 
   const filteredUsers = users.filter(user =>
     user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -148,6 +194,77 @@ export default function Members() {
           )}
         </div>
 
+        {/* Chain of Command Section */}
+        <Card className="bg-[#141f3d] border-[rgba(212,168,67,0.15)] mb-6">
+          <CardHeader>
+            <button
+              onClick={() => setShowChainOfCommand(!showChainOfCommand)}
+              className="flex items-center justify-between w-full text-left"
+            >
+              <div className="flex items-center gap-2">
+                <Award className="w-5 h-5 text-[#d4a843]" />
+                <CardTitle className="text-[#d4a843]">Chain of Command</CardTitle>
+              </div>
+              {showChainOfCommand ? (
+                <ChevronUp className="w-5 h-5 text-slate-400" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-slate-400" />
+              )}
+            </button>
+          </CardHeader>
+          {showChainOfCommand && (
+            <CardContent>
+              <div className="space-y-3">
+                {commandPositions.map((position) => {
+                  const assignedUser = users.find(u => u.command_position === position);
+                  return (
+                    <div key={position} className="flex items-center justify-between bg-[#1a2744] rounded-lg p-3 border border-[rgba(212,168,67,0.1)]">
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-[#d4a843]">{position}</p>
+                        {assignedUser ? (
+                          <div className="flex items-center gap-2 mt-1">
+                            <div className="w-6 h-6 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-xs">
+                              {assignedUser.full_name?.charAt(0) || "U"}
+                            </div>
+                            <span className="text-sm text-white">{assignedUser.full_name || assignedUser.email}</span>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-500 mt-1">Not assigned</p>
+                        )}
+                      </div>
+                      {currentUser?.role === 'admin' && (
+                        <div className="flex gap-2">
+                          {assignedUser && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleRemoveCommand(assignedUser.id)}
+                              className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                            >
+                              Remove
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setEditingCommandUser({ position });
+                              setSelectedCommandPosition(position);
+                              setCommandDialogOpen(true);
+                            }}
+                            className="bg-[#d4a843]/20 hover:bg-[#d4a843]/30 text-[#d4a843]"
+                          >
+                            {assignedUser ? "Change" : "Assign"}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          )}
+        </Card>
+
         {/* Search */}
         <div className="mb-6">
           <div className="relative">
@@ -179,24 +296,32 @@ export default function Members() {
                       <CardTitle className="text-white text-base">
                         {user.full_name || "Team Member"}
                       </CardTitle>
-                      {user.role && (
-                        <Badge
-                          className={
-                            user.role === "admin"
-                              ? "bg-[#d4a843] text-[#0a1128] hover:bg-[#e0bb5e]"
-                              : "bg-[#1a2744] text-slate-300 hover:bg-[#1a2744]"
-                          }
-                        >
-                          {user.role === "admin" ? (
-                            <>
-                              <Shield className="w-3 h-3 mr-1" />
-                              Admin
-                            </>
-                          ) : (
-                            "Member"
-                          )}
-                        </Badge>
-                      )}
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {user.role && (
+                          <Badge
+                            className={
+                              user.role === "admin"
+                                ? "bg-[#d4a843] text-[#0a1128] hover:bg-[#e0bb5e]"
+                                : "bg-[#1a2744] text-slate-300 hover:bg-[#1a2744]"
+                            }
+                          >
+                            {user.role === "admin" ? (
+                              <>
+                                <Shield className="w-3 h-3 mr-1" />
+                                Admin
+                              </>
+                            ) : (
+                              "Member"
+                            )}
+                          </Badge>
+                        )}
+                        {user.command_position && (
+                          <Badge className="bg-purple-900/50 text-purple-200 hover:bg-purple-900/50">
+                            <Award className="w-3 h-3 mr-1" />
+                            {user.command_position}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -226,6 +351,62 @@ export default function Members() {
           </div>
         )}
       </div>
+
+      {/* Assign Command Position Dialog */}
+      <Dialog open={commandDialogOpen} onOpenChange={setCommandDialogOpen}>
+        <DialogContent className="bg-[#141f3d] border-[rgba(212,168,67,0.15)] text-white">
+          <DialogHeader>
+            <DialogTitle className="text-[#d4a843]">Assign {editingCommandUser?.position}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-slate-300">Select Team Member</Label>
+              <Select 
+                value={editingCommandUser?.id} 
+                onValueChange={(userId) => {
+                  const user = users.find(u => u.id === userId);
+                  setEditingCommandUser({ ...editingCommandUser, ...user });
+                }}
+              >
+                <SelectTrigger className="bg-[#0a1128] border-[rgba(212,168,67,0.15)] text-white">
+                  <SelectValue placeholder="Choose member" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#141f3d] border-[rgba(212,168,67,0.15)] text-white">
+                  {users.map(u => (
+                    <SelectItem key={u.id} value={u.id} className="text-white">
+                      {u.full_name || u.email}
+                      {u.command_position && (
+                        <span className="text-xs text-slate-400 ml-2">
+                          (Currently: {u.command_position})
+                        </span>
+                      )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCommandDialogOpen(false);
+                setEditingCommandUser(null);
+              }}
+              className="border-[rgba(212,168,67,0.15)] text-white hover:bg-[#1a2744]"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAssignCommand}
+              disabled={!editingCommandUser?.id}
+              className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]"
+            >
+              Assign Position
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
