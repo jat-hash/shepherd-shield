@@ -46,14 +46,15 @@ export default function Members() {
   const loadUsers = async () => {
     try {
       const data = await base44.entities.User.list();
-      setUsers(data);
+      const formattedUsers = data.map(user => ({
+        ...user,
+        command_position: user.data?.command_position || user.command_position,
+        display_name: user.data?.display_name || user.display_name || user.full_name
+      }));
+      setUsers(formattedUsers);
     } catch (error) {
       console.error("Failed to load users:", error);
-      if (error.status === 403) {
-        toast.error("Only administrators can view team members");
-      } else {
-        toast.error("Failed to load team members");
-      }
+      toast.error("Failed to load team members");
     } finally {
       setLoading(false);
     }
