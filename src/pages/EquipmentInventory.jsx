@@ -29,6 +29,7 @@ export default function EquipmentInventory() {
   const [saving, setSaving] = useState(false);
   const [scanMode, setScanMode] = useState(false);
   const [scannedCode, setScannedCode] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -37,7 +38,10 @@ export default function EquipmentInventory() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { 
+    load();
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
 
   const filtered = categoryFilter === "all" ? items : items.filter(i => i.category === categoryFilter);
 
@@ -138,9 +142,11 @@ export default function EquipmentInventory() {
           <Button onClick={() => setScanMode(true)} variant="outline" className="border-[#d4a843] text-[#d4a843] hover:bg-[#d4a843]/10 text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-3">
             <QrCode className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Scan</span>
           </Button>
-          <Button onClick={() => setFormOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-4">
-            <Plus className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Add</span>
-          </Button>
+          {currentUser?.role === 'admin' && (
+            <Button onClick={() => setFormOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-4">
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Add</span>
+            </Button>
+          )}
         </div>
       </div>
 

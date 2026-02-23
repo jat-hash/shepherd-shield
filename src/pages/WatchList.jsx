@@ -22,6 +22,7 @@ export default function WatchList() {
   const [detailPerson, setDetailPerson] = useState(null);
   const [form, setForm] = useState({ full_name: "", status: "Monitor", description: "", notes: "", photo: "" });
   const [saving, setSaving] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -30,7 +31,10 @@ export default function WatchList() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { 
+    load();
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
 
   const filtered = filter === "all" ? persons : persons.filter(p => p.status === filter);
 
@@ -60,9 +64,11 @@ export default function WatchList() {
     <div className="max-w-2xl mx-auto px-3 py-4 lg:px-4 lg:py-6 lg:ml-60 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg sm:text-xl font-bold text-white">Watch List</h1>
-        <Button onClick={() => setFormOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-4">
-          <Plus className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Add</span>
-        </Button>
+        {currentUser?.role === 'admin' && (
+          <Button onClick={() => setFormOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-4">
+            <Plus className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Add</span>
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -174,9 +180,11 @@ export default function WatchList() {
               {detailPerson.last_seen_date && (
                 <p className="text-xs text-slate-500">Last seen: {detailPerson.last_seen_date}</p>
               )}
-              <Button onClick={() => handleDelete(detailPerson.id)} variant="destructive" className="w-full gap-2">
-                <Trash2 className="w-4 h-4" /> Remove from Watch List
-              </Button>
+              {currentUser?.role === 'admin' && (
+                <Button onClick={() => handleDelete(detailPerson.id)} variant="destructive" className="w-full gap-2">
+                  <Trash2 className="w-4 h-4" /> Remove from Watch List
+                </Button>
+              )}
             </div>
           )}
         </DialogContent>

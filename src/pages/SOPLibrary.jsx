@@ -35,6 +35,7 @@ export default function SOPLibrary() {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -43,7 +44,10 @@ export default function SOPLibrary() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { 
+    load();
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -126,9 +130,11 @@ Provide a helpful, accurate answer based on the SOP content above.`
           <Button onClick={() => setChatOpen(true)} variant="outline" className="border-[#d4a843] text-[#d4a843] hover:bg-[#d4a843]/10 text-sm gap-1">
             <MessageCircle className="w-4 h-4" /> AI Assistant
           </Button>
-          <Button onClick={() => setFormOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-sm gap-1">
-            <Plus className="w-4 h-4" /> Upload
-          </Button>
+          {currentUser?.role === 'admin' && (
+            <Button onClick={() => setFormOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-sm gap-1">
+              <Plus className="w-4 h-4" /> Upload
+            </Button>
+          )}
         </div>
       </div>
 
@@ -218,25 +224,27 @@ Provide a helpful, accurate answer based on the SOP content above.`
               <div className="flex-1">
                 <DialogTitle className="text-[#d4a843]">{detailSop?.title}</DialogTitle>
               </div>
-              <Button
-                onClick={() => {
-                  setForm({
-                    title: detailSop.title,
-                    category: detailSop.category,
-                    content: detailSop.content,
-                    version: detailSop.version,
-                    document_file: detailSop.document_file || ""
-                  });
-                  setEditingId(detailSop.id);
-                  setDetailSop(null);
-                  setFormOpen(true);
-                }}
-                size="sm"
-                variant="outline"
-                className="border-[#d4a843]/30 text-[#d4a843] hover:bg-[#d4a843]/10 gap-1"
-              >
-                <Edit2 className="w-3 h-3" /> Edit
-              </Button>
+              {currentUser?.role === 'admin' && (
+                <Button
+                  onClick={() => {
+                    setForm({
+                      title: detailSop.title,
+                      category: detailSop.category,
+                      content: detailSop.content,
+                      version: detailSop.version,
+                      document_file: detailSop.document_file || ""
+                    });
+                    setEditingId(detailSop.id);
+                    setDetailSop(null);
+                    setFormOpen(true);
+                  }}
+                  size="sm"
+                  variant="outline"
+                  className="border-[#d4a843]/30 text-[#d4a843] hover:bg-[#d4a843]/10 gap-1"
+                >
+                  <Edit2 className="w-3 h-3" /> Edit
+                </Button>
+              )}
             </div>
           </DialogHeader>
           {detailSop && (

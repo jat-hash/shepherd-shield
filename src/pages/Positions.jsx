@@ -26,9 +26,11 @@ export default function Positions() {
     auto_rotate: false
   });
   const [newResponsibility, setNewResponsibility] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     loadPositions();
+    base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
   const loadPositions = async () => {
@@ -120,9 +122,11 @@ export default function Positions() {
           <h1 className="text-2xl font-bold text-white">Position Management</h1>
           <p className="text-slate-400 text-sm mt-1">Manage security team positions and responsibilities</p>
         </div>
-        <Button onClick={() => openForm()} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold gap-2">
-          <Plus className="w-4 h-4" /> Add Position
-        </Button>
+        {currentUser?.role === 'admin' && (
+          <Button onClick={() => openForm()} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold gap-2">
+            <Plus className="w-4 h-4" /> Add Position
+          </Button>
+        )}
       </div>
 
       {loading ? (
@@ -168,14 +172,16 @@ export default function Positions() {
                     </div>
                   )}
                 </div>
-                <div className="flex gap-1 ml-3">
-                  <Button onClick={() => openForm(pos)} size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-[#d4a843]">
-                    <Pencil className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button onClick={() => { setDeleteId(pos.id); setDeleteOpen(true); }} size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-red-400">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
+                {currentUser?.role === 'admin' && (
+                  <div className="flex gap-1 ml-3">
+                    <Button onClick={() => openForm(pos)} size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-[#d4a843]">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button onClick={() => { setDeleteId(pos.id); setDeleteOpen(true); }} size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-red-400">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           ))}
