@@ -1,31 +1,37 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, CheckCircle, Clock, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, CheckCircle, Clock, XCircle, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import AssignmentForm from "@/components/assignments/AssignmentForm";
-import EventCalendar from "@/components/calendar/EventCalendar";
 
 export default function Assignments() {
   const [assignments, setAssignments] = useState([]);
+  const [specialEvents, setSpecialEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editData, setEditData] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  const loadAssignments = async () => {
+  const loadData = async () => {
     setLoading(true);
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     const startDate = new Date(year, month, 1).toISOString().split("T")[0];
     const endDate = new Date(year, month + 1, 0).toISOString().split("T")[0];
     
-    const all = await base44.entities.Assignment.list("service_date");
-    const filtered = all.filter(a => a.service_date >= startDate && a.service_date <= endDate);
-    setAssignments(filtered);
+    const allAssignments = await base44.entities.Assignment.list("service_date");
+    const filteredAssignments = allAssignments.filter(a => a.service_date >= startDate && a.service_date <= endDate);
+    setAssignments(filteredAssignments);
+
+    const allEvents = await base44.entities.SpecialEvent.list("event_date");
+    const filteredEvents = allEvents.filter(e => e.event_date >= startDate && e.event_date <= endDate);
+    setSpecialEvents(filteredEvents);
+    
     setLoading(false);
   };
 
-  useEffect(() => { loadAssignments(); }, [currentMonth]);
+  useEffect(() => { loadData(); }, [currentMonth]);
 
   const getDaysInMonth = () => {
     const year = currentMonth.getFullYear();
@@ -55,6 +61,12 @@ export default function Assignments() {
     return assignments.filter(a => a.service_date === dateStr);
   };
 
+  const getEventsForDate = (date) => {
+    if (!date) return [];
+    const dateStr = date.toISOString().split("T")[0];
+    return specialEvents.filter(e => e.event_date === dateStr);
+  };
+
   const goToPreviousMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
   };
@@ -77,14 +89,11 @@ export default function Assignments() {
   return (
     <div className="max-w-6xl mx-auto px-3 py-4 lg:px-4 lg:py-6 lg:ml-60 space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg sm:text-xl font-bold text-white">Assignments</h1>
+        <h1 className="text-lg sm:text-xl font-bold text-white">Assignments & Events</h1>
         <Button onClick={() => { setEditData(null); setFormOpen(true); }} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-4">
           <Plus className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Create</span>
         </Button>
       </div>
-
-      {/* Calendar View */}
-      {!loading && <EventCalendar events={assignments} onEventClick={handleEventClick} />}
 
       {/* Month Navigation */}
       <div className="flex items-center justify-between bg-[#1a2744] rounded-xl p-3 border border-[rgba(212,168,67,0.1)]">
@@ -118,12 +127,13 @@ export default function Assignments() {
           <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
             {days.map((date, i) => {
               const dayAssignments = date ? getAssignmentsForDate(date) : [];
+              const dayEvents = date ? getEventsForDate(date) : [];
               const isToday = date && date.toISOString().split("T")[0] === new Date().toISOString().split("T")[0];
               
               return (
                 <div
                   key={i}
-                  className={`min-h-[90px] sm:min-h-[110px] bg-[#1a2744] rounded-lg border p-1.5 sm:p-2 ${
+                  className={`min-h-[90px] sm:min-h-[120px] bg-[#1a2744] rounded-lg border p-1.5 sm:p-2 ${
                     date ? "border-[rgba(212,168,67,0.1)]" : "border-transparent bg-transparent"
                   }`}
                 >
@@ -133,6 +143,24 @@ export default function Assignments() {
                         {date.getDate()}
                       </div>
                       <div className="space-y-1">
+                        {/* Special Events */}
+                        {dayEvents.map(evt => (
+                          <div
+                            key={evt.id}
+                            className="w-full text-left bg-purple-900/30 rounded p-1.5 border border-purple-500/30"
+                          >
+                            <div className="flex items-center gap-1 mb-0.5">
+                              <Calendar className="w-3 h-3 text-purple-400" />
+                              <span className="text-[10px] sm:text-xs text-purple-200 font-medium truncate">{evt.event_name}</span>
+                            </div>
+                            <Badge className="bg-purple-500/20 text-purple-300 text-[8px] sm:text-[9px] px-1 py-0 h-auto">
+                              {evt.event_type}
+                            </Badge>
+                            <p className="text-[9px] sm:text-[10px] text-purple-300/70 mt-0.5">{evt.start_time}</p>
+                          </div>
+                        ))}
+                        
+                        {/* Assignments */}
                         {dayAssignments.map(a => (
                           <button
                             key={a.id}
@@ -160,7 +188,7 @@ export default function Assignments() {
       <AssignmentForm
         open={formOpen}
         onClose={() => { setFormOpen(false); setEditData(null); }}
-        onSaved={loadAssignments}
+        onSaved={loadData}
         editData={editData}
       />
     </div>
