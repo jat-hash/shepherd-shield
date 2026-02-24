@@ -173,6 +173,7 @@ export default function Members() {
   };
 
   const filteredUsers = users.filter(user =>
+    user.display_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -307,12 +308,12 @@ export default function Members() {
                             <p className="text-xs text-slate-400 mt-0.5">{position.description}</p>
                           )}
                           {assignedUser ? (
-                            <div className="flex items-center gap-2 mt-1">
-                              <div className="w-6 h-6 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-xs">
-                                {assignedUser.full_name?.charAt(0) || "U"}
-                              </div>
-                              <span className="text-sm text-white">{assignedUser.full_name || assignedUser.email}</span>
-                            </div>
+                           <div className="flex items-center gap-2 mt-1">
+                             <div className="w-6 h-6 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-xs">
+                               {(assignedUser.display_name || assignedUser.full_name)?.charAt(0) || "U"}
+                             </div>
+                             <span className="text-sm text-white">{assignedUser.display_name || assignedUser.full_name || assignedUser.email}</span>
+                           </div>
                           ) : (
                             <p className="text-xs text-slate-500 mt-1">Not assigned</p>
                           )}
@@ -397,12 +398,12 @@ export default function Members() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-lg">
-                      {user.full_name?.charAt(0) || user.email?.charAt(0) || "U"}
+                      {(user.display_name || user.full_name)?.charAt(0) || user.email?.charAt(0) || "U"}
                     </div>
                     <div>
-                      <CardTitle className="text-white text-base">
-                        {user.full_name || "Team Member"}
-                      </CardTitle>
+                     <CardTitle className="text-white text-base">
+                       {user.display_name || user.full_name || "Team Member"}
+                     </CardTitle>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {user.role && (
                           <Badge
@@ -481,7 +482,7 @@ export default function Members() {
                 <SelectContent className="bg-[#141f3d] border-[rgba(212,168,67,0.15)] text-white max-h-[300px]">
                   {users.map(u => (
                     <SelectItem key={u.id} value={u.id} className="text-white">
-                      {u.full_name || u.email}
+                      {u.display_name || u.full_name || u.email}
                       {u.command_position && (
                         <span className="text-xs text-slate-400 ml-2">
                           (Currently: {u.command_position})
