@@ -31,6 +31,9 @@ export default function Members() {
   const [roles, setRoles] = useState([]);
   const [newRoleName, setNewRoleName] = useState("");
   const [roleToRename, setRoleToRename] = useState(null);
+  const [userRoleDialogOpen, setUserRoleDialogOpen] = useState(false);
+  const [editingUserRole, setEditingUserRole] = useState(null);
+  const [selectedUserRole, setSelectedUserRole] = useState("");
 
   useEffect(() => {
     loadCurrentUser();
@@ -203,6 +206,24 @@ export default function Members() {
     
     setRoles(roles.filter(r => r !== roleName));
     toast.success(`Role "${roleName}" removed`);
+  };
+
+  const handleAssignUserRole = async () => {
+    if (!editingUserRole || !selectedUserRole) return;
+    
+    try {
+      await base44.entities.User.update(editingUserRole.id, {
+        role: selectedUserRole
+      });
+      toast.success("Role updated");
+      setUserRoleDialogOpen(false);
+      setEditingUserRole(null);
+      setSelectedUserRole("");
+      loadUsers();
+    } catch (error) {
+      console.error("Failed to update role:", error);
+      toast.error("Failed to update role");
+    }
   };
 
   const handleDeletePosition = async (positionId) => {
@@ -452,20 +473,34 @@ export default function Members() {
                         )}
                       </div>
                     </div>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2 text-slate-400 text-sm">
-                  <Mail className="w-4 h-4" />
-                  <span className="truncate">{user.email}</span>
-                </div>
-                {user.created_date && (
-                  <p className="text-xs text-slate-500 mt-2">
+                    </div>
+                    </div>
+                    </CardHeader>
+                    <CardContent>
+                    <div className="flex items-center gap-2 text-slate-400 text-sm">
+                    <Mail className="w-4 h-4" />
+                    <span className="truncate">{user.email}</span>
+                    </div>
+                    {user.created_date && (
+                    <p className="text-xs text-slate-500 mt-2">
                     Joined {new Date(user.created_date).toLocaleDateString()}
-                  </p>
-                )}
-              </CardContent>
+                    </p>
+                    )}
+                    {currentUser?.role === 'admin' && currentUser.id !== user.id && (
+                    <Button
+                    size="sm"
+                    onClick={() => {
+                      setEditingUserRole(user);
+                      setSelectedUserRole(user.role || "");
+                      setUserRoleDialogOpen(true);
+                    }}
+                    variant="outline"
+                    className="mt-3 w-full border-[rgba(212,168,67,0.15)] text-slate-300 hover:text-white hover:bg-white/10"
+                    >
+                    Change Role
+                    </Button>
+                    )}
+                    </CardContent>
             </Card>
           ))}
         </div>
@@ -532,6 +567,54 @@ export default function Members() {
               className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]"
             >
               Assign Position
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign User Role Dialog */}
+      <Dialog open={userRoleDialogOpen} onOpenChange={setUserRoleDialogOpen}>
+        <DialogContent className="bg-[#141f3d] border-[rgba(212,168,67,0.15)] text-white">
+          <DialogHeader>
+            <DialogTitle className="text-[#d4a843]">
+              Change Role for {editingUserRole?.display_name || editingUserRole?.full_name || editingUserRole?.email}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-slate-300">Select Role</Label>
+              <Select value={selectedUserRole} onValueChange={setSelectedUserRole}>
+                <SelectTrigger className="bg-[#0a1128] border-[rgba(212,168,67,0.15)] text-white">
+                  <SelectValue placeholder="Choose role" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#141f3d] border-[rgba(212,168,67,0.15)] text-white">
+                  {roles.map(role => (
+                    <SelectItem key={role} value={role} className="text-white">
+                      {role}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setUserRoleDialogOpen(false);
+                setEditingUserRole(null);
+                setSelectedUserRole("");
+              }}
+              className="border-[rgba(212,168,67,0.15)] text-white hover:bg-[#1a2744]"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAssignUserRole}
+              disabled={!selectedUserRole}
+              className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]"
+            >
+              Update Role
             </Button>
           </DialogFooter>
         </DialogContent>
