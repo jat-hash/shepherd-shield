@@ -205,13 +205,7 @@ export default function Members() {
     toast.success(`Role "${roleName}" removed`);
   };
 
-  const handleDeletePosition = async (positionId, positionTitle) => {
-    const usersWithPosition = users.filter(u => u.command_position === positionTitle);
-    if (usersWithPosition.length > 0) {
-      toast.error("Cannot delete position - users are currently assigned to it");
-      return;
-    }
-
+  const handleDeletePosition = async (positionId) => {
     try {
       await base44.entities.CommandPosition.delete(positionId);
       toast.success("Position deleted");
@@ -359,75 +353,41 @@ export default function Members() {
                 <p className="text-slate-400 text-center py-4">No command positions defined yet</p>
               ) : (
                 <div className="space-y-3">
-                  {commandPositions.map((position) => {
-                    const assignedUser = users.find(u => u.command_position === position.title);
-                    return (
-                      <div key={position.id} className="flex items-center justify-between bg-[#1a2744] rounded-lg p-3 border border-[rgba(212,168,67,0.1)]">
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-[#d4a843]">{position.title}</p>
-                          {position.description && (
-                            <p className="text-xs text-slate-400 mt-0.5">{position.description}</p>
-                          )}
-                          {assignedUser ? (
-                           <div className="flex items-center gap-2 mt-1">
-                             <div className="w-6 h-6 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-xs">
-                               {(assignedUser.display_name || assignedUser.full_name)?.charAt(0) || "U"}
-                             </div>
-                             <span className="text-sm text-white">{assignedUser.display_name || assignedUser.full_name || assignedUser.email}</span>
-                           </div>
-                          ) : (
-                            <p className="text-xs text-slate-500 mt-1">Not assigned</p>
-                          )}
-                        </div>
-                        {currentUser?.role === 'admin' && (
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                setEditingPosition(position);
-                                setNewPositionTitle(position.title);
-                                setNewPositionDescription(position.description || "");
-                                setPositionDialogOpen(true);
-                              }}
-                              className="text-slate-400 hover:text-white hover:bg-white/10"
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleDeletePosition(position.id, position.title)}
-                              className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
-                            >
-                              Delete
-                            </Button>
-                            {assignedUser && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleRemoveCommand(assignedUser.id)}
-                                className="text-slate-400 hover:text-white hover:bg-white/10"
-                              >
-                                Unassign
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              onClick={() => {
-                                setEditingCommandUser({ position: position.title });
-                                setSelectedCommandPosition(position.title);
-                                setCommandDialogOpen(true);
-                              }}
-                              className="bg-[#d4a843]/20 hover:bg-[#d4a843]/30 text-[#d4a843]"
-                            >
-                              {assignedUser ? "Change" : "Assign"}
-                            </Button>
-                          </div>
+                  {commandPositions.map((position) => (
+                    <div key={position.id} className="flex items-center justify-between bg-[#1a2744] rounded-lg p-3 border border-[rgba(212,168,67,0.1)]">
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-[#d4a843]">{position.title}</p>
+                        {position.description && (
+                          <p className="text-xs text-slate-400 mt-0.5">{position.description}</p>
                         )}
                       </div>
-                    );
-                  })}
+                      {currentUser?.role === 'admin' && (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setEditingPosition(position);
+                              setNewPositionTitle(position.title);
+                              setNewPositionDescription(position.description || "");
+                              setPositionDialogOpen(true);
+                            }}
+                            className="text-slate-400 hover:text-white hover:bg-white/10"
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeletePosition(position.id, position.title)}
+                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>
