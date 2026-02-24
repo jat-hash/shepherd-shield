@@ -33,9 +33,12 @@ export default function Members() {
   }, []);
 
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser?.role === 'admin') {
       loadUsers();
       loadCommandPositions();
+    } else if (currentUser) {
+      loadCommandPositions();
+      setLoading(false);
     }
   }, [currentUser]);
 
@@ -449,7 +452,17 @@ export default function Members() {
           ))}
         </div>
 
-        {filteredUsers.length === 0 && users.length > 0 && (
+        {filteredUsers.length === 0 && users.length === 0 && !loading && currentUser?.role !== 'admin' && (
+          <div className="text-center py-12">
+            <Shield className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+            <p className="text-slate-400 font-semibold">Admin Access Required</p>
+            <p className="text-slate-500 text-sm mt-1">
+              Only administrators can view the full team members list
+            </p>
+          </div>
+        )}
+        
+        {filteredUsers.length === 0 && (users.length > 0 || currentUser?.role === 'admin') && (
           <div className="text-center py-12">
             <User className="w-16 h-16 text-slate-600 mx-auto mb-4" />
             <p className="text-slate-400">No members found</p>
