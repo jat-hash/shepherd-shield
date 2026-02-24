@@ -487,18 +487,32 @@ export default function Members() {
                     </p>
                     )}
                     {currentUser?.role === 'admin' && currentUser.id !== user.id && (
-                    <Button
-                    size="sm"
-                    onClick={() => {
-                      setEditingUserRole(user);
-                      setSelectedUserRole(user.role || "");
-                      setUserRoleDialogOpen(true);
-                    }}
-                    variant="outline"
-                    className="mt-3 w-full border-[rgba(212,168,67,0.15)] text-slate-300 hover:text-white hover:bg-white/10"
-                    >
-                    Change Role
-                    </Button>
+                    <div className="mt-3 flex gap-2">
+                     <Button
+                       size="sm"
+                       onClick={() => {
+                         setEditingUserRole(user);
+                         setSelectedUserRole(user.role || "");
+                         setUserRoleDialogOpen(true);
+                       }}
+                       variant="outline"
+                       className="flex-1 border-[rgba(212,168,67,0.15)] text-slate-300 hover:text-white hover:bg-white/10"
+                     >
+                       Change Role
+                     </Button>
+                     <Button
+                       size="sm"
+                       onClick={() => {
+                         setEditingCommandUser(user);
+                         setSelectedCommandPosition(user.command_position || "");
+                         setCommandDialogOpen(true);
+                       }}
+                       variant="outline"
+                       className="flex-1 border-[rgba(212,168,67,0.15)] text-slate-300 hover:text-white hover:bg-white/10"
+                     >
+                       {user.command_position ? "Change Position" : "Assign Position"}
+                     </Button>
+                    </div>
                     )}
                     </CardContent>
             </Card>
@@ -520,28 +534,28 @@ export default function Members() {
       <Dialog open={commandDialogOpen} onOpenChange={setCommandDialogOpen}>
         <DialogContent className="bg-[#141f3d] border-[rgba(212,168,67,0.15)] text-white">
           <DialogHeader>
-            <DialogTitle className="text-[#d4a843]">Assign {editingCommandUser?.position}</DialogTitle>
+            <DialogTitle className="text-[#d4a843]">
+              {editingCommandUser?.command_position ? "Change" : "Assign"} Command Position
+              {editingCommandUser && ` - ${editingCommandUser.display_name || editingCommandUser.full_name || editingCommandUser.email}`}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label className="text-slate-300">Select Team Member</Label>
+              <Label className="text-slate-300">Select Position</Label>
               <Select 
-                value={editingCommandUser?.id} 
-                onValueChange={(userId) => {
-                  const user = users.find(u => u.id === userId);
-                  setEditingCommandUser({ ...editingCommandUser, ...user });
-                }}
+                value={selectedCommandPosition} 
+                onValueChange={setSelectedCommandPosition}
               >
                 <SelectTrigger className="bg-[#0a1128] border-[rgba(212,168,67,0.15)] text-white">
-                  <SelectValue placeholder="Choose member" />
+                  <SelectValue placeholder="Choose position" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#141f3d] border-[rgba(212,168,67,0.15)] text-white max-h-[300px]">
-                  {users.map(u => (
-                    <SelectItem key={u.id} value={u.id} className="text-white">
-                      {u.display_name || u.full_name || u.email}
-                      {u.command_position && (
-                        <span className="text-xs text-slate-400 ml-2">
-                          (Currently: {u.command_position})
+                  {commandPositions.map(pos => (
+                    <SelectItem key={pos.id} value={pos.title} className="text-white">
+                      {pos.title}
+                      {pos.description && (
+                        <span className="text-xs text-slate-400 block mt-0.5">
+                          {pos.description}
                         </span>
                       )}
                     </SelectItem>
@@ -550,24 +564,39 @@ export default function Members() {
               </Select>
             </div>
           </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setCommandDialogOpen(false);
-                setEditingCommandUser(null);
-              }}
-              className="border-[rgba(212,168,67,0.15)] text-white hover:bg-[#1a2744]"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleAssignCommand}
-              disabled={!editingCommandUser?.id}
-              className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]"
-            >
-              Assign Position
-            </Button>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {editingCommandUser?.command_position && (
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  handleRemoveCommand(editingCommandUser.id);
+                  setCommandDialogOpen(false);
+                }}
+                className="sm:mr-auto"
+              >
+                Remove Position
+              </Button>
+            )}
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setCommandDialogOpen(false);
+                  setEditingCommandUser(null);
+                  setSelectedCommandPosition("");
+                }}
+                className="flex-1 sm:flex-initial border-[rgba(212,168,67,0.15)] text-white hover:bg-[#1a2744]"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAssignCommand}
+                disabled={!selectedCommandPosition}
+                className="flex-1 sm:flex-initial bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]"
+              >
+                {editingCommandUser?.command_position ? "Update" : "Assign"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
