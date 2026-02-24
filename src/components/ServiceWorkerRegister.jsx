@@ -6,8 +6,41 @@ import { getFCMToken } from "./firebase";
 export default function ServiceWorkerRegister() {
   useEffect(() => {
     if ('serviceWorker' in navigator && 'Notification' in window) {
+      // Register Firebase messaging service worker inline
+      const firebaseSwCode = `
+        importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
+        importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
+
+        firebase.initializeApp({
+          apiKey: "AIzaSyD7BE-xvRYRzxh1gaHpEqIBw7k49J4xAoo",
+          authDomain: "shepherd-shield.firebaseapp.com",
+          projectId: "shepherd-shield",
+          storageBucket: "shepherd-shield.firebasestorage.app",
+          messagingSenderId: "983431306545",
+          appId: "1:983431306545:web:6d79ca922449a63187a410",
+          measurementId: "G-NS92YPKPB3"
+        });
+
+        const messaging = firebase.messaging();
+
+        messaging.onBackgroundMessage(function(payload) {
+          console.log('Received background message:', payload);
+          const notificationTitle = payload.notification?.title || 'Shepherd Shield';
+          const notificationOptions = {
+            body: payload.notification?.body || 'You have a new notification',
+            icon: payload.notification?.icon || '/firebase-logo.png',
+            badge: '/firebase-logo.png',
+            data: payload.data
+          };
+          return self.registration.showNotification(notificationTitle, notificationOptions);
+        });
+      `;
+
+      const blob = new Blob([firebaseSwCode], { type: 'application/javascript' });
+      const swUrl = URL.createObjectURL(blob);
+
       navigator.serviceWorker
-        .register('/service-worker.js', { scope: '/' })
+        .register(swUrl, { scope: '/' })
         .then(async (registration) => {
           console.log('Service Worker registered - app will run in background');
 
