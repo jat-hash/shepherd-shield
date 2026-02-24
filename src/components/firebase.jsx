@@ -1,12 +1,14 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken } from 'firebase/messaging';
 
-// Replace these with your Firebase config from Firebase Console > Project Settings
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "",
+  apiKey: "AIzaSyD7BE-xvRYRzxh1gaHpEqIBw7k49J4xAoo",
+  authDomain: "shepherd-shield.firebaseapp.com",
+  projectId: "shepherd-shield",
+  storageBucket: "shepherd-shield.firebasestorage.app",
+  messagingSenderId: "983431306545",
+  appId: "1:983431306545:web:6d79ca922449a63187a410",
+  measurementId: "G-NS92YPKPB3"
 };
 
 let app;
@@ -31,9 +33,7 @@ export const getFCMToken = async () => {
     }
 
     // Get the real FCM token
-    const token = await getToken(msg, {
-      vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY || ""
-    });
+    const token = await getToken(msg);
 
     if (!token) {
       throw new Error('Failed to get FCM token');
