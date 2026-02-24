@@ -69,7 +69,7 @@ export default function Dashboard() {
     <div className="max-w-2xl mx-auto px-3 py-4 lg:px-4 lg:py-6 lg:ml-60 space-y-4">
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-white">
-          Welcome back, <span className="text-[#d4a843]">{(user?.display_name || user?.full_name)?.split(" ")[0] || "Officer"}</span>
+          Welcome back, <span className="text-[#d4a843]">{user?.display_name?.split(" ")[0] || user?.full_name?.split(" ")[0] || "Officer"}</span>
         </h1>
         <p className="text-slate-500 text-xs sm:text-sm mt-1">
           {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
