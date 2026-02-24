@@ -59,6 +59,10 @@ export default function Members() {
         display_name: user.data?.display_name || user.display_name || user.full_name
       }));
       setUsers(formattedUsers);
+      
+      // Extract unique roles
+      const uniqueRoles = [...new Set(formattedUsers.map(u => u.role).filter(Boolean))];
+      setRoles(uniqueRoles);
     } catch (error) {
       console.error("Failed to load users:", error);
       setUsers([]);
