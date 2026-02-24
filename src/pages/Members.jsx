@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { User, Search, Mail, Shield, UserPlus, Award, ChevronDown, ChevronUp } from "lucide-react";
+import { User, Search, Mail, Shield, UserPlus, Award, ChevronDown, ChevronUp, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,6 +27,10 @@ export default function Members() {
   const [editingPosition, setEditingPosition] = useState(null);
   const [newPositionTitle, setNewPositionTitle] = useState("");
   const [newPositionDescription, setNewPositionDescription] = useState("");
+  const [roleDialogOpen, setRoleDialogOpen] = useState(false);
+  const [roles, setRoles] = useState([]);
+  const [newRoleName, setNewRoleName] = useState("");
+  const [roleToRename, setRoleToRename] = useState(null);
 
   useEffect(() => {
     loadCurrentUser();
@@ -160,6 +164,47 @@ export default function Members() {
     }
   };
 
+  const handleAddRole = async () => {
+    if (!newRoleName.trim()) return;
+    setRoles([...roles, newRoleName.trim()]);
+    setNewRoleName("");
+    toast.success("Role added");
+  };
+
+  const handleRenameRole = async () => {
+    if (!roleToRename || !newRoleName.trim()) return;
+    
+    try {
+      const usersWithRole = users.filter(u => u.role === roleToRename);
+      await Promise.all(
+        usersWithRole.map(user => 
+          base44.entities.User.update(user.id, { role: newRoleName.trim() })
+        )
+      );
+      
+      setRoles(roles.map(r => r === roleToRename ? newRoleName.trim() : r));
+      setUsers(users.map(u => u.role === roleToRename ? { ...u, role: newRoleName.trim() } : u));
+      
+      toast.success(`Renamed "${roleToRename}" to "${newRoleName.trim()}"`);
+      setRoleToRename(null);
+      setNewRoleName("");
+    } catch (error) {
+      toast.error("Failed to rename role");
+    }
+  };
+
+  const handleDeleteRole = async (roleName) => {
+    const usersWithRole = users.filter(u => u.role === roleName);
+    
+    if (usersWithRole.length > 0) {
+      toast.error(`Cannot delete role "${roleName}" - ${usersWithRole.length} user(s) currently have this role`);
+      return;
+    }
+    
+    setRoles(roles.filter(r => r !== roleName));
+    toast.success(`Role "${roleName}" removed`);
+  };
+
   const handleDeletePosition = async (positionId, positionTitle) => {
     const usersWithPosition = users.filter(u => u.command_position === positionTitle);
     if (usersWithPosition.length > 0) {
@@ -282,18 +327,29 @@ export default function Members() {
                 )}
               </button>
               {currentUser?.role === 'admin' && showChainOfCommand && (
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    setEditingPosition(null);
-                    setNewPositionTitle("");
-                    setNewPositionDescription("");
-                    setPositionDialogOpen(true);
-                  }}
-                  className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]"
-                >
-                  Add Position
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setEditingPosition(null);
+                      setNewPositionTitle("");
+                      setNewPositionDescription("");
+                      setPositionDialogOpen(true);
+                    }}
+                    className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Position
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => setRoleDialogOpen(true)}
+                    className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]"
+                  >
+                    <Shield className="w-4 h-4 mr-1" />
+                    Roles
+                  </Button>
+                </div>
               )}
             </div>
           </CardHeader>
@@ -518,6 +574,77 @@ export default function Members() {
               Assign Position
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manage Roles Dialog */}
+      <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
+        <DialogContent className="bg-[#1a2744] text-white border-[rgba(212,168,67,0.15)] max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-[#d4a843]">Manage Roles</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="New role name..."
+                value={newRoleName}
+                onChange={(e) => setNewRoleName(e.target.value)}
+                className="bg-[#0a1128] border-[rgba(212,168,67,0.15)] text-white flex-1"
+                onKeyPress={(e) => e.key === 'Enter' && !roleToRename && handleAddRole()}
+              />
+              {roleToRename ? (
+                <>
+                  <Button onClick={handleRenameRole} className="bg-[#d4a843] text-[#0a1128] hover:bg-[#e0bb5e]">
+                    Rename
+                  </Button>
+                  <Button onClick={() => { setRoleToRename(null); setNewRoleName(""); }} variant="outline" className="border-[rgba(212,168,67,0.15)]">
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <Button onClick={handleAddRole} className="bg-[#d4a843] text-[#0a1128] hover:bg-[#e0bb5e]">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add
+                </Button>
+              )}
+            </div>
+
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {roles.map(role => {
+                const userCount = users.filter(u => u.role === role).length;
+                return (
+                  <div key={role} className="bg-[#0a1128] p-4 rounded-lg border border-[rgba(212,168,67,0.15)] flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold text-[#d4a843]">{role}</div>
+                      <div className="text-sm text-slate-400">{userCount} member(s)</div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => {
+                          setRoleToRename(role);
+                          setNewRoleName(role);
+                        }}
+                        size="sm"
+                        variant="outline"
+                        className="border-[rgba(212,168,67,0.15)]"
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        onClick={() => handleDeleteRole(role)}
+                        size="sm"
+                        variant="destructive"
+                        disabled={userCount > 0}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
