@@ -57,6 +57,7 @@ export default function Members() {
       const data = await base44.entities.User.list();
       const formattedUsers = data.map(user => ({
         ...user,
+        role: user.role || user.data?.role,
         command_position: user.data?.command_position || user.command_position,
         display_name: user.data?.display_name || user.display_name || user.full_name
       }));
