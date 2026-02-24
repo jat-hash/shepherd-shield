@@ -33,12 +33,9 @@ export default function Members() {
   }, []);
 
   useEffect(() => {
-    if (currentUser?.role === 'admin') {
+    if (currentUser) {
       loadUsers();
       loadCommandPositions();
-    } else if (currentUser) {
-      loadCommandPositions(); // Non-admins can also view command positions
-      setLoading(false);
     }
   }, [currentUser]);
 
