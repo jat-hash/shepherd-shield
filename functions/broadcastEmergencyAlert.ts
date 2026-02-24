@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, notified: 0 });
     }
 
-    // Send push and email notifications to all users
+    // Send push, email, and SMS notifications to all users
     const notificationPromises = allUsers.map(async (user) => {
       try {
         // Send push notification
@@ -34,30 +34,46 @@ Deno.serve(async (req) => {
         });
 
         // Send email notification
-        return base44.asServiceRole.integrations.Core.SendEmail({
-          to: user.email,
-          subject: `🚨 EMERGENCY ALERT: ${alert_type}`,
-          body: `
-            <div style="font-family: Arial, sans-serif; color: #333;">
-              <div style="background-color: #dc2626; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                <h2 style="margin: 0;">🚨 EMERGENCY ALERT</h2>
-                <p style="margin: 10px 0 0 0; font-size: 18px;"><strong>${alert_type}</strong></p>
+        if (user.notifications_email !== false) {
+          await base44.asServiceRole.integrations.Core.SendEmail({
+            to: user.email,
+            subject: `🚨 EMERGENCY ALERT: ${alert_type}`,
+            body: `
+              <div style="font-family: Arial, sans-serif; color: #333;">
+                <div style="background-color: #dc2626; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                  <h2 style="margin: 0;">🚨 EMERGENCY ALERT</h2>
+                  <p style="margin: 10px 0 0 0; font-size: 18px;"><strong>${alert_type}</strong></p>
+                </div>
+                <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; border-left: 4px solid #dc2626;">
+                  <p style="margin: 0;"><strong>Message:</strong></p>
+                  <p style="margin: 10px 0 0 0; font-size: 16px;">${message}</p>
+                  <p style="margin: 20px 0 0 0; font-size: 12px; color: #666;">
+                    <strong>Time:</strong> ${new Date().toLocaleString()}
+                  </p>
+                </div>
+                <div style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
+                  <p style="margin: 0; color: #856404;">
+                    <strong>Action Required:</strong> Please log in to the Shepherd Shield app immediately to acknowledge this alert.
+                  </p>
+                </div>
               </div>
-              <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; border-left: 4px solid #dc2626;">
-                <p style="margin: 0;"><strong>Message:</strong></p>
-                <p style="margin: 10px 0 0 0; font-size: 16px;">${message}</p>
-                <p style="margin: 20px 0 0 0; font-size: 12px; color: #666;">
-                  <strong>Time:</strong> ${new Date().toLocaleString()}
-                </p>
-              </div>
-              <div style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
-                <p style="margin: 0; color: #856404;">
-                  <strong>Action Required:</strong> Please log in to the Shepherd Shield app immediately to acknowledge this alert.
-                </p>
-              </div>
-            </div>
-          `
-        });
+            `
+          }).catch(err => {
+            console.log(`Email skipped for ${user.email}:`, err.message);
+          });
+        }
+
+        // Send SMS notification
+        if (user.phone_number && user.notifications_sms !== false) {
+          await base44.asServiceRole.functions.invoke('sendSMS', {
+            to: user.phone_number,
+            message: `🚨 EMERGENCY ALERT: ${alert_type}\n\n${message}\n\nLog in to Shepherd Shield immediately.`
+          }).catch(err => {
+            console.log(`SMS skipped for ${user.email}:`, err.message);
+          });
+        }
+
+        return true;
       } catch (err) {
         console.error(`Failed to notify ${user.email}:`, err);
         return null;
