@@ -71,7 +71,7 @@ export default function Dashboard() {
         <h1 className="text-xl sm:text-2xl font-bold text-white">
           Welcome back, <span className="text-[#d4a843]">{user?.display_name?.split(" ")[0] || user?.full_name?.split(" ")[0] || "Officer"}</span>
         </h1>
-        <p className="text-slate-500 text-xs sm:text-sm mt-1">
+        <p className="text-slate-300 text-xs sm:text-sm mt-1">
           {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
         </p>
       </div>
@@ -83,7 +83,7 @@ export default function Dashboard() {
         <h2 className="text-sm uppercase tracking-widest text-[#d4a843] font-semibold">This Month's Assignments</h2>
         {assignments.length === 0 ? (
           <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-6 text-center">
-            <p className="text-slate-400 text-sm">No assignments this month</p>
+            <p className="text-slate-200 text-sm">No assignments this month</p>
           </div>
         ) : (
           assignments.map(assignment => (
