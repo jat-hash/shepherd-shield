@@ -15,7 +15,6 @@ const NAV_ITEMS = [
   { name: "Assign", icon: CalendarDays, page: "Assignments" },
   { name: "Reports", icon: FileText, page: "Incidents" },
   { name: "Members", icon: User, page: "Members" },
-  { name: "Profile", icon: User, page: "Profile" },
 ];
 
 export default function Layout({ children, currentPageName }) {
@@ -126,9 +125,11 @@ export default function Layout({ children, currentPageName }) {
 
         <div className="flex items-center gap-3">
           <NotificationBell userEmail={user?.email} />
-          <div className="w-8 h-8 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-xs">
-            {user?.display_name?.charAt(0) || user?.full_name?.charAt(0) || "U"}
-          </div>
+          <Link to={createPageUrl("Profile")}>
+            <div className="w-8 h-8 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-xs cursor-pointer hover:bg-[#e0bb5e] transition-colors">
+              {user?.display_name?.charAt(0) || user?.full_name?.charAt(0) || "U"}
+            </div>
+          </Link>
         </div>
       </header>
 
