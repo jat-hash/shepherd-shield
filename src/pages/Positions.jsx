@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Pencil, Trash2, Check } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 export default function Positions() {
@@ -27,10 +28,15 @@ export default function Positions() {
   });
   const [newResponsibility, setNewResponsibility] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [assigningPosition, setAssigningPosition] = useState(null);
+  const [selectedMemberEmail, setSelectedMemberEmail] = useState("");
 
   useEffect(() => {
     loadPositions();
     base44.auth.me().then(setCurrentUser).catch(() => {});
+    base44.entities.User.list().then(setUsers).catch(() => {});
   }, []);
 
   const loadPositions = async () => {
@@ -113,6 +119,24 @@ export default function Positions() {
       ...form,
       area_responsibilities: form.area_responsibilities.filter((_, i) => i !== index)
     });
+  };
+
+  const handleAssignMember = async () => {
+    if (!assigningPosition) return;
+    const member = users.find(u => u.email === selectedMemberEmail);
+    try {
+      await base44.entities.Position.update(assigningPosition.id, {
+        default_assigned_email: selectedMemberEmail || null,
+        default_assigned_name: member?.full_name || selectedMemberEmail || null
+      });
+      toast.success(selectedMemberEmail ? "Member assigned to position" : "Member removed from position");
+      setAssignDialogOpen(false);
+      setAssigningPosition(null);
+      setSelectedMemberEmail("");
+      loadPositions();
+    } catch (error) {
+      toast.error("Failed to assign member");
+    }
   };
 
   return (
