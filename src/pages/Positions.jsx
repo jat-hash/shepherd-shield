@@ -198,9 +198,6 @@ export default function Positions() {
                 </div>
                 {currentUser?.role === 'admin' && (
                   <div className="flex gap-1 ml-3">
-                    <Button onClick={() => { setAssigningPosition(pos); setSelectedMemberEmail(pos.default_assigned_email || ""); setAssignDialogOpen(true); }} size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-blue-400" title="Assign member">
-                      <User className="w-3.5 h-3.5" />
-                    </Button>
                     <Button onClick={() => openForm(pos)} size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-[#d4a843]">
                       <Pencil className="w-3.5 h-3.5" />
                     </Button>
@@ -212,23 +209,30 @@ export default function Positions() {
               </div>
 
               {/* Assigned Member */}
-              {pos.default_assigned_name && (
-                <div className="mt-2 flex items-center gap-2 bg-[#0a1128] rounded px-2 py-1.5 border border-[rgba(212,168,67,0.1)]">
-                  <div className="w-5 h-5 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-[9px]">
-                    {pos.default_assigned_name.charAt(0)}
-                  </div>
-                  <span className="text-xs text-slate-300">{pos.default_assigned_name}</span>
-                  <span className="text-[10px] text-slate-500 ml-auto">Assigned</span>
+              <div className="mt-3 pt-3 border-t border-slate-700/50 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <User className="w-3.5 h-3.5 text-slate-400" />
+                  {pos.default_assigned_name ? (
+                    <span className="text-xs text-slate-200">{pos.default_assigned_name}</span>
+                  ) : (
+                    <span className="text-xs text-slate-500 italic">No member assigned</span>
+                  )}
                 </div>
-              )}
-              {!pos.default_assigned_name && currentUser?.role === 'admin' && (
-                <button
-                  onClick={() => { setAssigningPosition(pos); setSelectedMemberEmail(""); setAssignDialogOpen(true); }}
-                  className="mt-2 text-[10px] text-slate-500 hover:text-[#d4a843] flex items-center gap-1 transition-colors"
-                >
-                  <User className="w-3 h-3" /> Assign a member
-                </button>
-              )}
+                {currentUser?.role === 'admin' && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setAssigningPosition(pos);
+                      setSelectedMemberEmail(pos.default_assigned_email || "");
+                      setAssignDialogOpen(true);
+                    }}
+                    className="h-6 text-xs text-[#d4a843] hover:text-[#e0bb5e] hover:bg-white/5"
+                  >
+                    {pos.default_assigned_email ? "Change" : "Assign Member"}
+                  </Button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -311,24 +315,42 @@ export default function Positions() {
             <DialogTitle className="text-[#d4a843]">Assign Member — {assigningPosition?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <Label className="text-slate-300 text-xs">Select Member</Label>
-            <Select value={selectedMemberEmail} onValueChange={setSelectedMemberEmail}>
-              <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white">
-                <SelectValue placeholder="Choose team member" />
-              </SelectTrigger>
-              <SelectContent className="bg-[#1a2744] border-slate-700">
-                <SelectItem value={null} className="text-slate-400">— No assignment —</SelectItem>
-                {users.map(u => (
-                  <SelectItem key={u.id} value={u.email} className="text-white">
-                    {u.full_name || u.email}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div>
+              <Label className="text-slate-300 text-xs">Select Team Member</Label>
+              <Select value={selectedMemberEmail} onValueChange={setSelectedMemberEmail}>
+                <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white mt-1">
+                  <SelectValue placeholder="Choose a member" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#1a2744] border-slate-700">
+                  <SelectItem value="__none__" className="text-slate-400">— No member —</SelectItem>
+                  {users.map(u => (
+                    <SelectItem key={u.id} value={u.email} className="text-white">
+                      {u.full_name || u.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <DialogFooter className="mt-4">
+          <DialogFooter>
             <Button variant="ghost" onClick={() => setAssignDialogOpen(false)} className="text-slate-400">Cancel</Button>
-            <Button onClick={handleAssignMember} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
+            <Button
+              onClick={() => {
+                const email = selectedMemberEmail === "__none__" ? "" : selectedMemberEmail;
+                const member = users.find(u => u.email === email);
+                base44.entities.Position.update(assigningPosition.id, {
+                  default_assigned_email: email || null,
+                  default_assigned_name: member?.full_name || email || null
+                }).then(() => {
+                  toast.success(email ? "Member assigned" : "Member removed");
+                  setAssignDialogOpen(false);
+                  setAssigningPosition(null);
+                  setSelectedMemberEmail("");
+                  loadPositions();
+                }).catch(() => toast.error("Failed to assign member"));
+              }}
+              className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold"
+            >
               Save
             </Button>
           </DialogFooter>
