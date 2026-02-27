@@ -55,11 +55,11 @@ import Dashboard from './pages/Dashboard';
 import EquipmentInventory from './pages/EquipmentInventory';
 import Incidents from './pages/Incidents';
 import Members from './pages/Members';
-import Positions from './pages/Positions';
 import Profile from './pages/Profile';
 import SOPLibrary from './pages/SOPLibrary';
 import SpecialEvents from './pages/SpecialEvents';
 import WatchList from './pages/WatchList';
+import Positions from './pages/Positions';
 import __Layout from './Layout.jsx';
 
 
@@ -72,11 +72,11 @@ export const PAGES = {
     "EquipmentInventory": EquipmentInventory,
     "Incidents": Incidents,
     "Members": Members,
-    "Positions": Positions,
     "Profile": Profile,
     "SOPLibrary": SOPLibrary,
     "SpecialEvents": SpecialEvents,
     "WatchList": WatchList,
+    "Positions": Positions,
 }
 
 export const pagesConfig = {

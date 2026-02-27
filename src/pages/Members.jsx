@@ -58,7 +58,8 @@ export default function Members() {
 
   const loadUsers = async () => {
     try {
-      const data = await base44.entities.User.list();
+      const res = await base44.functions.invoke('listUsers');
+      const data = res.data?.users || [];
       const formattedUsers = data.map(user => ({
         ...user,
         role: user.role || user.data?.role,
