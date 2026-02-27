@@ -35,8 +35,10 @@ export default function Positions() {
 
   useEffect(() => {
     loadPositions();
-    base44.auth.me().then(setCurrentUser).catch(() => {});
-    base44.functions.invoke('listUsers').then(res => setUsers(res.data?.users || [])).catch(() => {});
+    base44.auth.me().then(u => {
+      setCurrentUser(u);
+      base44.functions.invoke('listUsers').then(res => setUsers(res.data?.users || [])).catch(() => {});
+    }).catch(() => {});
   }, []);
 
   const loadPositions = async () => {
