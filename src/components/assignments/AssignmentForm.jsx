@@ -106,17 +106,16 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
   const handlePositionSelect = (positionName) => {
     const pos = positions.find(p => p.name === positionName);
     if (pos) {
-      const update = {
+      const assignedUser = pos.default_assigned_email
+        ? users.find(u => u.email === pos.default_assigned_email)
+        : null;
+      setForm({
         ...form,
         position_name: pos.name,
         radio_channel: pos.default_radio_channel || form.radio_channel,
-      };
-      // Auto-fill assigned member if position has a default
-      if (pos.default_assigned_email) {
-        update.assigned_to_email = pos.default_assigned_email;
-        update.assigned_to_name = pos.default_assigned_name || pos.default_assigned_email;
-      }
-      setForm(update);
+        assigned_to_email: pos.default_assigned_email || form.assigned_to_email,
+        assigned_to_name: assignedUser?.full_name || pos.default_assigned_name || form.assigned_to_name,
+      });
       setSelectedResponsibilities(pos.area_responsibilities || []);
     } else {
       setForm({ ...form, position_name: positionName });
