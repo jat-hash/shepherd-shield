@@ -348,7 +348,8 @@ export default function Layout({ children, currentPageName }) {
                   { name: "Equipment", page: "EquipmentInventory", icon: Wrench },
                   { name: "Special Events", page: "SpecialEvents", icon: Calendar },
                   { name: "AI Auto-Rotation", page: "AutoRotation", icon: Bot },
-                ].map(item => (
+                  { name: "Documents", page: "Documents", icon: FolderOpen },
+                  ].map(item => (
                   <Link
                     key={item.page}
                     to={createPageUrl(item.page)}
@@ -361,7 +362,7 @@ export default function Layout({ children, currentPageName }) {
                     <item.icon className="w-3.5 h-3.5" />
                     {item.name}
                   </Link>
-                ))}
+                  ))}
               </div>
             )}
           </div>
