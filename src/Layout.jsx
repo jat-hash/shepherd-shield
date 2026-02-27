@@ -126,8 +126,8 @@ export default function Layout({ children, currentPageName }) {
         <div className="flex items-center gap-3">
           <NotificationBell userEmail={user?.email} />
           <Link to={createPageUrl("Profile")}>
-            <div className="w-8 h-8 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-xs cursor-pointer hover:bg-[#e0bb5e] transition-colors">
-              {user?.display_name?.charAt(0) || user?.full_name?.charAt(0) || "U"}
+            <div className="w-8 h-8 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-xs cursor-pointer hover:bg-[#e0bb5e] transition-colors" title={user?.display_name || user?.full_name || "User"}>
+              {(user?.display_name || user?.full_name)?.charAt(0) || "U"}
             </div>
           </Link>
         </div>

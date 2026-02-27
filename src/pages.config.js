@@ -52,15 +52,15 @@ import Assignments from './pages/Assignments';
 import AutoRotation from './pages/AutoRotation';
 import Communications from './pages/Communications';
 import Dashboard from './pages/Dashboard';
+import Documents from './pages/Documents';
 import EquipmentInventory from './pages/EquipmentInventory';
 import Incidents from './pages/Incidents';
 import Members from './pages/Members';
+import Positions from './pages/Positions';
 import Profile from './pages/Profile';
 import SOPLibrary from './pages/SOPLibrary';
 import SpecialEvents from './pages/SpecialEvents';
 import WatchList from './pages/WatchList';
-import Positions from './pages/Positions';
-import Documents from './pages/Documents';
 import __Layout from './Layout.jsx';
 
 
@@ -70,15 +70,15 @@ export const PAGES = {
     "AutoRotation": AutoRotation,
     "Communications": Communications,
     "Dashboard": Dashboard,
+    "Documents": Documents,
     "EquipmentInventory": EquipmentInventory,
     "Incidents": Incidents,
     "Members": Members,
+    "Positions": Positions,
     "Profile": Profile,
     "SOPLibrary": SOPLibrary,
     "SpecialEvents": SpecialEvents,
     "WatchList": WatchList,
-    "Positions": Positions,
-    "Documents": Documents,
 }
 
 export const pagesConfig = {
