@@ -60,6 +60,7 @@ import SOPLibrary from './pages/SOPLibrary';
 import SpecialEvents from './pages/SpecialEvents';
 import WatchList from './pages/WatchList';
 import Positions from './pages/Positions';
+import Documents from './pages/Documents';
 import __Layout from './Layout.jsx';
 
 
@@ -77,6 +78,7 @@ export const PAGES = {
     "SpecialEvents": SpecialEvents,
     "WatchList": WatchList,
     "Positions": Positions,
+    "Documents": Documents,
 }
 
 export const pagesConfig = {
