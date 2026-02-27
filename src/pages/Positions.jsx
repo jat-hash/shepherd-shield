@@ -302,7 +302,7 @@ export default function Positions() {
           </div>
 
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setFormOpen(false)} className="text-slate-400">Cancel</Button>
+            <Button variant="outline" onClick={() => setFormOpen(false)} className="border-slate-600 text-slate-300 hover:bg-slate-900/30">Cancel</Button>
             <Button onClick={handleSave} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
               {editData ? "Update" : "Create"}
             </Button>
@@ -335,7 +335,7 @@ export default function Positions() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setAssignDialogOpen(false)} className="text-slate-400">Cancel</Button>
+            <Button variant="outline" onClick={() => setAssignDialogOpen(false)} className="border-slate-600 text-slate-300 hover:bg-slate-900/30">Cancel</Button>
             <Button
               onClick={() => {
                 const email = selectedMemberEmail === "__none__" ? "" : selectedMemberEmail;
@@ -369,7 +369,7 @@ export default function Positions() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-transparent border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="border-slate-600 text-slate-300 hover:bg-slate-900/30">Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white">Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

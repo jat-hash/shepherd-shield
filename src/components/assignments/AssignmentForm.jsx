@@ -278,7 +278,7 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
         </div>
 
         <DialogFooter className="mt-4">
-          <Button variant="ghost" onClick={onClose} className="text-slate-400">Cancel</Button>
+          <Button variant="outline" onClick={onClose} className="border-slate-600 text-slate-300 hover:bg-slate-900/30">Cancel</Button>
           <Button onClick={handleSave} disabled={saving || !form.position_name || !form.assigned_to_email} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
             {saving ? "Saving..." : "Save"}
           </Button>
@@ -330,7 +330,7 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
           </div>
           
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setShowNewPosition(false)} className="text-slate-400">Cancel</Button>
+            <Button variant="outline" onClick={() => setShowNewPosition(false)} className="border-slate-600 text-slate-300 hover:bg-slate-900/30">Cancel</Button>
             <Button onClick={handleSaveNewPosition} disabled={!newPosition.name} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
               Create Position
             </Button>
