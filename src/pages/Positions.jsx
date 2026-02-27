@@ -139,6 +139,14 @@ export default function Positions() {
     }
   };
 
+  if (currentUser && currentUser.role !== 'admin') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-slate-400">You don't have permission to view this page.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 lg:ml-60 space-y-5">
       <div className="flex items-center justify-between">
