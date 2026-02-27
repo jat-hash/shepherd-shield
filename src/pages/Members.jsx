@@ -309,13 +309,13 @@ export default function Members() {
                      type="button"
                      variant="outline"
                      onClick={() => setInviteDialogOpen(false)}
-                     className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-900/30"
-                   >
+                     className="flex-1 border-[#d4a843] text-[#0a1128] hover:bg-[#e0bb5e]"
+                     >
                      Cancel
-                   </Button>
-                    <Button
-                      type="submit"
-                      className="flex-1 bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]"
+                     </Button>
+                     <Button
+                     type="submit"
+                     className="flex-1 bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]"
                     >
                       Send Invitation
                     </Button>
@@ -630,7 +630,7 @@ export default function Members() {
                   setEditingCommandUser(null);
                   setSelectedCommandPosition("");
                 }}
-                className="flex-1 sm:flex-initial border-slate-600 text-slate-300 hover:bg-slate-900/30"
+                className="flex-1 sm:flex-initial border-[#d4a843] text-[#0a1128] hover:bg-[#e0bb5e]"
               >
                 Cancel
               </Button>
@@ -679,7 +679,7 @@ export default function Members() {
                 setEditingUserRole(null);
                 setSelectedUserRole("");
               }}
-              className="border-slate-600 text-slate-300 hover:bg-slate-900/30"
+              className="border-[#d4a843] text-[#0a1128] hover:bg-[#e0bb5e]"
             >
               Cancel
             </Button>
@@ -715,7 +715,7 @@ export default function Members() {
                   <Button onClick={handleRenameRole} className="bg-[#d4a843] text-[#0a1128] hover:bg-[#e0bb5e]">
                     Rename
                   </Button>
-                  <Button onClick={() => { setRoleToRename(null); setNewRoleName(""); }} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-900/30">
+                  <Button onClick={() => { setRoleToRename(null); setNewRoleName(""); }} variant="outline" className="border-[#d4a843] text-[#0a1128] hover:bg-[#e0bb5e]">
                     Cancel
                   </Button>
                 </>
@@ -805,7 +805,7 @@ export default function Members() {
                   setNewPositionTitle("");
                   setNewPositionDescription("");
                 }}
-                className="border-slate-600 text-slate-300 hover:bg-slate-900/30"
+                className="border-[#d4a843] text-[#0a1128] hover:bg-[#e0bb5e]"
               >
                 Cancel
               </Button>
