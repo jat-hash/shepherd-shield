@@ -60,7 +60,7 @@ export default function AutoRotation() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 lg:ml-60 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">AI Auto-Rotation</h1>
+        <h1 className="text-2xl font-bold text-white">Auto Rotate Schedule</h1>
         <p className="text-slate-400 text-sm mt-1">
           Automatically assign positions using AI - ensures fair distribution and no user gets more than one assignment per week
         </p>
