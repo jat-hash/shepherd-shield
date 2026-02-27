@@ -304,6 +304,37 @@ export default function Positions() {
         </DialogContent>
       </Dialog>
 
+      {/* Assign Member Dialog */}
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-[#d4a843]">Assign Member — {assigningPosition?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label className="text-slate-300 text-xs">Select Member</Label>
+            <Select value={selectedMemberEmail} onValueChange={setSelectedMemberEmail}>
+              <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white">
+                <SelectValue placeholder="Choose team member" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#1a2744] border-slate-700">
+                <SelectItem value={null} className="text-slate-400">— No assignment —</SelectItem>
+                {users.map(u => (
+                  <SelectItem key={u.id} value={u.email} className="text-white">
+                    {u.full_name || u.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button variant="ghost" onClick={() => setAssignDialogOpen(false)} className="text-slate-400">Cancel</Button>
+            <Button onClick={handleAssignMember} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Confirmation */}
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent className="bg-[#1a2744] border-slate-700 text-white">
