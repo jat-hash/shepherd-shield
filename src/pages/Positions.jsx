@@ -36,7 +36,7 @@ export default function Positions() {
   useEffect(() => {
     loadPositions();
     base44.auth.me().then(setCurrentUser).catch(() => {});
-    base44.entities.User.list().then(setUsers).catch(() => {});
+    base44.functions.invoke('listUsers').then(res => setUsers(res.data?.users || [])).catch(() => {});
   }, []);
 
   const loadPositions = async () => {
