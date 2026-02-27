@@ -228,6 +228,7 @@ export default function Layout({ children, currentPageName }) {
                       { name: "Equipment", page: "EquipmentInventory", icon: Wrench },
                       { name: "Special Events", page: "SpecialEvents", icon: Calendar },
                       { name: "AI Auto-Rotation", page: "AutoRotation", icon: Bot },
+                      { name: "Documents", page: "Documents", icon: FolderOpen },
                     ].map(item => (
                       <Link
                         key={item.page}
