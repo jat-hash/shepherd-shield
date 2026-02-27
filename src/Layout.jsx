@@ -309,22 +309,22 @@ export default function Layout({ children, currentPageName }) {
               <div className="bg-[#0a1128]/30">
                 {[
                   { name: "Watch List", page: "WatchList", icon: Eye },
-                  { name: "SOP Library", page: "SOPLibrary", icon: BookOpen },
-                  { name: "Positions", page: "Positions", icon: MapPin },
-                ].map(item => (
-                  <Link
-                    key={item.page}
-                    to={createPageUrl(item.page)}
-                    className={`flex items-center gap-3 px-5 py-2.5 pl-12 text-sm font-medium transition-all ${
-                      currentPageName === item.page
-                        ? "text-[#d4a843] bg-[rgba(212,168,67,0.08)] border-r-2 border-[#d4a843]"
-                        : "text-slate-400 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    <item.icon className="w-3.5 h-3.5" />
-                    {item.name}
-                  </Link>
-                ))}
+                    { name: "SOP Library", page: "SOPLibrary", icon: BookOpen },
+                    ...(user?.role === 'admin' ? [{ name: "Positions", page: "Positions", icon: MapPin }] : []),
+                  ].map(item => (
+                    <Link
+                      key={item.page}
+                      to={createPageUrl(item.page)}
+                      className={`flex items-center gap-3 px-5 py-2.5 pl-12 text-sm font-medium transition-all ${
+                        currentPageName === item.page
+                          ? "text-[#d4a843] bg-[rgba(212,168,67,0.08)] border-r-2 border-[#d4a843]"
+                          : "text-slate-400 hover:text-white hover:bg-white/5"
+                      }`}
+                    >
+                      <item.icon className="w-3.5 h-3.5" />
+                      {item.name}
+                    </Link>
+                  ))}
               </div>
             )}
           </div>
