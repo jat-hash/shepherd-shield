@@ -190,7 +190,7 @@ export default function Layout({ children, currentPageName }) {
                     {[
                       { name: "Watch List", page: "WatchList", icon: Eye },
                       { name: "SOP Library", page: "SOPLibrary", icon: BookOpen },
-                      { name: "Positions", page: "Positions", icon: MapPin },
+                      ...(user?.role === 'admin' ? [{ name: "Positions", page: "Positions", icon: MapPin }] : []),
                     ].map(item => (
                       <Link
                         key={item.page}
