@@ -17,6 +17,8 @@ export default function Profile() {
   const [newName, setNewName] = useState("");
   const [editingDisplayName, setEditingDisplayName] = useState(false);
   const [newDisplayName, setNewDisplayName] = useState("");
+  const [editingPhone, setEditingPhone] = useState(false);
+  const [newPhone, setNewPhone] = useState("");
 
   useEffect(() => {
     const load = async () => {
