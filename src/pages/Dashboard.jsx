@@ -93,6 +93,7 @@ export default function Dashboard() {
         )}
       </div>
 
+      <NotifyTeamButton user={user} />
       <EmergencyButton />
       <StatusBar />
       <SOPQuickAccess />
