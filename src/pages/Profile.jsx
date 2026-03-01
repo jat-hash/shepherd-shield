@@ -127,6 +127,28 @@ export default function Profile() {
         )}
         
         <p className="text-sm text-slate-400 mt-1">{user?.email}</p>
+
+        {/* Phone Number */}
+        {editingPhone ? (
+          <div className="flex items-center gap-2 max-w-xs mx-auto mt-2">
+            <Input
+              value={newPhone}
+              onChange={e => setNewPhone(e.target.value)}
+              placeholder="+1 (555) 000-0000"
+              className="bg-[#0a1128] border-slate-700 text-white text-center text-sm"
+              autoFocus
+            />
+            <Button onClick={handleUpdatePhone} size="sm" className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]">Save</Button>
+            <Button onClick={() => setEditingPhone(false)} size="sm" variant="ghost" className="text-slate-400">Cancel</Button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <p className="text-xs text-slate-400">📱 {user?.phone_number || "No phone number"}</p>
+            <button onClick={() => { setNewPhone(user?.phone_number || ""); setEditingPhone(true); }} className="text-slate-400 hover:text-[#d4a843] transition-colors">
+              <Edit2 className="w-3 h-3" />
+            </button>
+          </div>
+        )}
         <span className="inline-block mt-2 px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-[#d4a843]/20 text-[#d4a843] border border-[#d4a843]/30">
           {user?.role || "Team Member"}
         </span>
