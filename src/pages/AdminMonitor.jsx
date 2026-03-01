@@ -22,6 +22,12 @@ export default function AdminMonitor() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [timeEditDialog, setTimeEditDialog] = useState(false);
   const [timeEditData, setTimeEditData] = useState(null);
+  const [notifyDialog, setNotifyDialog] = useState(false);
+  const [notifyTitle, setNotifyTitle] = useState("");
+  const [notifyMessage, setNotifyMessage] = useState("");
+  const [notifyRecipient, setNotifyRecipient] = useState("all");
+  const [notifySending, setNotifySending] = useState(false);
+  const [allUsers, setAllUsers] = useState([]);
 
   useEffect(() => {
     base44.auth.me().then(u => {
