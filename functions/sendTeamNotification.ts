@@ -51,6 +51,28 @@ Deno.serve(async (req) => {
           </div>
         `
       }).catch(err => console.log(`Email skipped for ${recipient.email}:`, err.message));
+
+      // Send FCM push notification via Firebase
+      const fcmServerKey = Deno.env.get('FIREBASE_SERVER_KEY');
+      if (fcmServerKey) {
+        const devices = await base44.asServiceRole.entities.UserDevice.filter({ user_email: recipient.email }).catch(() => []);
+        if (devices && devices.length > 0) {
+          await Promise.allSettled(devices.map(device =>
+            fetch('https://fcm.googleapis.com/fcm/send', {
+              method: 'POST',
+              headers: {
+                'Authorization': `key=${fcmServerKey}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                to: device.fcm_token,
+                notification: { title, body: message },
+                data: { type: 'general' }
+              })
+            })
+          ));
+        }
+      }
     }));
 
     return Response.json({ success: true, notified: recipients.length });
