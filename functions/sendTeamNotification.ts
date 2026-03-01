@@ -52,23 +52,28 @@ Deno.serve(async (req) => {
         `
       }).catch(err => console.log(`Email skipped for ${recipient.email}:`, err.message));
 
-      // Send SMS via Twilio if recipient has a phone number
+      // Send SMS via Twilio if recipient has a phone number AND has SMS notifications enabled
       const twilioSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       const twilioAuth = Deno.env.get('TWILIO_AUTH_TOKEN');
       const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
-      if (twilioSid && twilioAuth && twilioPhone && recipient.phone_number) {
+      const sendSms = send_sms !== false; // allow caller to force SMS or use default (check user pref)
+      if (twilioSid && twilioAuth && twilioPhone && recipient.phone_number && (sendSms && recipient.notifications_sms)) {
         let phone = recipient.phone_number.replace(/\D/g, '');
         if (!phone.startsWith('1') && phone.length === 10) phone = '1' + phone;
         if (!phone.startsWith('+')) phone = '+' + phone;
         const smsBody = `${title}\n\n${message}`;
-        await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
+        console.log(`Sending SMS to ${recipient.email} at ${phone}`);
+        const smsRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
           method: 'POST',
           headers: {
             'Authorization': 'Basic ' + btoa(`${twilioSid}:${twilioAuth}`),
             'Content-Type': 'application/x-www-form-urlencoded'
           },
           body: new URLSearchParams({ To: phone, From: twilioPhone, Body: smsBody }).toString()
-        }).catch(err => console.log(`SMS skipped for ${recipient.email}:`, err.message));
+        });
+        const smsData = await smsRes.json();
+        if (!smsRes.ok) console.log(`SMS error for ${recipient.email}:`, JSON.stringify(smsData));
+        else console.log(`SMS sent to ${recipient.email}, SID: ${smsData.sid}`);
       }
     }));
 
