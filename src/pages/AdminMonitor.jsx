@@ -27,6 +27,8 @@ export default function AdminMonitor() {
   const [notifyMessage, setNotifyMessage] = useState("");
   const [notifyRecipient, setNotifyRecipient] = useState("all");
   const [notifySending, setNotifySending] = useState(false);
+  const [notifySendSMS, setNotifySendSMS] = useState(false);
+  const [notifyPhoneNumber, setNotifyPhoneNumber] = useState("");
   const [allUsers, setAllUsers] = useState([]);
 
   useEffect(() => {
