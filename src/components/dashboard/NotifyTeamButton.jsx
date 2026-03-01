@@ -39,14 +39,21 @@ export default function NotifyTeamButton({ user }) {
     });
 
     if (sendSMS) {
+      const formatPhone = (p) => {
+        const digits = p.replace(/\D/g, "");
+        if (digits.length === 10) return `+1${digits}`;
+        if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+        return p.startsWith("+") ? p : `+${digits}`;
+      };
+
       let phoneNumbers = [];
       if (recipient === "all") {
-        phoneNumbers = allUsers.map(u => u.phone_number).filter(Boolean);
+        phoneNumbers = allUsers.map(u => u.phone_number).filter(Boolean).map(formatPhone);
       } else if (phoneNumber) {
-        phoneNumbers = [phoneNumber];
+        phoneNumbers = [formatPhone(phoneNumber)];
       } else {
         const targetUser = allUsers.find(u => u.email === recipient);
-        if (targetUser?.phone_number) phoneNumbers = [targetUser.phone_number];
+        if (targetUser?.phone_number) phoneNumbers = [formatPhone(targetUser.phone_number)];
       }
       const smsBody = `${title}: ${message}`;
       await Promise.allSettled(
