@@ -24,12 +24,21 @@ export default function EmergencyButton() {
     if (!alertType || !message) return;
     setSending(true);
     const user = await base44.auth.me();
-    await base44.entities.EmergencyAlert.create({
+    const alert = await base44.entities.EmergencyAlert.create({
       alert_type: alertType,
       message,
       triggered_by: user?.full_name || user?.email || "Unknown",
       is_active: true,
     });
+
+    // Broadcast email + in-app notifications to all team members
+    base44.functions.invoke('broadcastEmergencyAlert', {
+      alert_type: alertType,
+      message,
+      triggered_by: user?.full_name || user?.email || "Unknown",
+      id: alert?.id
+    }).catch(err => console.log('Broadcast skipped:', err.message));
+
     setSending(false);
     setOpen(false);
     setAlertType("");
