@@ -56,8 +56,8 @@ Deno.serve(async (req) => {
       const twilioSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       const twilioAuth = Deno.env.get('TWILIO_AUTH_TOKEN');
       const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
-      if (twilioSid && twilioAuth && twilioPhone && recipient.phone) {
-        let phone = recipient.phone.replace(/\D/g, '');
+      if (twilioSid && twilioAuth && twilioPhone && recipient.phone_number) {
+        let phone = recipient.phone_number.replace(/\D/g, '');
         if (!phone.startsWith('1') && phone.length === 10) phone = '1' + phone;
         if (!phone.startsWith('+')) phone = '+' + phone;
         const smsBody = `${title}\n\n${message}`;
