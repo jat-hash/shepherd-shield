@@ -164,18 +164,43 @@ export default function AdminMonitor() {
   const handleSendNotification = async () => {
     if (!notifyTitle || !notifyMessage) return;
     setNotifySending(true);
+
+    // Send in-app + email notification
     const payload = {
       title: notifyTitle,
       message: notifyMessage,
       recipient_emails: notifyRecipient === "all" ? [] : [notifyRecipient]
     };
     await base44.functions.invoke('sendTeamNotification', payload);
+
+    // Send SMS if enabled
+    if (notifySendSMS) {
+      let phoneNumbers = [];
+      if (notifyRecipient === "all") {
+        phoneNumbers = allUsers.map(u => u.phone_number).filter(Boolean);
+      } else {
+        // Check if it's a manual phone number or a user's email
+        if (notifyPhoneNumber) {
+          phoneNumbers = [notifyPhoneNumber];
+        } else {
+          const targetUser = allUsers.find(u => u.email === notifyRecipient);
+          if (targetUser?.phone_number) phoneNumbers = [targetUser.phone_number];
+        }
+      }
+      const smsBody = `${notifyTitle}: ${notifyMessage}`;
+      await Promise.allSettled(
+        phoneNumbers.map(phone => base44.functions.invoke('sendSMS', { to: phone, message: smsBody }))
+      );
+    }
+
     toast.success(`Notification sent to ${notifyRecipient === "all" ? "all members" : notifyRecipient}`);
     setNotifySending(false);
     setNotifyDialog(false);
     setNotifyTitle("");
     setNotifyMessage("");
     setNotifyRecipient("all");
+    setNotifySendSMS(false);
+    setNotifyPhoneNumber("");
   };
 
   const handleDeleteTimes = async () => {
