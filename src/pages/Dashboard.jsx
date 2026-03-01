@@ -6,6 +6,7 @@ import StatusBar from "@/components/dashboard/StatusBar";
 import QuickActionGrid from "@/components/dashboard/QuickActionGrid";
 import SOPQuickAccess from "@/components/dashboard/SOPQuickAccess";
 import SpecialEventsDropdown from "@/components/dashboard/SpecialEventsDropdown";
+import NotifyTeamButton from "@/components/dashboard/NotifyTeamButton";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
