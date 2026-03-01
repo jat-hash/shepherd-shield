@@ -44,6 +44,7 @@ Deno.serve(async (req) => {
       console.error('Twilio error:', error);
       return Response.json({ 
         error: 'Failed to send SMS',
+        details: error,
         success: false 
       }, { status: 500 });
     }
