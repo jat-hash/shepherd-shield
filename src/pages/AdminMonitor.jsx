@@ -36,6 +36,7 @@ export default function AdminMonitor() {
         window.location.href = '/';
       }
     });
+    base44.entities.User.list().then(setAllUsers).catch(() => {});
   }, []);
 
   const loadAssignments = async () => {
