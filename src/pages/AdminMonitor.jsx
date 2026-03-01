@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { CheckCircle, XCircle, Clock, Edit2, Search, Trash2, Bell, Send } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Edit2, Search, Trash2, Bell, Send, MessageSquare } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
