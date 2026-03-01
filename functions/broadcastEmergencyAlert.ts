@@ -52,6 +52,28 @@ Deno.serve(async (req) => {
           </div>
         `
       }).catch(err => console.log(`Email skipped for ${user.email}:`, err.message));
+
+      // 3. Send SMS via Twilio to all users who have a phone number
+      const twilioSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+      const twilioAuth = Deno.env.get('TWILIO_AUTH_TOKEN');
+      const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
+      if (twilioSid && twilioAuth && twilioPhone && user.phone_number) {
+        let phone = user.phone_number.replace(/\D/g, '');
+        if (!phone.startsWith('1') && phone.length === 10) phone = '1' + phone;
+        if (!phone.startsWith('+')) phone = '+' + phone;
+        const smsBody = `🚨 EMERGENCY: ${alert_type}\n\n${message}\n\nTriggered by: ${triggered_by}`;
+        const smsRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Basic ' + btoa(`${twilioSid}:${twilioAuth}`),
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: new URLSearchParams({ To: phone, From: twilioPhone, Body: smsBody }).toString()
+        });
+        const smsData = await smsRes.json();
+        if (!smsRes.ok) console.log(`SMS error for ${user.email}:`, JSON.stringify(smsData));
+        else console.log(`Emergency SMS sent to ${user.email}, SID: ${smsData.sid}`);
+      }
     });
 
     await Promise.all(notifyAll);
