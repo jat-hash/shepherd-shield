@@ -428,6 +428,64 @@ export default function AdminMonitor() {
         </DialogContent>
       </Dialog>
 
+      {/* Send Notification Dialog */}
+      <Dialog open={notifyDialog} onOpenChange={setNotifyDialog}>
+        <DialogContent className="bg-[#1a2744] border-[rgba(212,168,67,0.2)]">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Bell className="w-5 h-5 text-blue-400" /> Send Team Notification
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-slate-300">Send To</Label>
+              <Select value={notifyRecipient} onValueChange={setNotifyRecipient}>
+                <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#1a2744] border-slate-700">
+                  <SelectItem value="all" className="text-white">All Team Members</SelectItem>
+                  {allUsers.map(u => (
+                    <SelectItem key={u.email} value={u.email} className="text-white">
+                      {u.full_name || u.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-slate-300">Title</Label>
+              <Input
+                placeholder="Notification title..."
+                value={notifyTitle}
+                onChange={e => setNotifyTitle(e.target.value)}
+                className="bg-[#0a1128] border-slate-700 text-white mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-slate-300">Message</Label>
+              <Textarea
+                placeholder="Write your message..."
+                value={notifyMessage}
+                onChange={e => setNotifyMessage(e.target.value)}
+                className="bg-[#0a1128] border-slate-700 text-white mt-1 min-h-[100px]"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setNotifyDialog(false)} className="text-slate-400">Cancel</Button>
+            <Button
+              onClick={handleSendNotification}
+              disabled={notifySending || !notifyTitle || !notifyMessage}
+              className="flex-1 bg-blue-600 hover:bg-blue-500 text-white gap-2"
+            >
+              <Send className="w-4 h-4" />
+              {notifySending ? "Sending..." : "Send Notification"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Edit Check-in/out Times Dialog */}
       <Dialog open={timeEditDialog} onOpenChange={setTimeEditDialog}>
         <DialogContent className="bg-[#1a2744] border-[rgba(212,168,67,0.2)]">
