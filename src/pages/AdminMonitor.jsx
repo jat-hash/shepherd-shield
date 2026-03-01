@@ -206,9 +206,17 @@ export default function AdminMonitor() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 lg:ml-60 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Admin Monitor</h1>
-        <p className="text-slate-400 text-sm mt-1">Real-time check-in/check-out tracking</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Admin Monitor</h1>
+          <p className="text-slate-400 text-sm mt-1">Real-time check-in/check-out tracking</p>
+        </div>
+        <Button
+          onClick={() => setNotifyDialog(true)}
+          className="bg-blue-600 hover:bg-blue-500 text-white gap-2"
+        >
+          <Bell className="w-4 h-4" /> Notify Team
+        </Button>
       </div>
 
       {/* Stats */}
