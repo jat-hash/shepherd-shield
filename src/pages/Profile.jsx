@@ -54,6 +54,13 @@ export default function Profile() {
     setTimeout(() => window.location.reload(), 500);
   };
 
+  const handleUpdatePhone = async () => {
+    await base44.auth.updateMe({ phone_number: newPhone.trim() });
+    setUser(prev => ({ ...prev, phone_number: newPhone.trim() }));
+    toast.success("Phone number updated");
+    setEditingPhone(false);
+  };
+
   const handleNotificationToggle = async (field, value) => {
     await base44.auth.updateMe({ [field]: value });
     setUser(prev => ({ ...prev, [field]: value }));
