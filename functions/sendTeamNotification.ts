@@ -52,24 +52,23 @@ Deno.serve(async (req) => {
         `
       }).catch(err => console.log(`Email skipped for ${recipient.email}:`, err.message));
 
-      // Send OneSignal push notification
-      const oneSignalAppId = Deno.env.get('ONESIGNAL_APP_ID');
-      const oneSignalRestApiKey = Deno.env.get('ONESIGNAL_REST_API_KEY');
-      if (oneSignalAppId && oneSignalRestApiKey) {
-        await fetch('https://onesignal.com/api/v1/notifications', {
+      // Send SMS via Twilio if recipient has a phone number
+      const twilioSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+      const twilioAuth = Deno.env.get('TWILIO_AUTH_TOKEN');
+      const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
+      if (twilioSid && twilioAuth && twilioPhone && recipient.phone) {
+        let phone = recipient.phone.replace(/\D/g, '');
+        if (!phone.startsWith('1') && phone.length === 10) phone = '1' + phone;
+        if (!phone.startsWith('+')) phone = '+' + phone;
+        const smsBody = `${title}\n\n${message}`;
+        await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
           method: 'POST',
           headers: {
-            'Authorization': `Basic ${oneSignalRestApiKey}`,
-            'Content-Type': 'application/json'
+            'Authorization': 'Basic ' + btoa(`${twilioSid}:${twilioAuth}`),
+            'Content-Type': 'application/x-www-form-urlencoded'
           },
-          body: JSON.stringify({
-            app_id: oneSignalAppId,
-            include_external_user_ids: [recipient.email],
-            headings: { en: title },
-            contents: { en: message },
-            data: { type: 'general' }
-          })
-        }).catch(err => console.log(`Push notification skipped for ${recipient.email}:`, err.message));
+          body: new URLSearchParams({ To: phone, From: twilioPhone, Body: smsBody }).toString()
+        }).catch(err => console.log(`SMS skipped for ${recipient.email}:`, err.message));
       }
     }));
 
