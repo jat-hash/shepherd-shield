@@ -52,26 +52,24 @@ Deno.serve(async (req) => {
         `
       }).catch(err => console.log(`Email skipped for ${recipient.email}:`, err.message));
 
-      // Send FCM push notification via Firebase
-      const fcmServerKey = Deno.env.get('FIREBASE_SERVER_KEY');
-      if (fcmServerKey) {
-        const devices = await base44.asServiceRole.entities.UserDevice.filter({ user_email: recipient.email }).catch(() => []);
-        if (devices && devices.length > 0) {
-          await Promise.allSettled(devices.map(device =>
-            fetch('https://fcm.googleapis.com/fcm/send', {
-              method: 'POST',
-              headers: {
-                'Authorization': `key=${fcmServerKey}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                to: device.fcm_token,
-                notification: { title, body: message },
-                data: { type: 'general' }
-              })
-            })
-          ));
-        }
+      // Send OneSignal push notification
+      const oneSignalAppId = Deno.env.get('ONESIGNAL_APP_ID');
+      const oneSignalRestApiKey = Deno.env.get('ONESIGNAL_REST_API_KEY');
+      if (oneSignalAppId && oneSignalRestApiKey) {
+        await fetch('https://onesignal.com/api/v1/notifications', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${oneSignalRestApiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            app_id: oneSignalAppId,
+            include_external_user_ids: [recipient.email],
+            headings: { en: title },
+            contents: { en: message },
+            data: { type: 'general' }
+          })
+        }).catch(err => console.log(`Push notification skipped for ${recipient.email}:`, err.message));
       }
     }));
 
