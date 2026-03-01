@@ -499,6 +499,37 @@ export default function AdminMonitor() {
                 className="bg-[#0a1128] border-slate-700 text-white mt-1 min-h-[100px]"
               />
             </div>
+
+            {/* SMS Toggle */}
+            <div className="border border-slate-700 rounded-lg p-3 space-y-3">
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  id="send-sms"
+                  checked={notifySendSMS}
+                  onCheckedChange={setNotifySendSMS}
+                  className="border-slate-500"
+                />
+                <label htmlFor="send-sms" className="text-slate-300 text-sm flex items-center gap-2 cursor-pointer">
+                  <MessageSquare className="w-4 h-4 text-green-400" /> Also send as SMS text message
+                </label>
+              </div>
+              {notifySendSMS && notifyRecipient !== "all" && (
+                <div>
+                  <Label className="text-slate-400 text-xs">
+                    Override phone number (leave blank to use member's saved number)
+                  </Label>
+                  <Input
+                    placeholder="+1234567890"
+                    value={notifyPhoneNumber}
+                    onChange={e => setNotifyPhoneNumber(e.target.value)}
+                    className="bg-[#0a1128] border-slate-700 text-white mt-1 text-sm"
+                  />
+                </div>
+              )}
+              {notifySendSMS && notifyRecipient === "all" && (
+                <p className="text-slate-500 text-xs">Will SMS all members who have a phone number on file.</p>
+              )}
+            </div>
           </div>
           <div className="flex gap-2 pt-2">
             <Button variant="ghost" onClick={() => setNotifyDialog(false)} className="text-slate-400">Cancel</Button>
