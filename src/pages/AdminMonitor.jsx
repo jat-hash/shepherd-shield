@@ -159,6 +159,23 @@ export default function AdminMonitor() {
     }
   };
 
+  const handleSendNotification = async () => {
+    if (!notifyTitle || !notifyMessage) return;
+    setNotifySending(true);
+    const payload = {
+      title: notifyTitle,
+      message: notifyMessage,
+      recipient_emails: notifyRecipient === "all" ? [] : [notifyRecipient]
+    };
+    await base44.functions.invoke('sendTeamNotification', payload);
+    toast.success(`Notification sent to ${notifyRecipient === "all" ? "all members" : notifyRecipient}`);
+    setNotifySending(false);
+    setNotifyDialog(false);
+    setNotifyTitle("");
+    setNotifyMessage("");
+    setNotifyRecipient("all");
+  };
+
   const handleDeleteTimes = async () => {
     try {
       await base44.entities.Assignment.update(timeEditData.id, {
