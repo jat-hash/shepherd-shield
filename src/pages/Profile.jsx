@@ -192,6 +192,14 @@ export default function Profile() {
             />
           </div>
 
+          <div className="flex items-center justify-between">
+            <Label className="text-slate-300 text-sm">Phone Text (SMS)</Label>
+            <Switch
+              checked={user?.notifications_sms ?? false}
+              onCheckedChange={(val) => handleNotificationToggle('notifications_sms', val)}
+            />
+          </div>
+
           <div className="border-t border-[rgba(212,168,67,0.08)] pt-4 space-y-3">
             <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Notify me about:</p>
             
