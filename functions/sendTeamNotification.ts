@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { title, message, recipient_emails } = await req.json();
+    const { title, message, recipient_emails, send_sms } = await req.json();
 
     if (!title || !message) {
       return Response.json({ error: 'title and message are required' }, { status: 400 });
