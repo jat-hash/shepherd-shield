@@ -153,7 +153,7 @@ export default function Layout({ children, currentPageName }) {
                   }`}
                 >
                   <item.icon className="w-4 h-4" />
-                  {item.name === "Comm" ? "Communications" : item.name === "Assign" ? "Assignments" : item.name === "Reports" ? "Incident Reports" : item.name}
+                  {item.name === "Comm" ? "Communications" : item.name === "Assign" ? "Assignments" : item.name === "Reports" ? "Incident Reports" : item.name === "Map" ? "Live Map" : item.name}
                 </Link>
               );
             })}
