@@ -95,6 +95,8 @@ export default function Dashboard() {
         )}
       </div>
 
+      <SafetyCheckInPanel />
+      <PanicButton />
       <NotifyTeamButton user={user} />
       <EmergencyButton />
       <StatusBar />
