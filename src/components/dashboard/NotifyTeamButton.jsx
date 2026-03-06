@@ -79,7 +79,7 @@ export default function NotifyTeamButton({ user }) {
                   <SelectItem value="all" className="text-white">All Team Members</SelectItem>
                   {allUsers.map(u => (
                     <SelectItem key={u.email} value={u.email} className="text-white">
-                      {u.full_name || u.email}
+                      {u.display_name || u.full_name || u.email}
                     </SelectItem>
                   ))}
                 </SelectContent>
