@@ -53,9 +53,17 @@ function MapAutoFit({ points }) {
   const map = useMap();
   useEffect(() => {
     if (points.length === 0) return;
-    if (points.length === 1) { map.setView(points[0], 16); return; }
-    map.fitBounds(points, { padding: [50, 50] });
+    if (points.length === 1) { map.setView(points[0], 18); return; }
+    map.fitBounds(points, { padding: [50, 50], maxZoom: 18 });
   }, [points.length]);
+  return null;
+}
+
+function MapFlyTo({ target }) {
+  const map = useMap();
+  useEffect(() => {
+    if (target) map.flyTo([target.latitude, target.longitude], 18, { animate: true, duration: 1.2 });
+  }, [target?.id]);
   return null;
 }
 
