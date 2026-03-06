@@ -20,13 +20,16 @@ export default function NotifyTeamButton({ user }) {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [allUsers, setAllUsers] = useState([]);
 
+  const ALLOWED_ROLES = ["admin", "administrator", "security chief", "incident commander"];
+  const hasAccess = ALLOWED_ROLES.includes(user?.role?.toLowerCase());
+
   useEffect(() => {
-    if (user?.role === "admin") {
+    if (hasAccess) {
       base44.entities.User.list().then(setAllUsers).catch(() => {});
     }
   }, [user]);
 
-  if (user?.role !== "admin") return null;
+  if (!hasAccess) return null;
 
   const handleSend = async () => {
     if (!title || !message) return;
