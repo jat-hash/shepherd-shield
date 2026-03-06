@@ -8,6 +8,7 @@ import AssignmentForm from "@/components/assignments/AssignmentForm";
 export default function Assignments() {
   const [assignments, setAssignments] = useState([]);
   const [specialEvents, setSpecialEvents] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editData, setEditData] = useState(null);
