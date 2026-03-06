@@ -340,6 +340,60 @@ export default function IncidentMap() {
                 <p className="text-slate-200 text-xs leading-relaxed">{selected.description}</p>
               </div>
 
+              {/* Location & Position Editor */}
+              <div className="bg-[#0a1128] rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wider">Location Details</p>
+                  {!editingLocation ? (
+                    <button onClick={startEditLocation} className="flex items-center gap-1 text-[10px] text-[#d4a843] hover:text-[#e0bb5e]">
+                      <Edit2 className="w-3 h-3" /> Edit
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button onClick={saveLocation} disabled={savingLocation} className="flex items-center gap-1 text-[10px] text-emerald-400 hover:text-emerald-300">
+                        <Save className="w-3 h-3" /> {savingLocation ? "Saving..." : "Save"}
+                      </button>
+                      <button onClick={() => setEditingLocation(false)} className="text-slate-500 hover:text-white">
+                        <XIcon className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {editingLocation ? (
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-[10px] text-slate-500 block mb-1">General Location / Building</label>
+                      <input
+                        value={locationDraft.location}
+                        onChange={e => setLocationDraft(d => ({ ...d, location: e.target.value }))}
+                        placeholder="e.g. Main Sanctuary, Parking Lot B"
+                        className="w-full bg-[#141f3d] border border-[rgba(212,168,67,0.2)] rounded px-2 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-[#d4a843]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 block mb-1">Exact Position / Description</label>
+                      <textarea
+                        value={locationDraft.exact_position}
+                        onChange={e => setLocationDraft(d => ({ ...d, exact_position: e.target.value }))}
+                        placeholder="e.g. Near exit door 3, row 5, northwest corner"
+                        rows={2}
+                        className="w-full bg-[#141f3d] border border-[rgba(212,168,67,0.2)] rounded px-2 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-[#d4a843] resize-none"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="text-slate-300 text-xs">{selected.location || <span className="text-slate-600 italic">No location set</span>}</p>
+                    {selected.people_involved && (
+                      <p className="text-slate-400 text-[11px]">📍 {selected.people_involved}</p>
+                    )}
+                    {selected.latitude && selected.longitude && (
+                      <p className="text-slate-600 text-[10px]">GPS: {selected.latitude.toFixed(5)}, {selected.longitude.toFixed(5)}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {selected.reported_by && (
                 <p className="text-xs text-slate-500">Reported by: <span className="text-slate-300">{selected.reported_by}</span></p>
               )}
