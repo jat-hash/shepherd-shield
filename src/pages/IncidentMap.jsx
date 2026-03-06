@@ -158,6 +158,29 @@ export default function IncidentMap() {
     loadData();
   };
 
+  const selectIncident = (inc) => {
+    setSelected(inc);
+    setEditingLocation(false);
+    if (inc.latitude && inc.longitude) setFlyTarget(inc);
+  };
+
+  const startEditLocation = () => {
+    setLocationDraft({ location: selected.location || "", exact_position: selected.people_involved || "" });
+    setEditingLocation(true);
+  };
+
+  const saveLocation = async () => {
+    setSavingLocation(true);
+    const updated = await base44.entities.Incident.update(selected.id, {
+      location: locationDraft.location,
+      people_involved: locationDraft.exact_position,
+    });
+    setSelected({ ...selected, location: locationDraft.location, people_involved: locationDraft.exact_position });
+    setEditingLocation(false);
+    setSavingLocation(false);
+    loadData();
+  };
+
   if (loading) return (
     <div className="flex items-center justify-center bg-[#0a1128]" style={{ height: "calc(100vh - 57px)" }}>
       <div className="w-8 h-8 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
