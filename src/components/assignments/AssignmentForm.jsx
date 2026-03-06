@@ -226,7 +226,7 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
               <Select value={form.assigned_to_email} onValueChange={handleUserSelect}>
                 <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white mt-1"><SelectValue placeholder="Select team member" /></SelectTrigger>
                 <SelectContent className="bg-[#1a2744] border-slate-700">
-                  {users.map(u => <SelectItem key={u.id} value={u.email} className="text-white">{u.full_name || u.email}</SelectItem>)}
+                  {users.map(u => <SelectItem key={u.id} value={u.email} className="text-white">{u.display_name || u.full_name || u.email}</SelectItem>)}
                 </SelectContent>
               </Select>
             ) : (
