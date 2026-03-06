@@ -100,7 +100,7 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
 
   const handleUserSelect = (email) => {
     const u = users.find(u => u.email === email);
-    setForm({ ...form, assigned_to_email: email, assigned_to_name: u?.full_name || email });
+    setForm({ ...form, assigned_to_email: email, assigned_to_name: u?.display_name || u?.full_name || email });
   };
 
   const handlePositionSelect = (positionName) => {
