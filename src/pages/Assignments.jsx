@@ -174,7 +174,7 @@ export default function Assignments() {
                               {statusIcon(a.status)}
                               <span className="text-[10px] sm:text-xs text-white font-medium truncate">{a.position_name}</span>
                             </div>
-                            <p className="text-[9px] sm:text-[10px] text-slate-400 truncate">{a.assigned_to_name}</p>
+                            <p className="text-[9px] sm:text-[10px] text-slate-400 truncate">{users.find(u => u.email === a.assigned_to_email)?.display_name || a.assigned_to_name}</p>
                             <p className="text-[9px] sm:text-[10px] text-slate-500">{a.start_time}</p>
                           </button>
                         ))}
