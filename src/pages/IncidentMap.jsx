@@ -469,8 +469,8 @@ export default function IncidentMap() {
           {filteredIncidents.length === 0 ? (
             <div className="text-center py-4 text-slate-500 text-xs">No incidents</div>
           ) : filteredIncidents.map(inc => (
-            <button key={inc.id} onClick={() => setSelected(inc)}
-              className="w-full text-left p-3 rounded-lg hover:bg-white/5 transition-all flex items-center justify-between gap-2">
+          <button key={inc.id} onClick={() => selectIncident(inc)}
+            className="w-full text-left p-3 rounded-lg hover:bg-white/5 transition-all flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 {inc.is_panic && <span className="text-sm shrink-0">🚨</span>}
                 <p className="text-white text-xs font-medium truncate">{inc.title}</p>
