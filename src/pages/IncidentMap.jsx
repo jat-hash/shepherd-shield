@@ -279,9 +279,10 @@ export default function IncidentMap() {
             </div>
           )}
 
-          <MapContainer center={[34.052235, -118.243683]} zoom={13} style={{ height: "100%", width: "100%" }} zoomControl={false}>
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap" />
+          <MapContainer center={[34.052235, -118.243683]} zoom={13} style={{ height: "100%", width: "100%" }} zoomControl={true} maxZoom={20}>
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap" maxZoom={20} maxNativeZoom={19} />
             <MapAutoFit points={allMapPoints} />
+            <MapFlyTo target={flyTarget} />
 
             {mapIncidents.map(inc => (
               <Marker key={inc.id} position={[inc.latitude, inc.longitude]} icon={createIncidentIcon(inc)}
