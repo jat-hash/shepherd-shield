@@ -90,6 +90,10 @@ export default function IncidentMap() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("active");
   const [acting, setActing] = useState(false);
+  const [flyTarget, setFlyTarget] = useState(null);
+  const [editingLocation, setEditingLocation] = useState(false);
+  const [locationDraft, setLocationDraft] = useState({ location: "", exact_position: "" });
+  const [savingLocation, setSavingLocation] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
