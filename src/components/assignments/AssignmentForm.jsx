@@ -114,7 +114,7 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
         position_name: pos.name,
         radio_channel: pos.default_radio_channel || form.radio_channel,
         assigned_to_email: pos.default_assigned_email || form.assigned_to_email,
-        assigned_to_name: assignedUser?.full_name || pos.default_assigned_name || form.assigned_to_name,
+        assigned_to_name: assignedUser?.display_name || assignedUser?.full_name || pos.default_assigned_name || form.assigned_to_name,
       });
       setSelectedResponsibilities(pos.area_responsibilities || []);
     } else {
