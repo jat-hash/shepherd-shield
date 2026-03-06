@@ -286,7 +286,7 @@ export default function IncidentMap() {
 
             {mapIncidents.map(inc => (
               <Marker key={inc.id} position={[inc.latitude, inc.longitude]} icon={createIncidentIcon(inc)}
-                eventHandlers={{ click: () => setSelected(inc) }}>
+                eventHandlers={{ click: () => selectIncident(inc) }}>
                 <Popup>
                   <div style={{ background: "#1a2744", color: "white", padding: "8px", borderRadius: "8px", minWidth: "160px", border: "1px solid rgba(212,168,67,0.2)" }}>
                     <p style={{ fontWeight: "bold", fontSize: "13px", margin: "0 0 4px" }}>{inc.title}</p>
