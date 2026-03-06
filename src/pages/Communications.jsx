@@ -112,7 +112,7 @@ export default function Communications() {
     const messageData = {
       channel: activeChannel.name,
       content: newMsg.trim() || (attachment ? "Shared a file" : ""),
-      sender_name: user.full_name || user.email,
+      sender_name: user.display_name || user.full_name || user.email,
       sender_email: user.email,
       message_type: messageType,
       attachment: attachment,
