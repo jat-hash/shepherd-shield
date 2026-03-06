@@ -244,7 +244,7 @@ export default function IncidentMap() {
             {filteredIncidents.length === 0 ? (
               <div className="text-center py-10 text-slate-500 text-xs">No incidents</div>
             ) : filteredIncidents.map(inc => (
-              <button key={inc.id} onClick={() => setSelected(inc)}
+              <button key={inc.id} onClick={() => selectIncident(inc)}
                 className={`w-full text-left p-3 rounded-lg border transition-all ${selected?.id === inc.id ? "border-[#d4a843]/40 bg-[rgba(212,168,67,0.04)]" : "border-transparent hover:border-[rgba(212,168,67,0.15)] hover:bg-white/3"}`}>
                 <div className="flex items-start gap-2">
                   <div className="flex-1 min-w-0">
