@@ -41,6 +41,20 @@ Deno.serve(async (req) => {
 
     if (notifications.length > 0) {
       await base44.asServiceRole.entities.Notification.bulkCreate(notifications);
+
+      // Also send FCM push notifications
+      const pushTitle = isDM
+        ? `💬 ${data.sender_name}`
+        : `💬 ${data.sender_name} in ${data.channel}`;
+      const pushBody = data.content.substring(0, 120) + (data.content.length > 120 ? '...' : '');
+
+      for (const notif of notifications) {
+        base44.functions.invoke('sendFCMNotification', {
+          recipient_email: notif.user_email,
+          title: pushTitle,
+          body: pushBody,
+        }).catch(err => console.log('FCM push failed for', notif.user_email, err.message));
+      }
     }
 
     return Response.json({ success: true, notified: notifications.length });
