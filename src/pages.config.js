@@ -54,6 +54,7 @@ import Communications from './pages/Communications';
 import Dashboard from './pages/Dashboard';
 import Documents from './pages/Documents';
 import EquipmentInventory from './pages/EquipmentInventory';
+import IncidentMap from './pages/IncidentMap';
 import Incidents from './pages/Incidents';
 import Members from './pages/Members';
 import Positions from './pages/Positions';
@@ -61,7 +62,6 @@ import Profile from './pages/Profile';
 import SOPLibrary from './pages/SOPLibrary';
 import SpecialEvents from './pages/SpecialEvents';
 import WatchList from './pages/WatchList';
-import IncidentMap from './pages/IncidentMap';
 import __Layout from './Layout.jsx';
 
 
@@ -73,6 +73,7 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "Documents": Documents,
     "EquipmentInventory": EquipmentInventory,
+    "IncidentMap": IncidentMap,
     "Incidents": Incidents,
     "Members": Members,
     "Positions": Positions,
@@ -80,7 +81,6 @@ export const PAGES = {
     "SOPLibrary": SOPLibrary,
     "SpecialEvents": SpecialEvents,
     "WatchList": WatchList,
-    "IncidentMap": IncidentMap,
 }
 
 export const pagesConfig = {
