@@ -352,7 +352,6 @@ export default function Layout({ children, currentPageName }) {
                   { name: "Special Events", page: "SpecialEvents", icon: Calendar },
                   { name: "Auto Rotate Schedule", page: "AutoRotation", icon: Bot },
                   { name: "Documents", page: "Documents", icon: FolderOpen },
-                  { name: "WhatsApp", page: "WhatsAppAdmin", icon: MessageCircle },
                   ].map(item => (
                   <Link
                     key={item.page}
