@@ -98,7 +98,7 @@ export default function Profile() {
           </div>
         ) : (
           <div className="flex items-center justify-center gap-2 mb-3">
-            <h2 className="text-xl font-bold text-white">{user?.display_name || user?.full_name || "User"}</h2>
+            <h2 className="text-xl font-bold text-white">{user?.display_name || "User"}</h2>
             <button onClick={() => { setNewDisplayName(user?.display_name || ""); setEditingDisplayName(true); }} className="text-slate-400 hover:text-[#d4a843] transition-colors">
               <Edit2 className="w-4 h-4" />
             </button>
