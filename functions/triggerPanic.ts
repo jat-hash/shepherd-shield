@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
 
     // Create incident record
     const incident = await base44.entities.Incident.create({
-      title: `PANIC ALERT — ${user.full_name || user.email}`,
+      title: `PANIC ALERT — ${user.display_name || user.full_name || user.email}`,
       category: "Panic Alert",
       location: locationStr,
       latitude: latitude || null,

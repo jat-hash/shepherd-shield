@@ -27,7 +27,7 @@ export default function EmergencyButton() {
     const alert = await base44.entities.EmergencyAlert.create({
       alert_type: alertType,
       message,
-      triggered_by: user?.full_name || user?.email || "Unknown",
+      triggered_by: user?.display_name || user?.full_name || user?.email || "Unknown",
       is_active: true,
     });
 
@@ -35,7 +35,7 @@ export default function EmergencyButton() {
     base44.functions.invoke('broadcastEmergencyAlert', {
       alert_type: alertType,
       message,
-      triggered_by: user?.full_name || user?.email || "Unknown",
+      triggered_by: user?.display_name || user?.full_name || user?.email || "Unknown",
       id: alert?.id
     }).catch(err => console.log('Broadcast skipped:', err.message));
 
