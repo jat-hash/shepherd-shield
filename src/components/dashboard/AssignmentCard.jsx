@@ -28,7 +28,7 @@ export default function AssignmentCard({ assignment, onUpdate }) {
       await new Promise(resolve => navigator.geolocation.getCurrentPosition(
         pos => { lat = pos.coords.latitude; lng = pos.coords.longitude; resolve(); },
         () => resolve(),
-        { timeout: 5000 }
+        { timeout: 10000, enableHighAccuracy: true, maximumAge: 0 }
       ));
     }
     await base44.entities.Assignment.update(assignment.id, {
