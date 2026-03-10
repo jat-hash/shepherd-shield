@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { name: "Reports", icon: FileText, page: "Incidents" },
 
   { name: "Members", icon: User, page: "Members" },
+  { name: "Team Map", icon: MapPin, page: "TeamMap" },
 ];
 
 export default function Layout({ children, currentPageName }) {
