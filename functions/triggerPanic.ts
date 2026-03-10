@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     // Create active emergency alert banner
     await base44.asServiceRole.entities.EmergencyAlert.create({
       alert_type: "Panic Alert",
-      message: `${user.display_name || user.full_name || user.email} triggered the panic button. ${locationStr}`,
+      message: `${user.display_name || user.full_name || user.email} triggered the panic button. Check the Team Map.`,
       triggered_by: user.display_name || user.full_name || user.email,
       is_active: true
     });
@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.Notification.create({
         user_email: u.email,
         title: "🚨 PANIC ALERT",
-        message: `${user.display_name || user.full_name || user.email} needs immediate help! ${locationStr}`,
+        message: `${user.display_name || user.full_name || user.email} needs immediate help! Check the Team Map for location.`,
         type: "general",
         read: false
       }).catch(() => {});

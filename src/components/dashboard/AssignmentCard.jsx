@@ -23,10 +23,19 @@ export default function AssignmentCard({ assignment, onUpdate }) {
 
   const handleCheckIn = async () => {
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    let lat = null, lng = null;
+    if (navigator.geolocation) {
+      await new Promise(resolve => navigator.geolocation.getCurrentPosition(
+        pos => { lat = pos.coords.latitude; lng = pos.coords.longitude; resolve(); },
+        () => resolve(),
+        { timeout: 5000 }
+      ));
+    }
     await base44.entities.Assignment.update(assignment.id, {
       checked_in: true,
       check_in_time: now,
-      status: "Confirmed"
+      status: "Confirmed",
+      ...(lat !== null && { check_in_latitude: lat, check_in_longitude: lng })
     });
     onUpdate?.();
   };
