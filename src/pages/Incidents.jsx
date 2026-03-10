@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import IncidentForm from "@/components/incidents/IncidentForm";
 import SOPReference from "@/components/incidents/SOPReference";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import WhatsAppReportButton from "@/components/whatsapp/WhatsAppReportButton";
 
 const severityColors = {
   Low: "bg-blue-500/20 text-blue-400",
