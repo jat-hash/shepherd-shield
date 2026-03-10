@@ -30,63 +30,25 @@ Deno.serve(async (req) => {
         read: false
       }).catch(() => {});
 
-      // 2. Send email notification
-      await base44.asServiceRole.integrations.Core.SendEmail({
-        to: user.email,
-        subject: `🚨 EMERGENCY ALERT: ${alert_type}`,
-        body: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background-color: #dc2626; color: white; padding: 24px; border-radius: 8px 8px 0 0;">
-              <h1 style="margin: 0; font-size: 24px;">🚨 EMERGENCY ALERT</h1>
-              <p style="margin: 8px 0 0; font-size: 20px; font-weight: bold;">${alert_type}</p>
-            </div>
-            <div style="background: #f9fafb; padding: 24px; border: 1px solid #e5e7eb;">
-              <p style="font-size: 16px; color: #111;">${message}</p>
-              <hr style="border-color: #e5e7eb; margin: 16px 0;" />
-              <p style="color: #6b7280; font-size: 14px;">Triggered by: ${triggered_by}</p>
-              <p style="color: #6b7280; font-size: 14px;">Time: ${new Date().toLocaleString()}</p>
-            </div>
-            <div style="background: #fff3cd; padding: 16px; border-radius: 0 0 8px 8px; border: 1px solid #ffc107; border-top: none;">
-              <p style="margin: 0; color: #856404; font-weight: bold;">Open the Shepherd Shield app immediately to acknowledge this alert.</p>
-            </div>
-          </div>
-        `
-      }).catch(err => console.log(`Email skipped for ${user.email}:`, err.message));
-
-      // 3. Send SMS + WhatsApp via Twilio to all users who have a phone number
+      // 2. Send WhatsApp via Twilio to all users who have a phone number
       const twilioSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       const twilioAuth = Deno.env.get('TWILIO_AUTH_TOKEN');
-      const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
       const twilioWA = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
-      if (twilioSid && twilioAuth && user.phone_number) {
+      if (twilioSid && twilioAuth && twilioWA && user.phone_number) {
         let phone = user.phone_number.replace(/\D/g, '');
         if (!phone.startsWith('1') && phone.length === 10) phone = '1' + phone;
         if (!phone.startsWith('+')) phone = '+' + phone;
         const body = `🚨 EMERGENCY: ${alert_type}\n\n${message}\n\nTriggered by: ${triggered_by}\n\nReply CHECKIN when safe.`;
 
-        const sendTwilio = (from, to) => fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
+        const waFrom = twilioWA.startsWith('whatsapp:') ? twilioWA : `whatsapp:${twilioWA}`;
+        const waRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
           method: 'POST',
           headers: { 'Authorization': 'Basic ' + btoa(`${twilioSid}:${twilioAuth}`), 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ To: to, From: from, Body: body }).toString()
+          body: new URLSearchParams({ To: `whatsapp:${phone}`, From: waFrom, Body: body }).toString()
         });
-
-        // SMS
-        if (twilioPhone) {
-          const smsRes = await sendTwilio(twilioPhone, phone);
-          const smsData = await smsRes.json();
-          if (!smsRes.ok) console.log(`SMS error for ${user.email}:`, JSON.stringify(smsData));
-          else console.log(`Emergency SMS sent to ${user.email}, SID: ${smsData.sid}`);
-        }
-
-        // WhatsApp
-        if (twilioWA) {
-          const waFrom = twilioWA.startsWith('whatsapp:') ? twilioWA : `whatsapp:${twilioWA}`;
-          const waTo = `whatsapp:${phone}`;
-          const waRes = await sendTwilio(waFrom, waTo);
-          const waData = await waRes.json();
-          if (!waRes.ok) console.log(`WhatsApp error for ${user.email}:`, JSON.stringify(waData));
-          else console.log(`Emergency WhatsApp sent to ${user.email}, SID: ${waData.sid}`);
-        }
+        const waData = await waRes.json();
+        if (!waRes.ok) console.log(`WhatsApp error for ${user.email}:`, JSON.stringify(waData));
+        else console.log(`Emergency WhatsApp sent to ${user.email}, SID: ${waData.sid}`);
       }
     });
 

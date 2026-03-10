@@ -34,59 +34,25 @@ Deno.serve(async (req) => {
         read: false
       }).catch(() => {});
 
-      // Send email
-      await base44.asServiceRole.integrations.Core.SendEmail({
-        to: recipient.email,
-        subject: title,
-        body: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background: #1e3a5f; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
-              <h2 style="margin: 0;">📢 ${title}</h2>
-            </div>
-            <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-              <p style="font-size: 16px; color: #111;">${message}</p>
-              <hr style="border-color: #e5e7eb;" />
-              <p style="color: #6b7280; font-size: 13px;">Sent by ${user.full_name || user.email} via Shepherd Shield</p>
-            </div>
-          </div>
-        `
-      }).catch(err => console.log(`Email skipped for ${recipient.email}:`, err.message));
-
-      // Send SMS + WhatsApp via Twilio
+      // Send WhatsApp via Twilio
       const twilioSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       const twilioAuth = Deno.env.get('TWILIO_AUTH_TOKEN');
-      const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
       const twilioWA = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
-      // send_sms=true forces SMS (admin broadcast), otherwise respect user's notifications_sms preference
-      if (twilioSid && twilioAuth && recipient.phone_number && (send_sms === true || recipient.notifications_sms)) {
+      if (twilioSid && twilioAuth && twilioWA && recipient.phone_number) {
         let phone = recipient.phone_number.replace(/\D/g, '');
         if (!phone.startsWith('1') && phone.length === 10) phone = '1' + phone;
         if (!phone.startsWith('+')) phone = '+' + phone;
         const body = `${title}\n\n${message}`;
 
-        const sendTwilio = (from, to) => fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
+        const waFrom = twilioWA.startsWith('whatsapp:') ? twilioWA : `whatsapp:${twilioWA}`;
+        const waRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
           method: 'POST',
           headers: { 'Authorization': 'Basic ' + btoa(`${twilioSid}:${twilioAuth}`), 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ To: to, From: from, Body: body }).toString()
+          body: new URLSearchParams({ To: `whatsapp:${phone}`, From: waFrom, Body: body }).toString()
         });
-
-        // SMS
-        if (twilioPhone) {
-          const smsRes = await sendTwilio(twilioPhone, phone);
-          const smsData = await smsRes.json();
-          if (!smsRes.ok) console.log(`SMS error for ${recipient.email}:`, JSON.stringify(smsData));
-          else console.log(`SMS sent to ${recipient.email}, SID: ${smsData.sid}`);
-        }
-
-        // WhatsApp
-        if (twilioWA) {
-          const waFrom = twilioWA.startsWith('whatsapp:') ? twilioWA : `whatsapp:${twilioWA}`;
-          const waTo = `whatsapp:${phone}`;
-          const waRes = await sendTwilio(waFrom, waTo);
-          const waData = await waRes.json();
-          if (!waRes.ok) console.log(`WhatsApp error for ${recipient.email}:`, JSON.stringify(waData));
-          else console.log(`WhatsApp sent to ${recipient.email}, SID: ${waData.sid}`);
-        }
+        const waData = await waRes.json();
+        if (!waRes.ok) console.log(`WhatsApp error for ${recipient.email}:`, JSON.stringify(waData));
+        else console.log(`WhatsApp sent to ${recipient.email}, SID: ${waData.sid}`);
       }
     }));
 
