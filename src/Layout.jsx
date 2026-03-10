@@ -233,6 +233,7 @@ export default function Layout({ children, currentPageName }) {
                       { name: "Documents", page: "Documents", icon: FolderOpen },
                       { name: "WhatsApp", page: "WhatsAppAdmin", icon: MessageCircle },
                     ].map(item => (
+
                       <Link
                         key={item.page}
                         to={createPageUrl(item.page)}
