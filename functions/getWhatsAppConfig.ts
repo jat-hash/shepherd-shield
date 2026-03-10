@@ -12,10 +12,16 @@ Deno.serve(async (req) => {
     // Strip "whatsapp:" prefix and leading "+" for wa.me URL
     const cleaned = raw.replace('whatsapp:', '').replace(/^\+/, '');
 
+    const appId = Deno.env.get('BASE44_APP_ID');
+    const webhookUrl = appId
+      ? `https://api.base44.com/api/apps/${appId}/functions/whatsappBot`
+      : null;
+
     return Response.json({
       whatsapp_number: raw.replace('whatsapp:', ''),
       wa_me_number: cleaned,
-      configured: !!cleaned
+      configured: !!cleaned,
+      webhook_url: webhookUrl
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
