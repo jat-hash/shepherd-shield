@@ -21,8 +21,8 @@ Deno.serve(async (req) => {
       latitude: latitude || null,
       longitude: longitude || null,
       severity: "Critical",
-      description: `Panic button triggered by ${user.full_name || user.email}. Requires immediate response.`,
-      reported_by: user.full_name || user.email,
+      description: `Panic button triggered by ${user.display_name || user.full_name || user.email}. Requires immediate response.`,
+      reported_by: user.display_name || user.full_name || user.email,
       status: "Open",
       is_panic: true,
       incident_date: new Date().toISOString().split('T')[0]
