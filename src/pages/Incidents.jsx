@@ -166,6 +166,15 @@ export default function Incidents() {
         </div>
       )}
 
+      {/* WhatsApp quick report */}
+      <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-4 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold text-white">Report via WhatsApp</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">Open WhatsApp with a pre-filled emergency message</p>
+        </div>
+        <WhatsAppReportButton className="text-xs h-8 px-3" />
+      </div>
+
       <IncidentForm open={formOpen} onClose={() => setFormOpen(false)} onSaved={loadIncidents} />
 
       {/* Incident Detail View */}

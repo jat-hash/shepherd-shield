@@ -39,6 +39,13 @@ export default function EmergencyButton() {
       id: alert?.id
     }).catch(err => console.log('Broadcast skipped:', err.message));
 
+    // Send WhatsApp safety check-in requests to all users with phone numbers
+    base44.functions.invoke('sendWhatsAppSafetyCheckin', {
+      alertId: alert?.id,
+      alertType,
+      message
+    }).catch(err => console.log('WhatsApp check-in skipped:', err.message));
+
     setSending(false);
     setOpen(false);
     setAlertType("");
