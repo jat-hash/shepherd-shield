@@ -71,26 +71,28 @@ Deno.serve(async (req) => {
         `
       }).catch(() => {});
 
-      // SMS via Twilio if phone available
+      // SMS + WhatsApp via Twilio if phone available
       const twilioSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       const twilioAuth = Deno.env.get('TWILIO_AUTH_TOKEN');
       const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
-      if (twilioSid && twilioAuth && twilioPhone && u.phone_number) {
+      const twilioWA = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
+      if (twilioSid && twilioAuth && u.phone_number) {
         let phone = u.phone_number.replace(/\D/g, '');
         if (!phone.startsWith('1') && phone.length === 10) phone = '1' + phone;
         if (!phone.startsWith('+')) phone = '+' + phone;
-        await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
+        const panicBody = `🚨 PANIC ALERT\n${user.full_name || user.email} needs immediate help!\n${locationStr}${latitude ? `\nhttps://maps.google.com/?q=${latitude},${longitude}` : ""}`;
+
+        const sendTwilio = (from, to) => fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
           method: 'POST',
-          headers: {
-            'Authorization': 'Basic ' + btoa(`${twilioSid}:${twilioAuth}`),
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: new URLSearchParams({
-            To: phone,
-            From: twilioPhone,
-            Body: `🚨 PANIC ALERT\n${user.full_name || user.email} needs immediate help!\n${locationStr}${latitude ? `\nhttps://maps.google.com/?q=${latitude},${longitude}` : ""}`
-          }).toString()
-        }).catch(() => {});
+          headers: { 'Authorization': 'Basic ' + btoa(`${twilioSid}:${twilioAuth}`), 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ To: to, From: from, Body: panicBody }).toString()
+        });
+
+        if (twilioPhone) await sendTwilio(twilioPhone, phone).catch(() => {});
+        if (twilioWA) {
+          const waFrom = twilioWA.startsWith('whatsapp:') ? twilioWA : `whatsapp:${twilioWA}`;
+          await sendTwilio(waFrom, `whatsapp:${phone}`).catch(() => {});
+        }
       }
     }));
 

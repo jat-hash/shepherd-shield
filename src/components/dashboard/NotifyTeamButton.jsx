@@ -112,7 +112,7 @@ export default function NotifyTeamButton({ user }) {
                   className="border-slate-500"
                 />
                 <label htmlFor="send-sms-dash" className="text-slate-300 text-sm flex items-center gap-2 cursor-pointer">
-                  <MessageSquare className="w-4 h-4 text-green-400" /> Also send as SMS text message
+                  <MessageSquare className="w-4 h-4 text-green-400" /> Also send via SMS & WhatsApp
                 </label>
               </div>
               {sendSMS && recipient !== "all" && (
@@ -127,7 +127,7 @@ export default function NotifyTeamButton({ user }) {
                 </div>
               )}
               {sendSMS && recipient === "all" && (
-                <p className="text-slate-500 text-xs">Will SMS all members who have a phone number on file.</p>
+                <p className="text-slate-500 text-xs">Will SMS & WhatsApp all members who have a phone number on file.</p>
               )}
             </div>
           </div>
