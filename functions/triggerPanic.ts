@@ -49,50 +49,22 @@ Deno.serve(async (req) => {
         read: false
       }).catch(() => {});
 
-      // Email
-      await base44.asServiceRole.integrations.Core.SendEmail({
-        to: u.email,
-        subject: "🚨 PANIC ALERT — Immediate Response Required",
-        body: `
-          <div style="font-family: Arial; max-width: 600px; margin: 0 auto; background: #0a1128; color: white; padding: 20px; border-radius: 12px;">
-            <div style="background: #dc2626; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 20px;">
-              <h1 style="margin: 0; font-size: 26px; letter-spacing: 2px;">🚨 PANIC ALERT</h1>
-            </div>
-            <p style="color: #f1f5f9; font-size: 16px;">
-              <strong>${user.display_name || user.full_name || user.email}</strong> has triggered the panic button and requires immediate assistance.
-            </p>
-            <div style="background: #1a2744; border-radius: 8px; padding: 15px; margin: 15px 0; border-left: 4px solid #dc2626;">
-              <p style="color: #94a3b8; margin: 0 0 4px; font-size: 12px; text-transform: uppercase;">Location</p>
-              <p style="color: white; margin: 0; font-weight: bold; font-size: 15px;">${locationStr}</p>
-              ${latitude ? `<a href="https://maps.google.com/?q=${latitude},${longitude}" style="color: #d4a843; font-size: 13px;">📍 Open in Google Maps</a>` : ""}
-            </div>
-            <p style="color: #94a3b8; font-size: 12px; text-align: center; margin-top: 20px;">Shepherd Shield Security System</p>
-          </div>
-        `
-      }).catch(() => {});
-
-      // SMS + WhatsApp via Twilio if phone available
+      // WhatsApp via Twilio if phone available
       const twilioSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       const twilioAuth = Deno.env.get('TWILIO_AUTH_TOKEN');
-      const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
       const twilioWA = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
-      if (twilioSid && twilioAuth && u.phone_number) {
+      if (twilioSid && twilioAuth && twilioWA && u.phone_number) {
         let phone = u.phone_number.replace(/\D/g, '');
         if (!phone.startsWith('1') && phone.length === 10) phone = '1' + phone;
         if (!phone.startsWith('+')) phone = '+' + phone;
         const panicBody = `🚨 PANIC ALERT\n${user.display_name || user.full_name || user.email} needs immediate help!\n${locationStr}${latitude ? `\nhttps://maps.google.com/?q=${latitude},${longitude}` : ""}`;
 
-        const sendTwilio = (from, to) => fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
+        const waFrom = twilioWA.startsWith('whatsapp:') ? twilioWA : `whatsapp:${twilioWA}`;
+        await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
           method: 'POST',
           headers: { 'Authorization': 'Basic ' + btoa(`${twilioSid}:${twilioAuth}`), 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ To: to, From: from, Body: panicBody }).toString()
-        });
-
-        if (twilioPhone) await sendTwilio(twilioPhone, phone).catch(() => {});
-        if (twilioWA) {
-          const waFrom = twilioWA.startsWith('whatsapp:') ? twilioWA : `whatsapp:${twilioWA}`;
-          await sendTwilio(waFrom, `whatsapp:${phone}`).catch(() => {});
-        }
+          body: new URLSearchParams({ To: `whatsapp:${phone}`, From: waFrom, Body: panicBody }).toString()
+        }).catch(() => {});
       }
     }));
 
