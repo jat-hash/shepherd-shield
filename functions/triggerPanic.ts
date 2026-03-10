@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.Notification.create({
         user_email: u.email,
         title: "🚨 PANIC ALERT",
-        message: `${user.full_name || user.email} needs immediate help! ${locationStr}`,
+        message: `${user.display_name || user.full_name || user.email} needs immediate help! ${locationStr}`,
         type: "general",
         read: false
       }).catch(() => {});
