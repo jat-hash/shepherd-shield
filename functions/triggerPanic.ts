@@ -49,6 +49,13 @@ Deno.serve(async (req) => {
         read: false
       }).catch(() => {});
 
+      // Email notification
+      await base44.asServiceRole.integrations.Core.SendEmail({
+        to: u.email,
+        subject: "🚨 PANIC ALERT — Immediate Response Required",
+        body: `<div style="font-family: Arial; max-width: 600px; margin: 0 auto; background: #0a1128; color: white; padding: 20px; border-radius: 12px;"><div style="background: #dc2626; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 20px;"><h1 style="margin: 0; font-size: 26px; letter-spacing: 2px;">🚨 PANIC ALERT</h1></div><p style="color: #f1f5f9; font-size: 16px;"><strong>${user.display_name || user.full_name || user.email}</strong> has triggered the panic button and requires immediate assistance.</p><p style="color: #94a3b8; font-size: 12px; text-align: center; margin-top: 20px;">Shepherd Shield Security System — Check the Team Map for location.</p></div>`
+      }).catch(() => {});
+
       // WhatsApp via Twilio if phone available
       const twilioSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       const twilioAuth = Deno.env.get('TWILIO_AUTH_TOKEN');
