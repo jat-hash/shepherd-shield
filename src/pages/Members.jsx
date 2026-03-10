@@ -227,6 +227,20 @@ export default function Members() {
     }
   };
 
+  const handleMovePosition = async (position, direction) => {
+    const sorted = [...commandPositions].sort((a, b) => (a.order || 0) - (b.order || 0));
+    const idx = sorted.findIndex(p => p.id === position.id);
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= sorted.length) return;
+
+    const swapWith = sorted[swapIdx];
+    await Promise.all([
+      base44.entities.CommandPosition.update(position.id, { order: swapWith.order }),
+      base44.entities.CommandPosition.update(swapWith.id, { order: position.order })
+    ]);
+    loadCommandPositions();
+  };
+
   const handleDeletePosition = async (positionId) => {
     try {
       await base44.entities.CommandPosition.delete(positionId);
