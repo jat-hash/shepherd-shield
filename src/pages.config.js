@@ -60,9 +60,9 @@ import Positions from './pages/Positions';
 import Profile from './pages/Profile';
 import SOPLibrary from './pages/SOPLibrary';
 import SpecialEvents from './pages/SpecialEvents';
+import TeamMap from './pages/TeamMap';
 import WatchList from './pages/WatchList';
 import WhatsAppAdmin from './pages/WhatsAppAdmin';
-import TeamMap from './pages/TeamMap';
 import __Layout from './Layout.jsx';
 
 
@@ -80,9 +80,9 @@ export const PAGES = {
     "Profile": Profile,
     "SOPLibrary": SOPLibrary,
     "SpecialEvents": SpecialEvents,
+    "TeamMap": TeamMap,
     "WatchList": WatchList,
     "WhatsAppAdmin": WhatsAppAdmin,
-    "TeamMap": TeamMap,
 }
 
 export const pagesConfig = {
