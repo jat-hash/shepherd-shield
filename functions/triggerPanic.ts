@@ -31,8 +31,8 @@ Deno.serve(async (req) => {
     // Create active emergency alert banner
     await base44.asServiceRole.entities.EmergencyAlert.create({
       alert_type: "Panic Alert",
-      message: `${user.full_name || user.email} triggered the panic button. ${locationStr}`,
-      triggered_by: user.full_name || user.email,
+      message: `${user.display_name || user.full_name || user.email} triggered the panic button. ${locationStr}`,
+      triggered_by: user.display_name || user.full_name || user.email,
       is_active: true
     });
 
