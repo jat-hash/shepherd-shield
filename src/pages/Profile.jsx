@@ -80,7 +80,7 @@ export default function Profile() {
       {/* Profile Header */}
       <div className="bg-[#1a2744] rounded-2xl border border-[rgba(212,168,67,0.1)] p-4 sm:p-6 text-center">
         <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#d4a843] to-[#b8902a] flex items-center justify-center text-[#0a1128] text-2xl sm:text-3xl font-bold mx-auto mb-3 sm:mb-4">
-          {(user?.display_name || user?.full_name)?.charAt(0) || "U"}
+          {user?.display_name?.charAt(0) || "U"}
         </div>
         
         {/* Display Name */}
