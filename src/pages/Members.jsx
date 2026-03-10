@@ -389,7 +389,7 @@ export default function Members() {
                 <p className="text-slate-400 text-center py-4">No command positions defined yet</p>
               ) : (
                 <div className="space-y-3">
-                  {commandPositions.map((position) => {
+                  {[...commandPositions].sort((a, b) => (a.order || 0) - (b.order || 0)).map((position, idx, arr) => {
                     const assignedUser = users.find(u => u.command_position === position.title);
                     return (
                       <div key={position.id} className="bg-[#1a2744] rounded-lg p-3 border border-[rgba(212,168,67,0.1)]">
@@ -401,7 +401,25 @@ export default function Members() {
                             )}
                           </div>
                           {currentUser?.role === 'admin' && (
-                            <div className="flex gap-2">
+                            <div className="flex gap-1 items-center">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleMovePosition(position, 'up')}
+                                disabled={idx === 0}
+                                className="text-slate-400 hover:text-white hover:bg-white/10 px-1.5"
+                              >
+                                <ArrowUp className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleMovePosition(position, 'down')}
+                                disabled={idx === arr.length - 1}
+                                className="text-slate-400 hover:text-white hover:bg-white/10 px-1.5"
+                              >
+                                <ArrowDown className="w-3.5 h-3.5" />
+                              </Button>
                               <Button
                                 size="sm"
                                 variant="ghost"
