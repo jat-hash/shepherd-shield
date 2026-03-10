@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
               <h1 style="margin: 0; font-size: 26px; letter-spacing: 2px;">🚨 PANIC ALERT</h1>
             </div>
             <p style="color: #f1f5f9; font-size: 16px;">
-              <strong>${user.full_name || user.email}</strong> has triggered the panic button and requires immediate assistance.
+              <strong>${user.display_name || user.full_name || user.email}</strong> has triggered the panic button and requires immediate assistance.
             </p>
             <div style="background: #1a2744; border-radius: 8px; padding: 15px; margin: 15px 0; border-left: 4px solid #dc2626;">
               <p style="color: #94a3b8; margin: 0 0 4px; font-size: 12px; text-transform: uppercase;">Location</p>
@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
         let phone = u.phone_number.replace(/\D/g, '');
         if (!phone.startsWith('1') && phone.length === 10) phone = '1' + phone;
         if (!phone.startsWith('+')) phone = '+' + phone;
-        const panicBody = `🚨 PANIC ALERT\n${user.full_name || user.email} needs immediate help!\n${locationStr}${latitude ? `\nhttps://maps.google.com/?q=${latitude},${longitude}` : ""}`;
+        const panicBody = `🚨 PANIC ALERT\n${user.display_name || user.full_name || user.email} needs immediate help!\n${locationStr}${latitude ? `\nhttps://maps.google.com/?q=${latitude},${longitude}` : ""}`;
 
         const sendTwilio = (from, to) => fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
           method: 'POST',
