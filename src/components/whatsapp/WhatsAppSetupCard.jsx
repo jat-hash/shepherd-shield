@@ -56,22 +56,44 @@ export default function WhatsAppSetupCard() {
         </div>
       )}
 
-      {/* Webhook Setup Instructions */}
+      {/* Webhook URL - the key piece */}
       <div className="space-y-2">
-        <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Webhook Setup</p>
-        <div className="bg-[#0a1128] rounded-lg p-3 space-y-2 text-xs text-slate-400">
-          <p>1. Go to your <span className="text-white">Twilio Console</span> → Messaging → Senders → WhatsApp</p>
-          <p>2. Under <span className="text-white">Webhook URL</span>, enter your <code className="text-[#25D366] bg-[#25D366]/10 px-1 rounded">whatsappBot</code> function URL</p>
-          <p>3. Find your function URL in <span className="text-white">Base44 Dashboard → Code → Functions → whatsappBot</span></p>
-          <p>4. Set method to <span className="text-white">HTTP POST</span></p>
+        <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Your Webhook URL</p>
+        {config?.webhook_url ? (
+          <div className="bg-[#0a1128] rounded-lg p-3">
+            <p className="text-[10px] text-slate-500 mb-2">Copy this URL and paste it into Twilio:</p>
+            <div className="flex items-center gap-2">
+              <code className="text-[#25D366] text-[10px] font-mono break-all flex-1">{config.webhook_url}</code>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => handleCopy(config.webhook_url)}
+                className="h-7 text-slate-400 hover:text-[#25D366] px-2 flex-shrink-0"
+              >
+                {copied ? <CheckCircle className="w-3.5 h-3.5 text-[#25D366]" /> : <Copy className="w-3.5 h-3.5" />}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-[#0a1128] rounded-lg p-3 text-xs text-slate-500">Loading webhook URL…</div>
+        )}
+
+        {/* Steps */}
+        <div className="bg-[#0a1128] rounded-lg p-3 space-y-1.5 text-xs text-slate-400">
+          <p>1. Copy the URL above</p>
+          <p>2. Open <span className="text-white">Twilio Console</span> (link below)</p>
+          <p>3. Go to <span className="text-white">Messaging → Senders → WhatsApp Senders</span></p>
+          <p>4. Click your sandbox/number → paste URL under <span className="text-white">"A message comes in"</span></p>
+          <p>5. Set method to <span className="text-white">HTTP POST</span> → Save</p>
         </div>
         <a
-          href="https://console.twilio.com"
+          href="https://console.twilio.com/us1/develop/sms/senders/whatsapp-senders"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-xs text-[#25D366] hover:underline"
+          className="inline-flex items-center gap-1.5 text-xs text-white bg-[#25D366]/20 border border-[#25D366]/30 hover:bg-[#25D366]/30 px-3 py-1.5 rounded-lg transition-colors"
         >
-          Open Twilio Console <ExternalLink className="w-3 h-3" />
+          <ExternalLink className="w-3 h-3 text-[#25D366]" />
+          Open Twilio WhatsApp Senders
         </a>
       </div>
 
