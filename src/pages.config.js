@@ -54,7 +54,6 @@ import Communications from './pages/Communications';
 import Dashboard from './pages/Dashboard';
 import Documents from './pages/Documents';
 import EquipmentInventory from './pages/EquipmentInventory';
-import IncidentMap from './pages/IncidentMap';
 import Incidents from './pages/Incidents';
 import Members from './pages/Members';
 import Positions from './pages/Positions';
@@ -75,7 +74,6 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "Documents": Documents,
     "EquipmentInventory": EquipmentInventory,
-    "IncidentMap": IncidentMap,
     "Incidents": Incidents,
     "Members": Members,
     "Positions": Positions,

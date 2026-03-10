@@ -16,7 +16,7 @@ const NAV_ITEMS = [
   { name: "Comm", icon: MessageSquare, page: "Communications" },
   { name: "Assign", icon: CalendarDays, page: "Assignments" },
   { name: "Reports", icon: FileText, page: "Incidents" },
-  { name: "Map", icon: MapPin, page: "IncidentMap" },
+  { name: "Map", icon: MapPin, page: "TeamMap" },
   { name: "Members", icon: User, page: "Members" },
 ];
 
