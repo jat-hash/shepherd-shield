@@ -56,9 +56,8 @@ export default function TeamMap() {
       base44.entities.Incident.filter({ is_panic: true }),
     ]);
 
-    // Only show today's checked-in members who have GPS
+    // Show all checked-in members with GPS
     const todayCheckedIn = allAssignments.filter(a =>
-      a.service_date === today &&
       a.check_in_latitude &&
       a.check_in_longitude
     );
