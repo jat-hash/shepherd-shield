@@ -20,11 +20,11 @@ export default function Assignments() {
     const startDate = new Date(year, month, 1).toISOString().split("T")[0];
     const endDate = new Date(year, month + 1, 0).toISOString().split("T")[0];
     
-    const allAssignments = await base44.entities.Assignment.list("service_date");
+    const allAssignments = await base44.entities.Assignment.list("service_date", 1000);
     const filteredAssignments = allAssignments.filter(a => a.service_date >= startDate && a.service_date <= endDate);
     setAssignments(filteredAssignments);
 
-    const allEvents = await base44.entities.SpecialEvent.list("event_date");
+    const allEvents = await base44.entities.SpecialEvent.list("event_date", 1000);
     const filteredEvents = allEvents.filter(e => e.event_date >= startDate && e.event_date <= endDate);
     setSpecialEvents(filteredEvents);
     
