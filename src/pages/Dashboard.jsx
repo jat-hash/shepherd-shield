@@ -28,7 +28,7 @@ export default function Dashboard() {
       
       const allAssignments = await base44.entities.Assignment.filter({
         assigned_to_email: u.email
-      }, "-service_date", 1000);
+      }, "-service_date", 1000, { data_env: "prod" });
       
       // Filter assignments for this month
       const monthAssignments = allAssignments.filter(a => {
