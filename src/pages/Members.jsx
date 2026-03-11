@@ -627,13 +627,34 @@ export default function Members() {
         <DialogContent className="bg-[#141f3d] border-[rgba(212,168,67,0.15)] text-white">
           <DialogHeader>
             <DialogTitle className="text-[#d4a843]">
-              {editingCommandUser?.command_position ? "Change" : "Assign"} Command Position
+              Assign Command Position
               {editingCommandUser && ` - ${editingCommandUser.display_name || editingCommandUser.full_name || editingCommandUser.email}`}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label className="text-slate-300">Select Position</Label>
+              <Label className="text-slate-300">Select Member</Label>
+              <Select 
+                value={editingCommandUser?.email || ""} 
+                onValueChange={(email) => {
+                  const user = users.find(u => u.email === email);
+                  setEditingCommandUser(user);
+                }}
+              >
+                <SelectTrigger className="bg-[#0a1128] border-[rgba(212,168,67,0.15)] text-white">
+                  <SelectValue placeholder="Choose member" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#141f3d] border-[rgba(212,168,67,0.15)] text-white max-h-[300px]">
+                  {users.map(user => (
+                    <SelectItem key={user.email} value={user.email} className="text-white">
+                      {user.display_name || user.full_name || user.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-slate-300">Position</Label>
               <Select 
                 value={selectedCommandPosition} 
                 onValueChange={setSelectedCommandPosition}
@@ -643,7 +664,7 @@ export default function Members() {
                 </SelectTrigger>
                 <SelectContent className="bg-[#141f3d] border-[rgba(212,168,67,0.15)] text-white max-h-[300px]">
                   {commandPositions.map(pos => (
-                    <SelectItem key={pos.id} value={pos.title} className="text-white">
+                    <SelectItem key={pos.id} value={pos.id} className="text-white">
                       {pos.title}
                       {pos.description && (
                         <span className="text-xs text-slate-400 block mt-0.5">
@@ -657,18 +678,6 @@ export default function Members() {
             </div>
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
-            {editingCommandUser?.command_position && (
-              <Button
-                variant="destructive"
-                onClick={() => {
-                  handleRemoveCommand(editingCommandUser.id);
-                  setCommandDialogOpen(false);
-                }}
-                className="sm:mr-auto"
-              >
-                Remove Position
-              </Button>
-            )}
             <div className="flex gap-2 w-full sm:w-auto">
               <Button
                 variant="outline"
@@ -683,10 +692,10 @@ export default function Members() {
               </Button>
               <Button
                 onClick={handleAssignCommand}
-                disabled={!selectedCommandPosition}
+                disabled={!selectedCommandPosition || !editingCommandUser}
                 className="flex-1 sm:flex-initial bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]"
               >
-                {editingCommandUser?.command_position ? "Update" : "Assign"}
+                Assign
               </Button>
             </div>
           </DialogFooter>
