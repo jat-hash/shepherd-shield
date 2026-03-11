@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
-import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, MessageCircle } from "lucide-react";
+import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, MessageCircle, BarChart2 } from "lucide-react";
 import { Toaster } from "sonner";
 
 import NotificationProvider from "@/components/notifications/NotificationProvider";
@@ -195,7 +195,6 @@ export default function Layout({ children, currentPageName }) {
                       { name: "Watch List", page: "WatchList", icon: Eye },
                       { name: "SOP Library", page: "SOPLibrary", icon: BookOpen },
                       { name: "Positions", page: "Positions", icon: MapPin },
-                      ...(['admin','pastor','team leader','team_leader'].includes((user?.role||'').toLowerCase()) ? [{ name: "Demographics", page: "Demographics", icon: BarChart2 }] : []),
                     ].map(item => (
                       <Link
                         key={item.page}
@@ -317,7 +316,6 @@ export default function Layout({ children, currentPageName }) {
                   { name: "Watch List", page: "WatchList", icon: Eye },
                   { name: "SOP Library", page: "SOPLibrary", icon: BookOpen },
                   { name: "Positions", page: "Positions", icon: MapPin },
-                  ...(['admin','pastor','team leader','team_leader'].includes((user?.role||'').toLowerCase()) ? [{ name: "Demographics", page: "Demographics", icon: BarChart2 }] : []),
                 ].map(item => (
                   <Link
                     key={item.page}
