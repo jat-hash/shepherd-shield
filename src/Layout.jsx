@@ -19,7 +19,7 @@ const NAV_ITEMS = [
 
   { name: "Members", icon: User, page: "Members" },
   { name: "Team Map", icon: MapPin, page: "TeamMap" },
-  { name: "Demographics", icon: MapPin, page: "Demographics" },
+  { name: "Demographics", icon: BarChart2, page: "Demographics" },
 ];
 
 export default function Layout({ children, currentPageName }) {
