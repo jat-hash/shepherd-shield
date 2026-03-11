@@ -136,13 +136,14 @@ export default function Members() {
     }
   };
 
-  const handleRemoveCommand = async (userId) => {
+  const handleRemoveCommand = async (positionId) => {
     try {
-      await base44.entities.User.update(userId, {
-        command_position: null
+      await base44.entities.CommandPosition.update(positionId, {
+        assigned_to_email: null,
+        assigned_to_name: null
       });
       toast.success("Command position removed");
-      loadUsers();
+      loadCommandPositions();
     } catch (error) {
       console.error("Failed to remove command position:", error);
       toast.error("Failed to remove position");
