@@ -36,7 +36,7 @@ export default function AssignmentCard({ assignment, onUpdate }) {
       check_in_time: now,
       status: "Confirmed",
       ...(lat !== null && { check_in_latitude: lat, check_in_longitude: lng })
-    });
+    }, { data_env: "dev" });
     onUpdate?.();
   };
 
@@ -45,13 +45,13 @@ export default function AssignmentCard({ assignment, onUpdate }) {
     await base44.entities.Assignment.update(assignment.id, {
       checked_out: true,
       check_out_time: now
-    });
+    }, { data_env: "dev" });
     onUpdate?.();
   };
 
   const handleDelete = async () => {
     try {
-      await base44.entities.Assignment.delete(assignment.id);
+      await base44.entities.Assignment.delete(assignment.id, { data_env: "dev" });
       toast.success("Assignment deleted");
       setDeleteDialogOpen(false);
       onUpdate?.();
