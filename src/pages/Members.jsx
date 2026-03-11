@@ -88,6 +88,12 @@ export default function Members() {
     }
   };
 
+  const getAssignedUserForPosition = (positionId) => {
+    const position = commandPositions.find(p => p.id === positionId);
+    if (!position?.assigned_to_email) return null;
+    return users.find(u => u.email === position.assigned_to_email);
+  };
+
   const handleInvite = async (e) => {
     e.preventDefault();
     if (!inviteEmail) return;
