@@ -73,10 +73,10 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
     };
     let assignmentId;
     if (editData?.id) {
-      await base44.entities.Assignment.update(editData.id, dataToSave);
+      await base44.entities.Assignment.update(editData.id, dataToSave, { data_env: "dev" });
       assignmentId = editData.id;
     } else {
-      const result = await base44.entities.Assignment.create(dataToSave);
+      const result = await base44.entities.Assignment.create(dataToSave, { data_env: "dev" });
       assignmentId = result.id;
     }
     
