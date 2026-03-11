@@ -20,7 +20,7 @@ const DEMO_POINTS = [
   { id: 10, lat: 47.242, lng: -122.465, race: "white", income: "$61,000" },
   { id: 11, lat: 47.275, lng: -122.430, race: "hispanic", income: "$40,000" },
   { id: 12, lat: 47.256, lng: -122.472, race: "black", income: "$45,000" },
-  { id: 13, lat: 47.261, lng: -122.425, race: -122.425, race: "asian", income: "$79,000" },
+  { id: 13, lat: 47.261, lng: -122.425, race: "asian", income: "$79,000" },
   { id: 14, lat: 47.239, lng: -122.453, race: "white", income: "$58,000" },
   { id: 15, lat: 47.272, lng: -122.468, race: "hispanic", income: "$36,000" },
   { id: 16, lat: 47.246, lng: -122.442, race: "black", income: "$43,000" },

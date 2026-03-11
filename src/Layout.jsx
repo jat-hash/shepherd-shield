@@ -19,6 +19,7 @@ const NAV_ITEMS = [
 
   { name: "Members", icon: User, page: "Members" },
   { name: "Team Map", icon: MapPin, page: "TeamMap" },
+  { name: "Demographics", icon: MapPin, page: "Demographics" },
 ];
 
 export default function Layout({ children, currentPageName }) {
@@ -195,7 +196,6 @@ export default function Layout({ children, currentPageName }) {
                       { name: "Watch List", page: "WatchList", icon: Eye },
                       { name: "SOP Library", page: "SOPLibrary", icon: BookOpen },
                       { name: "Positions", page: "Positions", icon: MapPin },
-                      ...(['admin','pastor','team leader','team_leader'].includes((user?.role||'').toLowerCase()) ? [{ name: "Demographics", page: "Demographics", icon: BarChart2 }] : []),
                     ].map(item => (
                       <Link
                         key={item.page}
