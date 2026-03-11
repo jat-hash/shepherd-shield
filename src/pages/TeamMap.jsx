@@ -52,8 +52,8 @@ export default function TeamMap() {
     const today = new Date().toISOString().split("T")[0];
 
     const [allAssignments, allIncidents] = await Promise.all([
-      base44.entities.Assignment.filter({ checked_in: true }),
-      base44.entities.Incident.filter({ is_panic: true }),
+      base44.entities.Assignment.filter({ checked_in: true }, "-updated_date", 1000),
+      base44.entities.Incident.filter({ is_panic: true }, "-updated_date", 1000),
     ]);
 
     // Show all checked-in members with GPS
