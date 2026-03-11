@@ -597,12 +597,12 @@ export default function Members() {
                        size="sm"
                        onClick={() => {
                          setEditingCommandUser(user);
-                         setSelectedCommandPosition(user.command_position || "");
+                         setSelectedCommandPosition("");
                          setCommandDialogOpen(true);
                        }}
                        className="flex-1 bg-[#1a2744] border border-[rgba(212,168,67,0.3)] text-[#d4a843] hover:bg-[#d4a843] hover:text-[#0a1128]"
                      >
-                       {user.command_position ? "Change Position" : "Assign Position"}
+                       Assign Position
                      </Button>
                     </div>
                     )}
