@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
         let phone = userPhone.replace(/\D/g, '');
         if (!phone.startsWith('1') && phone.length === 10) phone = '1' + phone;
         if (!phone.startsWith('+')) phone = '+' + phone;
-        const body = `🚨 EMERGENCY: ${alert_type}\n\n${message}\n\nTriggered by: ${triggered_by}\n\nReply CHECKIN when safe.`;
+        const body = `🚨 PRIORITY: HIGH\nALERT TYPE: ${alert_type}\nURGENCY: HIGH PRIORITY\n\n${message}\n\nTriggered by: ${triggered_by}\n\nReply CHECKIN when safe.`;
 
         const waFrom = twilioWA.startsWith('whatsapp:') ? twilioWA : `whatsapp:${twilioWA}`;
         const waRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
