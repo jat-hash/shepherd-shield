@@ -22,8 +22,8 @@ export default function Assignments() {
     const endDate = new Date(year, month + 1, 0).toISOString().split("T")[0];
     
     const [allAssignments, allEvents] = await Promise.all([
-      base44.entities.Assignment.filter({}, "service_date", 1000),
-      base44.entities.SpecialEvent.filter({}, "event_date", 1000)
+      base44.entities.Assignment.filter({}, "service_date", 1000, { data_env: "dev" }),
+      base44.entities.SpecialEvent.filter({}, "event_date", 1000, { data_env: "dev" })
     ]);
     
     const filteredAssignments = allAssignments.filter(a => a.service_date >= startDate && a.service_date <= endDate);
