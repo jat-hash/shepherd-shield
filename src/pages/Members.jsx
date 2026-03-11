@@ -404,106 +404,106 @@ export default function Members() {
                 <p className="text-slate-400 text-center py-4">No command positions defined yet</p>
               ) : (
                 <div className="space-y-3">
-                  {[...commandPositions].sort((a, b) => (a.order || 0) - (b.order || 0)).map((position, idx, arr) => {
-                    const assignedUser = users.find(u => u.command_position === position.title);
-                    return (
-                      <div key={position.id} className="bg-[#1a2744] rounded-lg p-3 border border-[rgba(212,168,67,0.1)]">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold text-[#d4a843]">{position.title}</p>
-                            {position.description && (
-                              <p className="text-xs text-slate-400 mt-0.5">{position.description}</p>
-                            )}
-                          </div>
-                          {currentUser?.role === 'admin' && (
-                            <div className="flex gap-1 items-center">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleMovePosition(position, 'up')}
-                                disabled={idx === 0}
-                                className="text-slate-400 hover:text-white hover:bg-white/10 px-1.5"
-                              >
-                                <ArrowUp className="w-3.5 h-3.5" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleMovePosition(position, 'down')}
-                                disabled={idx === arr.length - 1}
-                                className="text-slate-400 hover:text-white hover:bg-white/10 px-1.5"
-                              >
-                                <ArrowDown className="w-3.5 h-3.5" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => {
-                                  setEditingPosition(position);
-                                  setNewPositionTitle(position.title);
-                                  setNewPositionDescription(position.description || "");
-                                  setPositionDialogOpen(true);
-                                }}
-                                className="text-slate-400 hover:text-white hover:bg-white/10"
-                              >
-                                Edit
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleDeletePosition(position.id)}
-                                className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
-                              >
-                                Delete
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                        {assignedUser ? (
-                          <div className="flex items-center gap-2 mt-2 p-2 bg-[#0a1128] rounded border border-[rgba(212,168,67,0.1)]">
-                            <div className="w-8 h-8 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-xs flex-shrink-0">
-                              {(assignedUser.display_name || assignedUser.full_name)?.charAt(0) || "U"}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-white truncate">
-                                {assignedUser.display_name || assignedUser.full_name}
-                              </p>
-                              <p className="text-xs text-slate-400 truncate">{assignedUser.email}</p>
-                            </div>
-                            {currentUser?.role === 'admin' && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleRemoveCommand(assignedUser.id)}
-                                className="text-slate-400 hover:text-red-400 hover:bg-red-900/20 flex-shrink-0"
-                              >
-                                Remove
-                              </Button>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="mt-2 p-2 bg-[#0a1128] rounded border border-[rgba(212,168,67,0.1)] text-center">
-                            <p className="text-xs text-slate-500">No member assigned</p>
-                            {currentUser?.role === 'admin' && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => {
-                                  setEditingCommandUser({ position: position.title });
-                                  setSelectedCommandPosition(position.title);
-                                  setCommandDialogOpen(true);
-                                }}
-                                className="text-[#d4a843] hover:text-[#e0bb5e] hover:bg-white/5 mt-1"
-                              >
-                                Assign Member
-                              </Button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                   {[...commandPositions].sort((a, b) => (a.order || 0) - (b.order || 0)).map((position, idx, arr) => {
+                     const assignedUser = position.assigned_to_email ? users.find(u => u.email === position.assigned_to_email) : null;
+                     return (
+                       <div key={position.id} className="bg-[#1a2744] rounded-lg p-3 border border-[rgba(212,168,67,0.1)]">
+                         <div className="flex items-start justify-between mb-2">
+                           <div className="flex-1">
+                             <p className="text-sm font-semibold text-[#d4a843]">{position.title}</p>
+                             {position.description && (
+                               <p className="text-xs text-slate-400 mt-0.5">{position.description}</p>
+                             )}
+                           </div>
+                           {currentUser?.role === 'admin' && (
+                             <div className="flex gap-1 items-center">
+                               <Button
+                                 size="sm"
+                                 variant="ghost"
+                                 onClick={() => handleMovePosition(position, 'up')}
+                                 disabled={idx === 0}
+                                 className="text-slate-400 hover:text-white hover:bg-white/10 px-1.5"
+                               >
+                                 <ArrowUp className="w-3.5 h-3.5" />
+                               </Button>
+                               <Button
+                                 size="sm"
+                                 variant="ghost"
+                                 onClick={() => handleMovePosition(position, 'down')}
+                                 disabled={idx === arr.length - 1}
+                                 className="text-slate-400 hover:text-white hover:bg-white/10 px-1.5"
+                               >
+                                 <ArrowDown className="w-3.5 h-3.5" />
+                               </Button>
+                               <Button
+                                 size="sm"
+                                 variant="ghost"
+                                 onClick={() => {
+                                   setEditingPosition(position);
+                                   setNewPositionTitle(position.title);
+                                   setNewPositionDescription(position.description || "");
+                                   setPositionDialogOpen(true);
+                                 }}
+                                 className="text-slate-400 hover:text-white hover:bg-white/10"
+                               >
+                                 Edit
+                               </Button>
+                               <Button
+                                 size="sm"
+                                 variant="ghost"
+                                 onClick={() => handleDeletePosition(position.id)}
+                                 className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                               >
+                                 Delete
+                               </Button>
+                             </div>
+                           )}
+                         </div>
+                         {assignedUser ? (
+                           <div className="flex items-center gap-2 mt-2 p-2 bg-[#0a1128] rounded border border-[rgba(212,168,67,0.1)]">
+                             <div className="w-8 h-8 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-xs flex-shrink-0">
+                               {(assignedUser.display_name || assignedUser.full_name)?.charAt(0) || "U"}
+                             </div>
+                             <div className="flex-1 min-w-0">
+                               <p className="text-sm text-white truncate">
+                                 {assignedUser.display_name || assignedUser.full_name}
+                               </p>
+                               <p className="text-xs text-slate-400 truncate">{assignedUser.email}</p>
+                             </div>
+                             {currentUser?.role === 'admin' && (
+                               <Button
+                                 size="sm"
+                                 variant="ghost"
+                                 onClick={() => handleRemoveCommand(position.id)}
+                                 className="text-slate-400 hover:text-red-400 hover:bg-red-900/20 flex-shrink-0"
+                               >
+                                 Remove
+                               </Button>
+                             )}
+                           </div>
+                         ) : (
+                           <div className="mt-2 p-2 bg-[#0a1128] rounded border border-[rgba(212,168,67,0.1)] text-center">
+                             <p className="text-xs text-slate-500">No member assigned</p>
+                             {currentUser?.role === 'admin' && (
+                               <Button
+                                 size="sm"
+                                 variant="ghost"
+                                 onClick={() => {
+                                   setEditingCommandUser(null);
+                                   setSelectedCommandPosition(position.id);
+                                   setCommandDialogOpen(true);
+                                 }}
+                                 className="text-[#d4a843] hover:text-[#e0bb5e] hover:bg-white/5 mt-1"
+                               >
+                                 Assign Member
+                               </Button>
+                             )}
+                           </div>
+                         )}
+                       </div>
+                     );
+                   })}
+                 </div>
               )}
             </CardContent>
           )}
