@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
-import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, MessageCircle, BarChart2 } from "lucide-react";
+import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, MessageCircle } from "lucide-react";
 import { Toaster } from "sonner";
 
 import NotificationProvider from "@/components/notifications/NotificationProvider";
@@ -19,7 +19,6 @@ const NAV_ITEMS = [
 
   { name: "Members", icon: User, page: "Members" },
   { name: "Team Map", icon: MapPin, page: "TeamMap" },
-  { name: "Demographics", icon: BarChart2, page: "Demographics" },
 ];
 
 export default function Layout({ children, currentPageName }) {
