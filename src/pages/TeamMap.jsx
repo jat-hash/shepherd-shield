@@ -3,7 +3,12 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { base44 } from "@/api/base44Client";
-import { MapPin, RefreshCw, Users, AlertTriangle } from "lucide-react";
+import { MapPin, RefreshCw, Users, AlertTriangle, X, Edit2 } from "lucide-react";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 
 function createMemberIcon(name) {
   const initials = name ? name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "?";
@@ -43,18 +48,26 @@ function MapAutoFit({ points }) {
 }
 
 export default function TeamMap() {
+  const [user, setUser] = useState(null);
   const [checkedInAssignments, setCheckedInAssignments] = useState([]);
   const [panicIncidents, setPanicIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
+  const [newPosition, setNewPosition] = useState("");
+  const [allPositions, setAllPositions] = useState([]);
 
   const loadData = async () => {
     setLoading(true);
-    const today = new Date().toISOString().split("T")[0];
+    const u = await base44.auth.me();
+    setUser(u);
 
-    const [allAssignments, allIncidents] = await Promise.all([
+    const [allAssignments, allIncidents, positions] = await Promise.all([
       base44.entities.Assignment.filter({ checked_in: true }, "-updated_date", 1000),
       base44.entities.Incident.filter({ is_panic: true }, "-updated_date", 1000),
+      base44.entities.Position.list("-updated_date", 1000),
     ]);
+    setAllPositions(positions);
 
     // Show all checked-in members with GPS
     const todayCheckedIn = allAssignments.filter(a =>
@@ -139,7 +152,15 @@ export default function TeamMap() {
                 <div style={{ background: "#1a2744", color: "white", padding: "10px", borderRadius: "8px", minWidth: "160px", border: "1px solid rgba(212,168,67,0.2)" }}>
                   <p style={{ fontWeight: "bold", fontSize: "13px", margin: "0 0 4px" }}>{a.assigned_to_name}</p>
                   <p style={{ color: "#d4a843", fontSize: "11px", margin: "0 0 2px" }}>{a.position_name}</p>
-                  <p style={{ color: "#10b981", fontSize: "11px", margin: 0 }}>✓ Checked in at {a.check_in_time}</p>
+                  <p style={{ color: "#10b981", fontSize: "11px", margin: "0 0 2px" }}>✓ Checked in at {a.check_in_time}</p>
+                  {user?.role === "admin" && (
+                    <button 
+                      onClick={() => { setSelectedMember(a); setReassignDialogOpen(true); }}
+                      style={{ color: "#d4a843", fontSize: "10px", marginTop: "6px", textDecoration: "underline", background: "none", border: "none", cursor: "pointer" }}
+                    >
+                      📍 Reassign Shift
+                    </button>
+                  )}
                 </div>
               </Popup>
             </Marker>
@@ -152,9 +173,21 @@ export default function TeamMap() {
                 <div style={{ background: "#1a2744", color: "white", padding: "10px", borderRadius: "8px", minWidth: "160px", border: "1px solid rgba(220,38,38,0.4)" }}>
                   <p style={{ fontWeight: "bold", fontSize: "13px", margin: "0 0 4px" }}>🚨 Panic Alert</p>
                   <p style={{ color: "#f87171", fontSize: "11px", margin: "0 0 2px" }}>{i.reported_by}</p>
-                  <p style={{ color: "#94a3b8", fontSize: "10px", margin: 0 }}>{new Date(i.created_date).toLocaleTimeString()}</p>
+                  <p style={{ color: "#94a3b8", fontSize: "10px", margin: "0 0 6px" }}>{new Date(i.created_date).toLocaleTimeString()}</p>
+                  {user?.role === "admin" && (
+                    <button 
+                      onClick={async () => {
+                        await base44.entities.Incident.update(i.id, { status: "Resolved", is_panic: false });
+                        toast.success("Alert resolved");
+                        loadData();
+                      }}
+                      style={{ color: "#10b981", fontSize: "10px", background: "none", border: "none", cursor: "pointer", marginRight: "6px", textDecoration: "underline" }}
+                    >
+                      ✓ Resolve
+                    </button>
+                  )}
                   <a href={`https://maps.google.com/?q=${i.latitude},${i.longitude}`} target="_blank" rel="noreferrer"
-                    style={{ color: "#d4a843", fontSize: "10px", display: "block", marginTop: "4px" }}>📍 Navigate</a>
+                    style={{ color: "#d4a843", fontSize: "10px", display: "inline", marginLeft: "4px" }}>📍 Navigate</a>
                 </div>
               </Popup>
             </Marker>
@@ -173,6 +206,65 @@ export default function TeamMap() {
           Panic alert
         </div>
       </div>
+
+      {/* Reassign Dialog */}
+      <Dialog open={reassignDialogOpen} onOpenChange={setReassignDialogOpen}>
+        <DialogContent className="bg-[#1a2744] border-[rgba(212,168,67,0.2)] max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-white">Reassign Shift</DialogTitle>
+          </DialogHeader>
+          {selectedMember && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-slate-400 mb-1">Member</p>
+                <p className="text-white font-medium">{selectedMember.assigned_to_name}</p>
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-2 block">New Position</label>
+                <Select value={newPosition} onValueChange={setNewPosition}>
+                  <SelectTrigger className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] text-white">
+                    <SelectValue placeholder="Select position" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0a1128] border-[rgba(212,168,67,0.2)]">
+                    {allPositions.map(pos => (
+                      <SelectItem key={pos.id} value={pos.name} className="text-white">
+                        {pos.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  className="flex-1 border-slate-600 text-slate-400"
+                  onClick={() => setReassignDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  className="flex-1 bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold"
+                  onClick={async () => {
+                    if (!newPosition) {
+                      toast.error("Select a position");
+                      return;
+                    }
+                    await base44.entities.Assignment.update(selectedMember.id, {
+                      position_name: newPosition
+                    });
+                    toast.success("Shift reassigned");
+                    setReassignDialogOpen(false);
+                    setNewPosition("");
+                    loadData();
+                  }}
+                >
+                  Reassign
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
