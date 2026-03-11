@@ -24,6 +24,7 @@ Deno.serve(async (req) => {
     if (!toFormatted.startsWith('1') && toFormatted.length === 10) toFormatted = '1' + toFormatted;
     if (!toFormatted.startsWith('+')) toFormatted = '+' + toFormatted;
 
+    const fromFormatted = from.startsWith('whatsapp:') ? from : `whatsapp:${from}`;
     const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
       method: 'POST',
       headers: {
@@ -32,7 +33,7 @@ Deno.serve(async (req) => {
       },
       body: new URLSearchParams({
         To: `whatsapp:${toFormatted}`,
-        From: from,
+        From: fromFormatted,
         Body: message
       }).toString()
     });
