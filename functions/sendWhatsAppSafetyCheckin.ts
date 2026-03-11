@@ -22,12 +22,13 @@ Deno.serve(async (req) => {
     }
 
     const allUsers = await base44.asServiceRole.entities.User.list();
-    const usersWithPhone = allUsers.filter(u => u.phone_number && u.email !== user.email);
+    const usersWithPhone = allUsers.filter(u => (u.phone_number || u.data?.phone_number) && u.email !== user.email);
 
     const checkInMessage = `🛡️ *SAFETY CHECK-IN REQUEST*\n\n🚨 *Alert:* ${alertType}\n${message}\n\n*Please reply with one of:*\n✅ *CHECKIN* — I am safe\n🆘 *HELP* — I need assistance\n\nYour response will be logged by the security team.`;
 
     const results = await Promise.allSettled(usersWithPhone.map(async (u) => {
-      let phone = u.phone_number.replace(/\D/g, '');
+      const uPhone = u.phone_number || u.data?.phone_number;
+      let phone = uPhone.replace(/\D/g, '');
       if (!phone.startsWith('1') && phone.length === 10) phone = '1' + phone;
       if (!phone.startsWith('+')) phone = '+' + phone;
 
