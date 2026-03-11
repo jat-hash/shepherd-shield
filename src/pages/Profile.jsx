@@ -105,27 +105,6 @@ export default function Profile() {
           </div>
         )}
         
-        {/* Full Name */}
-        {editingName ? (
-          <div className="flex items-center gap-2 max-w-xs mx-auto mb-2">
-            <Input
-              value={newName}
-              onChange={e => setNewName(e.target.value)}
-              placeholder="Enter full name"
-              className="bg-[#0a1128] border-slate-700 text-white text-center text-sm"
-            />
-            <Button onClick={handleUpdateName} size="sm" className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]">Save</Button>
-            <Button onClick={() => setEditingName(false)} size="sm" variant="ghost" className="text-slate-400">Cancel</Button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <p className="text-xs text-slate-400">Full Name: {user?.full_name || "Not set"}</p>
-            <button onClick={() => { setNewName(user?.full_name || ""); setEditingName(true); }} className="text-slate-400 hover:text-[#d4a843] transition-colors">
-              <Edit2 className="w-3 h-3" />
-            </button>
-          </div>
-        )}
-        
         <p className="text-sm text-slate-400 mt-1">{user?.email}</p>
 
         {/* Phone Number */}
