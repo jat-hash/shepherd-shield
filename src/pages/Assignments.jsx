@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import AssignmentForm from "@/components/assignments/AssignmentForm";
 
 export default function Assignments() {
-  const [user, setUser] = useState(null);
   const [assignments, setAssignments] = useState([]);
   const [specialEvents, setSpecialEvents] = useState([]);
   const [loading, setLoading] = useState(true);
