@@ -7,7 +7,7 @@ import QuickActionGrid from "@/components/dashboard/QuickActionGrid";
 import SOPQuickAccess from "@/components/dashboard/SOPQuickAccess";
 import SpecialEventsDropdown from "@/components/dashboard/SpecialEventsDropdown";
 import NotifyTeamButton from "@/components/dashboard/NotifyTeamButton";
-import PanicButton from "@/components/dashboard/PanicButton";
+
 import SafetyCheckInPanel from "@/components/dashboard/SafetyCheckInPanel";
 
 export default function Dashboard() {
@@ -96,7 +96,6 @@ export default function Dashboard() {
       </div>
 
       <SafetyCheckInPanel />
-      <PanicButton />
       <NotifyTeamButton user={user} />
       <EmergencyButton />
       <StatusBar />

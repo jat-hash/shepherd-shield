@@ -30,8 +30,8 @@ Deno.serve(async (req) => {
 
     // Create active emergency alert banner
     await base44.asServiceRole.entities.EmergencyAlert.create({
-      alert_type: "Panic Alert",
-      message: `${user.display_name || user.full_name || user.email} triggered the panic button. Check the Team Map.`,
+      alert_type: "Critical - Medical Emergency",
+      message: `${user.display_name || user.full_name || user.email} triggered panic alert. Immediate response required. Location: ${locationStr}. Reply SAFE or HELP on WhatsApp.`,
       triggered_by: user.display_name || user.full_name || user.email,
       is_active: true
     });
@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
         let phone = uPhone.replace(/\D/g, '');
         if (!phone.startsWith('1') && phone.length === 10) phone = '1' + phone;
         if (!phone.startsWith('+')) phone = '+' + phone;
-        const panicBody = `🚨 🚨 🚨 PRIORITY: CRITICAL 🚨 🚨 🚨\nALERT TYPE: PANIC ALERT\nURGENCY: IMMEDIATE ACTION REQUIRED\n\n${user.display_name || user.full_name || user.email} needs immediate help!\n${locationStr}${latitude ? `\nhttps://maps.google.com/?q=${latitude},${longitude}` : ""}`;
+        const panicBody = `🚨 🚨 🚨 PRIORITY: CRITICAL 🚨 🚨 🚨\nALERT TYPE: CRITICAL - MEDICAL EMERGENCY\nURGENCY: IMMEDIATE ACTION REQUIRED\n\n${user.display_name || user.full_name || user.email} needs immediate help!\n${locationStr}${latitude ? `\nhttps://maps.google.com/?q=${latitude},${longitude}` : ""}\n\nReply: SAFE (if okay) or HELP (if need assistance)`;
 
         const waFrom = twilioWA.startsWith('whatsapp:') ? twilioWA : `whatsapp:${twilioWA}`;
         await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
