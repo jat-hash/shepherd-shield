@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
       const twilioSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       const twilioAuth = Deno.env.get('TWILIO_AUTH_TOKEN');
       const twilioWA = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
-      const userPhone = user.phone_number || user.data?.phone_number;
+      const userPhone = user.phone_number;
       if (twilioSid && twilioAuth && twilioWA && userPhone) {
         let phone = userPhone.replace(/\D/g, '');
         if (!phone.startsWith('1') && phone.length === 10) phone = '1' + phone;
