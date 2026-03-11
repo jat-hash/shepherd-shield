@@ -114,13 +114,21 @@ export default function Members() {
     if (!editingCommandUser || !selectedCommandPosition) return;
 
     try {
-      await base44.entities.User.update(editingCommandUser.id, {
-        command_position: selectedCommandPosition
+      const position = commandPositions.find(p => p.title === selectedCommandPosition || p.id === selectedCommandPosition);
+      if (!position) {
+        toast.error("Position not found");
+        return;
+      }
+
+      await base44.entities.CommandPosition.update(position.id, {
+        assigned_to_email: editingCommandUser.email,
+        assigned_to_name: editingCommandUser.display_name || editingCommandUser.full_name
       });
       toast.success("Command position assigned");
       setCommandDialogOpen(false);
       setEditingCommandUser(null);
       setSelectedCommandPosition("");
+      loadCommandPositions();
       loadUsers();
     } catch (error) {
       console.error("Failed to assign command position:", error);
