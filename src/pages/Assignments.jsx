@@ -21,8 +21,6 @@ export default function Assignments() {
     const startDate = new Date(year, month, 1).toISOString().split("T")[0];
     const endDate = new Date(year, month + 1, 0).toISOString().split("T")[0];
     
-    const [allUsers] = await Promise.all([base44.entities.User.list()]);
-    setUsers(allUsers);
     const allAssignments = await base44.entities.Assignment.list("service_date");
     const filteredAssignments = allAssignments.filter(a => a.service_date >= startDate && a.service_date <= endDate);
     setAssignments(filteredAssignments);
