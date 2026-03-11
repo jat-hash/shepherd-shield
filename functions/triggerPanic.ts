@@ -60,8 +60,9 @@ Deno.serve(async (req) => {
       const twilioSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       const twilioAuth = Deno.env.get('TWILIO_AUTH_TOKEN');
       const twilioWA = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
-      if (twilioSid && twilioAuth && twilioWA && u.phone_number) {
-        let phone = u.phone_number.replace(/\D/g, '');
+      const uPhone = u.phone_number || u.data?.phone_number;
+      if (twilioSid && twilioAuth && twilioWA && uPhone) {
+        let phone = uPhone.replace(/\D/g, '');
         if (!phone.startsWith('1') && phone.length === 10) phone = '1' + phone;
         if (!phone.startsWith('+')) phone = '+' + phone;
         const panicBody = `🚨 PANIC ALERT\n${user.display_name || user.full_name || user.email} needs immediate help!\n${locationStr}${latitude ? `\nhttps://maps.google.com/?q=${latitude},${longitude}` : ""}`;
