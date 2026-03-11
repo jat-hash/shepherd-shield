@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import AssignmentForm from "@/components/assignments/AssignmentForm";
 
 export default function Assignments() {
+  const [user, setUser] = useState(null);
   const [assignments, setAssignments] = useState([]);
   const [specialEvents, setSpecialEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,13 +16,18 @@ export default function Assignments() {
 
   const loadData = async () => {
     setLoading(true);
+    const u = await base44.auth.me();
+    setUser(u);
+    
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     const startDate = new Date(year, month, 1).toISOString().split("T")[0];
     const endDate = new Date(year, month + 1, 0).toISOString().split("T")[0];
     
     const [allAssignments, allEvents] = await Promise.all([
-      base44.entities.Assignment.filter({}, "service_date", 1000),
+      u.role === "admin" 
+        ? base44.entities.Assignment.filter({}, "service_date", 1000)
+        : base44.entities.Assignment.filter({ assigned_to_email: u.email }, "service_date", 1000),
       base44.entities.SpecialEvent.filter({}, "event_date", 1000)
     ]);
     
