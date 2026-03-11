@@ -316,6 +316,7 @@ export default function Layout({ children, currentPageName }) {
                   { name: "Watch List", page: "WatchList", icon: Eye },
                   { name: "SOP Library", page: "SOPLibrary", icon: BookOpen },
                   { name: "Positions", page: "Positions", icon: MapPin },
+                  ...(['admin','pastor','team leader','team_leader'].includes((user?.role||'').toLowerCase()) ? [{ name: "Demographics", page: "Demographics", icon: BarChart2 }] : []),
                 ].map(item => (
                   <Link
                     key={item.page}
