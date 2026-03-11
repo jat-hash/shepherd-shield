@@ -16,8 +16,6 @@ export default function Assignments() {
 
   const loadData = async () => {
     setLoading(true);
-    const u = await base44.auth.me();
-    setUser(u);
     
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
@@ -25,9 +23,7 @@ export default function Assignments() {
     const endDate = new Date(year, month + 1, 0).toISOString().split("T")[0];
     
     const [allAssignments, allEvents] = await Promise.all([
-      u.role === "admin" 
-        ? base44.entities.Assignment.filter({}, "service_date", 1000)
-        : base44.entities.Assignment.filter({ assigned_to_email: u.email }, "service_date", 1000),
+      base44.entities.Assignment.filter({}, "service_date", 1000),
       base44.entities.SpecialEvent.filter({}, "event_date", 1000)
     ]);
     
