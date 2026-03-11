@@ -63,6 +63,7 @@ import SpecialEvents from './pages/SpecialEvents';
 import TeamMap from './pages/TeamMap';
 import WatchList from './pages/WatchList';
 import WhatsAppAdmin from './pages/WhatsAppAdmin';
+import Demographics from './pages/Demographics';
 import __Layout from './Layout.jsx';
 
 
@@ -83,6 +84,7 @@ export const PAGES = {
     "TeamMap": TeamMap,
     "WatchList": WatchList,
     "WhatsAppAdmin": WhatsAppAdmin,
+    "Demographics": Demographics,
 }
 
 export const pagesConfig = {
