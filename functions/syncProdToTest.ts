@@ -18,19 +18,21 @@ Deno.serve(async (req) => {
         // Remove built-in fields that shouldn't be copied
         const { id, created_date, updated_date, created_by, ...syncData } = data;
         
-        // Check if exists in test DB
+        // Try update first, fall back to create if not found
+        let updated = false;
         try {
-          const existing = await base44.asServiceRole.entities[entity_name].get(entity_id, { data_env: "dev" });
-          if (existing) {
-            // Update in test
-            await base44.asServiceRole.entities[entity_name].update(entity_id, syncData, { data_env: "dev" });
-          } else {
-            // Create in test with same ID
+          await base44.asServiceRole.entities[entity_name].update(entity_id, syncData, { data_env: "dev" });
+          updated = true;
+        } catch (_e) {
+          // Record doesn't exist yet in test DB
+        }
+        
+        if (!updated) {
+          try {
             await base44.asServiceRole.entities[entity_name].create({ id: entity_id, ...syncData }, { data_env: "dev" });
+          } catch (_e) {
+            // Already created by a concurrent request, ignore
           }
-        } catch {
-          // Record doesn't exist, create it
-          await base44.asServiceRole.entities[entity_name].create({ id: entity_id, ...syncData }, { data_env: "dev" });
         }
       }
     }
