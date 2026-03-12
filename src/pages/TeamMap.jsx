@@ -296,7 +296,7 @@ export default function TeamMap() {
                   <SelectTrigger className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] text-white mt-1">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] z-[9999]">
+                  <SelectContent className="bg-[#0a1128] border-[rgba(212,168,67,0.2)]" style={{ zIndex: 99999 }}>
                     <SelectItem value="Confirmed" className="text-white">Confirmed</SelectItem>
                     <SelectItem value="Pending" className="text-white">Pending</SelectItem>
                     <SelectItem value="Declined" className="text-white">Declined</SelectItem>
