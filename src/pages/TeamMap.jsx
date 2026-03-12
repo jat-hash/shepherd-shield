@@ -168,12 +168,16 @@ export default function TeamMap() {
                   <p style={{ color: "#d4a843", fontSize: "11px", margin: "0 0 2px" }}>{a.position_name}</p>
                   <p style={{ color: "#10b981", fontSize: "11px", margin: "0 0 2px" }}>✓ Checked in at {a.check_in_time}</p>
                   {user?.role === "admin" && (
-                    <button 
-                      onClick={() => { setSelectedMember(a); setReassignDialogOpen(true); }}
-                      style={{ color: "#d4a843", fontSize: "10px", marginTop: "6px", textDecoration: "underline", background: "none", border: "none", cursor: "pointer" }}
-                    >
-                      📍 Reassign Shift
-                    </button>
+                    <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
+                      <button 
+                        onClick={() => { setSelectedMember(a); setEditForm({ position_name: a.position_name, assigned_to_name: a.assigned_to_name, start_time: a.start_time, end_time: a.end_time, status: a.status }); setEditDialogOpen(true); setConfirmDelete(false); }}
+                        style={{ color: "#d4a843", fontSize: "10px", textDecoration: "underline", background: "none", border: "none", cursor: "pointer" }}
+                      >✏️ Edit</button>
+                      <button 
+                        onClick={() => { setSelectedMember(a); setEditDialogOpen(true); setConfirmDelete(true); setEditForm({}); }}
+                        style={{ color: "#f87171", fontSize: "10px", textDecoration: "underline", background: "none", border: "none", cursor: "pointer" }}
+                      >🗑 Delete</button>
+                    </div>
                   )}
                 </div>
               </Popup>
