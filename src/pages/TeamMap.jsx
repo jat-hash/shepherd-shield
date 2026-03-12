@@ -251,6 +251,10 @@ export default function TeamMap() {
           <div className="w-5 h-5 rounded-full bg-red-600 border-2 border-white flex items-center justify-center text-[10px]">🚨</div>
           Panic alert
         </div>
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-white" />
+          Your location
+        </div>
       </div>
 
       {/* Edit / Delete Dialog */}
