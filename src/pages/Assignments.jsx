@@ -35,7 +35,12 @@ export default function Assignments() {
     setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, [currentMonth]);
+  useEffect(() => {
+    loadData();
+    const unsubA = base44.entities.Assignment.subscribe(() => loadData());
+    const unsubE = base44.entities.SpecialEvent.subscribe(() => loadData());
+    return () => { unsubA(); unsubE(); };
+  }, [currentMonth]);
 
   const getDaysInMonth = () => {
     const year = currentMonth.getFullYear();
