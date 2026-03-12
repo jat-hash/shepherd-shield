@@ -43,6 +43,10 @@ export default function Members() {
     if (currentUser) {
       loadUsers();
       loadCommandPositions();
+
+      const unsubPositions = base44.entities.CommandPosition.subscribe(() => loadCommandPositions());
+      const unsubUsers = base44.entities.User.subscribe(() => loadUsers());
+      return () => { unsubPositions(); unsubUsers(); };
     }
   }, [currentUser]);
 
