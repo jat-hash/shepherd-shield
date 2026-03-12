@@ -559,7 +559,7 @@ export default function Members() {
                                 Admin
                               </>
                             ) : (
-                              "Member"
+                              user.role
                             )}
                           </Badge>
                         )}
