@@ -225,59 +225,74 @@ export default function TeamMap() {
         </div>
       </div>
 
-      {/* Reassign Dialog */}
-      <Dialog open={reassignDialogOpen} onOpenChange={setReassignDialogOpen}>
+      {/* Edit / Delete Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="bg-[#1a2744] border-[rgba(212,168,67,0.2)] max-w-sm z-[9999]">
           <DialogHeader>
-            <DialogTitle className="text-white">Reassign Shift</DialogTitle>
+            <DialogTitle className="text-white flex items-center gap-2">
+              {confirmDelete ? <><Trash2 className="w-4 h-4 text-red-400" /> Delete Assignment</> : <><Edit2 className="w-4 h-4 text-[#d4a843]" /> Edit Assignment</>}
+            </DialogTitle>
           </DialogHeader>
-          {selectedMember && (
+          {selectedMember && confirmDelete && (
             <div className="space-y-4">
-              <div>
-                <p className="text-sm text-slate-400 mb-1">Member</p>
-                <p className="text-white font-medium">{selectedMember.assigned_to_name}</p>
+              <p className="text-slate-300 text-sm">Delete assignment for <span className="text-white font-semibold">{selectedMember.assigned_to_name}</span> at <span className="text-[#d4a843]">{selectedMember.position_name}</span>?</p>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1 border-slate-600 text-slate-400" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+                <Button className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold" onClick={async () => {
+                  await base44.entities.Assignment.delete(selectedMember.id);
+                  toast.success("Assignment deleted");
+                  setEditDialogOpen(false);
+                  loadData();
+                }}>Delete</Button>
               </div>
+            </div>
+          )}
+          {selectedMember && !confirmDelete && (
+            <div className="space-y-3">
               <div>
-                <label className="text-sm text-slate-400 mb-2 block">New Position</label>
-                <Select value={newPosition} onValueChange={setNewPosition}>
-                  <SelectTrigger className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] text-white">
-                    <SelectValue placeholder="Select position" />
+                <Label className="text-slate-400 text-xs">Position</Label>
+                <Select value={editForm.position_name} onValueChange={v => setEditForm(f => ({ ...f, position_name: v }))}>
+                  <SelectTrigger className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] text-white mt-1">
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] z-[9999]">
                     {allPositions.map(pos => (
-                      <SelectItem key={pos.id} value={pos.name} className="text-white">
-                        {pos.name}
-                      </SelectItem>
+                      <SelectItem key={pos.id} value={pos.name} className="text-white">{pos.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  className="flex-1 border-slate-600 text-slate-400"
-                  onClick={() => setReassignDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  className="flex-1 bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold"
-                  onClick={async () => {
-                    if (!newPosition) {
-                      toast.error("Select a position");
-                      return;
-                    }
-                    await base44.entities.Assignment.update(selectedMember.id, {
-                      position_name: newPosition
-                    });
-                    toast.success("Shift reassigned");
-                    setReassignDialogOpen(false);
-                    setNewPosition("");
-                    loadData();
-                  }}
-                >
-                  Reassign
-                </Button>
+              <div>
+                <Label className="text-slate-400 text-xs">Status</Label>
+                <Select value={editForm.status} onValueChange={v => setEditForm(f => ({ ...f, status: v }))}>
+                  <SelectTrigger className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] text-white mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] z-[9999]">
+                    <SelectItem value="Confirmed" className="text-white">Confirmed</SelectItem>
+                    <SelectItem value="Pending" className="text-white">Pending</SelectItem>
+                    <SelectItem value="Declined" className="text-white">Declined</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-slate-400 text-xs">Start Time</Label>
+                  <Input type="time" value={editForm.start_time || ""} onChange={e => setEditForm(f => ({ ...f, start_time: e.target.value }))} className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] text-white mt-1" />
+                </div>
+                <div>
+                  <Label className="text-slate-400 text-xs">End Time</Label>
+                  <Input type="time" value={editForm.end_time || ""} onChange={e => setEditForm(f => ({ ...f, end_time: e.target.value }))} className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] text-white mt-1" />
+                </div>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button variant="outline" className="flex-1 border-slate-600 text-slate-400" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+                <Button className="flex-1 bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold" onClick={async () => {
+                  await base44.entities.Assignment.update(selectedMember.id, editForm);
+                  toast.success("Assignment updated");
+                  setEditDialogOpen(false);
+                  loadData();
+                }}>Save</Button>
               </div>
             </div>
           )}
