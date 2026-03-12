@@ -22,6 +22,22 @@ function createMemberIcon(name) {
   });
 }
 
+function createUserLocationIcon() {
+  return L.divIcon({
+    className: "",
+    html: `
+      <div style="position:relative;width:20px;height:20px;">
+        <div style="position:absolute;top:-8px;left:-8px;width:36px;height:36px;border-radius:50%;background:rgba(59,130,246,0.2);animation:userPulse 2s infinite;"></div>
+        <div style="width:20px;height:20px;background:#3b82f6;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(59,130,246,0.6);"></div>
+      </div>
+      <style>@keyframes userPulse{0%,100%{transform:scale(0.8);opacity:0.6}50%{transform:scale(1.4);opacity:0.2}}</style>
+    `,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+    popupAnchor: [0, -12],
+  });
+}
+
 function createPanicIcon() {
   return L.divIcon({
     className: "",
