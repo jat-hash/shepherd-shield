@@ -241,21 +241,7 @@ export default function TeamMap() {
         </MapContainer>
       </div>
 
-      {/* Legend */}
-      <div className="bg-[#141f3d] border-t border-[rgba(212,168,67,0.15)] px-4 py-2 flex items-center gap-5 shrink-0">
-        <div className="flex items-center gap-2 text-xs text-slate-400">
-          <div className="w-5 h-5 rounded-full bg-[#1a2744] border-2 border-[#d4a843] flex items-center justify-center text-[8px] font-bold text-[#d4a843]">AB</div>
-          Checked-in member
-        </div>
-        <div className="flex items-center gap-2 text-xs text-slate-400">
-          <div className="w-5 h-5 rounded-full bg-red-600 border-2 border-white flex items-center justify-center text-[10px]">🚨</div>
-          Panic alert
-        </div>
-        <div className="flex items-center gap-2 text-xs text-slate-400">
-          <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-white" />
-          Your location
-        </div>
-      </div>
+
 
       {/* Edit / Delete Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
