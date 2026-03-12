@@ -41,6 +41,8 @@ export default function Incidents() {
   useEffect(() => { 
     loadIncidents();
     base44.auth.me().then(setCurrentUser).catch(() => {});
+    const unsub = base44.entities.Incident.subscribe(() => loadIncidents());
+    return unsub;
   }, [sortBy]);
 
   const filtered = incidents.filter(i => {
