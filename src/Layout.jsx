@@ -264,7 +264,7 @@ export default function Layout({ children, currentPageName }) {
 
 
       {/* Desktop Sidebar Nav (hidden on mobile) */}
-      <nav className="hidden lg:flex fixed left-0 top-[57px] bottom-0 w-56 bg-[#141f3d] border-r border-[rgba(212,168,67,0.15)] flex-col py-4 z-30 overflow-y-auto">
+      <nav className="hidden lg:flex fixed left-0 top-[57px] bottom-0 w-56 bg-[#141f3d] border-r border-[rgba(212,168,67,0.15)] flex-col py-4 z-[1001] overflow-y-auto">
         {NAV_ITEMS.map(item => {
           const isActive = currentPageName === item.page;
           return (
