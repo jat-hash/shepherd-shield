@@ -115,96 +115,65 @@ export default function Assignments() {
         </Button>
       </div>
 
-      {/* Calendar Grid */}
+      {/* Calendar Rows */}
       {loading ? (
         <div className="flex justify-center py-12">
           <div className="w-6 h-6 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <div>
-          {/* Day Headers */}
-          <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2">
-            {dayNames.map(name => (
-              <div key={name} className="text-center text-xs sm:text-sm font-semibold text-slate-400 py-2">
-                <span className="hidden sm:inline">{name}</span>
-                <span className="sm:hidden">{name.charAt(0)}</span>
-              </div>
-            ))}
-          </div>
+        <div className="space-y-1.5">
+          {days.filter(Boolean).map((date, i) => {
+            const dayAssignments = getAssignmentsForDate(date);
+            const dayEvents = getEventsForDate(date);
+            const isToday = date.toISOString().split("T")[0] === new Date().toISOString().split("T")[0];
+            const hasItems = dayAssignments.length > 0 || dayEvents.length > 0;
 
-          {/* Calendar Days */}
-          <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
-            {days.map((date, i) => {
-              const dayAssignments = date ? getAssignmentsForDate(date) : [];
-              const dayEvents = date ? getEventsForDate(date) : [];
-              const isToday = date && date.toISOString().split("T")[0] === new Date().toISOString().split("T")[0];
-              
-              return (
-                <div
-                  key={i}
-                  className={`min-h-[70px] sm:min-h-[120px] bg-[#1a2744] rounded-lg border p-1 sm:p-2 ${
-                    date ? "border-[rgba(212,168,67,0.1)]" : "border-transparent bg-transparent"
-                  }`}
-                >
-                  {date && (
-                    <>
-                      <div className={`text-xs sm:text-sm font-bold mb-1 ${isToday ? "text-[#d4a843]" : "text-slate-300"}`}>
-                        {date.getDate()}
-                      </div>
-
-                      {/* Mobile: dot indicators */}
-                      <div className="sm:hidden space-y-0.5">
-                        {dayEvents.map(evt => (
-                          <div key={evt.id} className="w-full h-1.5 rounded-full bg-purple-500/70" title={evt.event_name} />
-                        ))}
-                        {dayAssignments.map(a => (
-                          <button
-                            key={a.id}
-                            onClick={() => { setEditData(a); setFormOpen(true); }}
-                            className={`w-full h-1.5 rounded-full ${a.status === "Confirmed" ? "bg-emerald-500/80" : a.status === "Pending" ? "bg-amber-500/80" : "bg-red-500/80"}`}
-                            title={`${a.position_name} - ${a.assigned_to_name}`}
-                          />
-                        ))}
-                      </div>
-
-                      {/* Desktop: full cards */}
-                      <div className="hidden sm:block space-y-1">
-                        {dayEvents.map(evt => (
-                          <div
-                            key={evt.id}
-                            className="w-full text-left bg-purple-900/30 rounded p-1.5 border border-purple-500/30"
-                          >
-                            <div className="flex items-center gap-1 mb-0.5">
-                              <Calendar className="w-3 h-3 text-purple-400" />
-                              <span className="text-xs text-purple-200 font-medium truncate">{evt.event_name}</span>
-                            </div>
-                            <Badge className="bg-purple-500/20 text-purple-300 text-[9px] px-1 py-0 h-auto">
-                              {evt.event_type}
-                            </Badge>
-                            <p className="text-[10px] text-purple-300/70 mt-0.5">{evt.start_time}</p>
-                          </div>
-                        ))}
-                        {dayAssignments.map(a => (
-                          <button
-                            key={a.id}
-                            onClick={() => { setEditData(a); setFormOpen(true); }}
-                            className="w-full text-left bg-[#0a1128] rounded p-1.5 hover:bg-[#d4a843]/10 border border-transparent hover:border-[#d4a843]/30 transition-all"
-                          >
-                            <div className="flex items-center gap-1 mb-0.5">
-                              {statusIcon(a.status)}
-                              <span className="text-xs text-white font-medium truncate">{a.position_name}</span>
-                            </div>
-                            <p className="text-[10px] text-slate-400 truncate">{a.assigned_to_name}</p>
-                            <p className="text-[10px] text-slate-500">{a.start_time}</p>
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
+            return (
+              <div
+                key={i}
+                className={`flex gap-3 bg-[#1a2744] rounded-lg border p-3 ${isToday ? "border-[#d4a843]/40" : "border-[rgba(212,168,67,0.1)]"}`}
+              >
+                {/* Date label */}
+                <div className="flex flex-col items-center justify-start w-10 shrink-0 pt-0.5">
+                  <span className={`text-xs font-semibold ${isToday ? "text-[#d4a843]" : "text-slate-500"}`}>
+                    {dayNames[date.getDay()]}
+                  </span>
+                  <span className={`text-lg font-bold leading-tight ${isToday ? "text-[#d4a843]" : "text-slate-300"}`}>
+                    {date.getDate()}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
+
+                {/* Items */}
+                <div className="flex-1 flex flex-wrap gap-2">
+                  {!hasItems && (
+                    <span className="text-xs text-slate-600 self-center">No assignments</span>
+                  )}
+                  {dayEvents.map(evt => (
+                    <div key={evt.id} className="flex items-center gap-1.5 bg-purple-900/30 rounded px-2 py-1.5 border border-purple-500/30">
+                      <Calendar className="w-3 h-3 text-purple-400 shrink-0" />
+                      <div>
+                        <p className="text-xs text-purple-200 font-medium">{evt.event_name}</p>
+                        <p className="text-[10px] text-purple-300/70">{evt.event_type} · {evt.start_time}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {dayAssignments.map(a => (
+                    <button
+                      key={a.id}
+                      onClick={() => { setEditData(a); setFormOpen(true); }}
+                      className="flex items-center gap-1.5 bg-[#0a1128] rounded px-2 py-1.5 border border-transparent hover:border-[#d4a843]/30 hover:bg-[#d4a843]/10 transition-all text-left"
+                    >
+                      {statusIcon(a.status)}
+                      <div>
+                        <p className="text-xs text-white font-medium">{a.position_name}</p>
+                        <p className="text-[10px] text-slate-400">{a.assigned_to_name} · {a.start_time}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
