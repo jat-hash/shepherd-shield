@@ -36,13 +36,16 @@ function createPanicIcon() {
   });
 }
 
-function MapAutoFit({ points }) {
+function MapAutoFit({ points, userLocation }) {
   const map = useMap();
   useEffect(() => {
-    if (points.length === 0) return;
-    if (points.length === 1) { map.setView(points[0], 17); return; }
-    map.fitBounds(points, { padding: [60, 60], maxZoom: 18 });
-  }, [points.length]);
+    if (points.length > 0) {
+      if (points.length === 1) { map.setView(points[0], 17); return; }
+      map.fitBounds(points, { padding: [60, 60], maxZoom: 18 });
+    } else if (userLocation) {
+      map.setView(userLocation, 17);
+    }
+  }, [points.length, userLocation]);
   return null;
 }
 
@@ -55,6 +58,16 @@ export default function TeamMap() {
   const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
   const [newPosition, setNewPosition] = useState("");
   const [allPositions, setAllPositions] = useState([]);
+  const [userLocation, setUserLocation] = useState(null);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
+        () => {}
+      );
+    }
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -141,7 +154,7 @@ export default function TeamMap() {
 
         <MapContainer center={[34.052235, -118.243683]} zoom={14} style={{ height: "100%", width: "100%" }} zoomControl={true} maxZoom={20}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap" maxZoom={20} maxNativeZoom={19} />
-          <MapAutoFit points={allPoints} />
+          <MapAutoFit points={allPoints} userLocation={userLocation} />
 
           {/* Checked-in members */}
           {checkedInAssignments.map(a => (
@@ -207,7 +220,7 @@ export default function TeamMap() {
 
       {/* Reassign Dialog */}
       <Dialog open={reassignDialogOpen} onOpenChange={setReassignDialogOpen}>
-        <DialogContent className="bg-[#1a2744] border-[rgba(212,168,67,0.2)] max-w-sm">
+        <DialogContent className="bg-[#1a2744] border-[rgba(212,168,67,0.2)] max-w-sm z-[9999]">
           <DialogHeader>
             <DialogTitle className="text-white">Reassign Shift</DialogTitle>
           </DialogHeader>
@@ -223,7 +236,7 @@ export default function TeamMap() {
                   <SelectTrigger className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] text-white">
                     <SelectValue placeholder="Select position" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#0a1128] border-[rgba(212,168,67,0.2)]">
+                  <SelectContent className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] z-[9999]">
                     {allPositions.map(pos => (
                       <SelectItem key={pos.id} value={pos.name} className="text-white">
                         {pos.name}
