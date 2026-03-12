@@ -200,6 +200,18 @@ export default function TeamMap() {
             </Marker>
           ))}
 
+          {/* Current user location */}
+          {userLocation && (
+            <Marker position={userLocation} icon={createUserLocationIcon()}>
+              <Popup>
+                <div style={{ background: "#1a2744", color: "white", padding: "10px", borderRadius: "8px", minWidth: "130px", border: "1px solid rgba(59,130,246,0.3)" }}>
+                  <p style={{ fontWeight: "bold", fontSize: "13px", margin: "0 0 2px" }}>📍 You are here</p>
+                  <p style={{ color: "#93c5fd", fontSize: "11px", margin: 0 }}>Your current location</p>
+                </div>
+              </Popup>
+            </Marker>
+          )}
+
           {/* Panic alert locations */}
           {panicIncidents.map(i => (
             <Marker key={i.id} position={[i.latitude, i.longitude]} icon={createPanicIcon()}>
