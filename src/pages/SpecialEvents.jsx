@@ -39,7 +39,11 @@ export default function SpecialEvents() {
     setLoading(false);
   };
 
-  useEffect(() => { loadEvents(); }, []);
+  useEffect(() => {
+    loadEvents();
+    const unsub = base44.entities.SpecialEvent.subscribe(() => loadEvents());
+    return unsub;
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -41,6 +41,8 @@ export default function EquipmentInventory() {
   useEffect(() => { 
     load();
     base44.auth.me().then(setCurrentUser).catch(() => {});
+    const unsub = base44.entities.Equipment.subscribe(() => load());
+    return unsub;
   }, []);
 
   const filtered = categoryFilter === "all" ? items : items.filter(i => i.category === categoryFilter);
