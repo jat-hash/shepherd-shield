@@ -49,14 +49,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user) return;
-    
-    const unsub = base44.entities.Assignment.subscribe((event) => {
-      if (event.data?.assigned_to_email === user.email || 
-          event.old_data?.assigned_to_email === user.email) {
-        loadData();
-      }
-    });
-    
+    const unsub = base44.entities.Assignment.subscribe(() => loadData());
     return unsub;
   }, [user]);
 
