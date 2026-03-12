@@ -80,9 +80,8 @@ export default function TeamMap() {
 
   useEffect(() => {
     loadData();
-    const unsub = base44.entities.Assignment.subscribe(() => loadData());
-    const unsub2 = base44.entities.Incident.subscribe(() => loadData());
-    return () => { unsub(); unsub2(); };
+    const unsub = base44.entities.Incident.subscribe(() => loadData());
+    return () => { unsub(); };
   }, []);
 
   const allPoints = [
