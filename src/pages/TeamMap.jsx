@@ -57,9 +57,10 @@ export default function TeamMap() {
   const [panicIncidents, setPanicIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedMember, setSelectedMember] = useState(null);
-  const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
-  const [newPosition, setNewPosition] = useState("");
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editForm, setEditForm] = useState({});
   const [allPositions, setAllPositions] = useState([]);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
 
   useEffect(() => {
