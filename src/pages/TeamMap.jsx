@@ -283,7 +283,7 @@ export default function TeamMap() {
                   <SelectTrigger className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] text-white mt-1">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] z-[9999]">
+                  <SelectContent className="bg-[#0a1128] border-[rgba(212,168,67,0.2)]" style={{ zIndex: 99999 }}>
                     {allPositions.map(pos => (
                       <SelectItem key={pos.id} value={pos.name} className="text-white">{pos.name}</SelectItem>
                     ))}
