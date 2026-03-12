@@ -61,11 +61,17 @@ export default function TeamMap() {
     const u = await base44.auth.me();
     setUser(u);
 
-    const [allIncidents, positions] = await Promise.all([
+    const [allAssignments, allIncidents, positions] = await Promise.all([
+      base44.entities.Assignment.filter({ checked_in: true, checked_out: false }, "-updated_date", 1000),
       base44.entities.Incident.filter({ is_panic: true }, "-updated_date", 1000),
       base44.entities.Position.list("-updated_date", 1000),
     ]);
     setAllPositions(positions);
+
+    // Only members checked in with GPS and not checked out
+    const activeMembers = allAssignments.filter(a =>
+      a.check_in_latitude && a.check_in_longitude && !a.checked_out
+    );
 
     // Only active panic incidents with GPS
     const activePanics = allIncidents.filter(i =>
@@ -73,7 +79,7 @@ export default function TeamMap() {
       i.latitude && i.longitude
     );
 
-    setCheckedInAssignments([]);
+    setCheckedInAssignments(activeMembers);
     setPanicIncidents(activePanics);
     setLoading(false);
   };
