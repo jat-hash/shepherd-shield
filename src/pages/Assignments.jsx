@@ -142,7 +142,7 @@ export default function Assignments() {
               return (
                 <div
                   key={i}
-                  className={`min-h-[90px] sm:min-h-[120px] bg-[#1a2744] rounded-lg border p-1.5 sm:p-2 ${
+                  className={`min-h-[70px] sm:min-h-[120px] bg-[#1a2744] rounded-lg border p-1 sm:p-2 ${
                     date ? "border-[rgba(212,168,67,0.1)]" : "border-transparent bg-transparent"
                   }`}
                 >
@@ -151,8 +151,24 @@ export default function Assignments() {
                       <div className={`text-xs sm:text-sm font-bold mb-1 ${isToday ? "text-[#d4a843]" : "text-slate-300"}`}>
                         {date.getDate()}
                       </div>
-                      <div className="space-y-1">
-                        {/* Special Events */}
+
+                      {/* Mobile: dot indicators */}
+                      <div className="sm:hidden space-y-0.5">
+                        {dayEvents.map(evt => (
+                          <div key={evt.id} className="w-full h-1.5 rounded-full bg-purple-500/70" title={evt.event_name} />
+                        ))}
+                        {dayAssignments.map(a => (
+                          <button
+                            key={a.id}
+                            onClick={() => { setEditData(a); setFormOpen(true); }}
+                            className={`w-full h-1.5 rounded-full ${a.status === "Confirmed" ? "bg-emerald-500/80" : a.status === "Pending" ? "bg-amber-500/80" : "bg-red-500/80"}`}
+                            title={`${a.position_name} - ${a.assigned_to_name}`}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Desktop: full cards */}
+                      <div className="hidden sm:block space-y-1">
                         {dayEvents.map(evt => (
                           <div
                             key={evt.id}
@@ -160,16 +176,14 @@ export default function Assignments() {
                           >
                             <div className="flex items-center gap-1 mb-0.5">
                               <Calendar className="w-3 h-3 text-purple-400" />
-                              <span className="text-[10px] sm:text-xs text-purple-200 font-medium truncate">{evt.event_name}</span>
+                              <span className="text-xs text-purple-200 font-medium truncate">{evt.event_name}</span>
                             </div>
-                            <Badge className="bg-purple-500/20 text-purple-300 text-[8px] sm:text-[9px] px-1 py-0 h-auto">
+                            <Badge className="bg-purple-500/20 text-purple-300 text-[9px] px-1 py-0 h-auto">
                               {evt.event_type}
                             </Badge>
-                            <p className="text-[9px] sm:text-[10px] text-purple-300/70 mt-0.5">{evt.start_time}</p>
+                            <p className="text-[10px] text-purple-300/70 mt-0.5">{evt.start_time}</p>
                           </div>
                         ))}
-                        
-                        {/* Assignments */}
                         {dayAssignments.map(a => (
                           <button
                             key={a.id}
@@ -178,10 +192,10 @@ export default function Assignments() {
                           >
                             <div className="flex items-center gap-1 mb-0.5">
                               {statusIcon(a.status)}
-                              <span className="text-[10px] sm:text-xs text-white font-medium truncate">{a.position_name}</span>
+                              <span className="text-xs text-white font-medium truncate">{a.position_name}</span>
                             </div>
-                            <p className="text-[9px] sm:text-[10px] text-slate-400 truncate">{a.assigned_to_name}</p>
-                            <p className="text-[9px] sm:text-[10px] text-slate-500">{a.start_time}</p>
+                            <p className="text-[10px] text-slate-400 truncate">{a.assigned_to_name}</p>
+                            <p className="text-[10px] text-slate-500">{a.start_time}</p>
                           </button>
                         ))}
                       </div>
