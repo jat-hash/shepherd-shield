@@ -35,7 +35,7 @@ export default function NotifyTeamButton({ user }) {
     if (!title || !message) return;
     setSending(true);
 
-    await base44.functions.invoke("sendTeamNotification", {
+    const res = await base44.functions.invoke("sendTeamNotification", {
       title,
       message,
       recipient_emails: recipient === "all" ? [] : [recipient],
@@ -43,6 +43,9 @@ export default function NotifyTeamButton({ user }) {
     });
 
     toast.success(`Notification sent to ${recipient === "all" ? "all members" : recipient}`);
+    if (sendSMS && res?.data?.whatsapp_skipped?.length > 0) {
+      toast.warning(`WhatsApp skipped for ${res.data.whatsapp_skipped.length} member(s) with no phone number on file.`);
+    }
     setSending(false);
     setOpen(false);
     setTitle("");
