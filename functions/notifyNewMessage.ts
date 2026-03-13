@@ -42,30 +42,32 @@ Deno.serve(async (req) => {
     if (notifications.length > 0) {
       await base44.asServiceRole.entities.Notification.bulkCreate(notifications);
 
-      // Also send FCM push notifications
       const pushTitle = isDM
         ? `💬 ${data.sender_name}`
         : `💬 ${data.sender_name} in ${data.channel}`;
       const pushBody = data.content.substring(0, 120) + (data.content.length > 120 ? '...' : '');
 
+      // Fetch all users once for phone lookups
+      const allUsers = await base44.asServiceRole.entities.User.list();
+
       for (const notif of notifications) {
+        // FCM push
         base44.functions.invoke('sendFCMNotification', {
           recipient_email: notif.user_email,
           title: pushTitle,
           body: pushBody,
         }).catch(err => console.log('FCM push failed for', notif.user_email, err.message));
 
-        // Send WhatsApp for DMs
-        if (isDM) {
-          const allUsers = await base44.asServiceRole.entities.User.list();
-          const recipientUser = allUsers.find(u => u.email === notif.user_email);
-          const phone = recipientUser?.phone_number || recipientUser?.data?.phone_number;
-          if (phone) {
-            base44.functions.invoke('sendWhatsApp', {
-              to: phone,
-              message: `${pushTitle}\n\n${pushBody}`
-            }).catch(err => console.log('WhatsApp DM notification failed for', notif.user_email, err.message));
-          }
+        // WhatsApp for all messages (DM and group)
+        const recipientUser = allUsers.find(u => u.email === notif.user_email);
+        const phone = recipientUser?.phone_number || recipientUser?.data?.phone_number;
+        if (phone) {
+          base44.functions.invoke('sendWhatsApp', {
+            to: phone,
+            message: `${pushTitle}\n\n${pushBody}`
+          }).catch(err => console.log('WhatsApp notification failed for', notif.user_email, err.message));
+        } else {
+          console.log(`WhatsApp skipped for ${notif.user_email}: no phone on file`);
         }
       }
     }
