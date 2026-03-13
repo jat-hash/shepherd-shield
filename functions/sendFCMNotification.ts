@@ -7,53 +7,58 @@ Deno.serve(async (req) => {
     const { recipient_email, title, body, alert_id } = await req.json();
 
     if (!recipient_email || !title || !body) {
-      return Response.json({ 
-        error: 'recipient_email, title, and body required' 
-      }, { status: 400 });
+      return Response.json({ error: 'recipient_email, title, and body required' }, { status: 400 });
     }
 
-    const restApiKey = Deno.env.get('ONESIGNAL_REST_API_KEY');
-    const appId = Deno.env.get('ONESIGNAL_APP_ID');
-
-    if (!restApiKey || !appId) {
-      return Response.json({ error: 'OneSignal credentials not configured' }, { status: 500 });
+    const firebaseServerKey = Deno.env.get('FIREBASE_SERVER_KEY');
+    if (!firebaseServerKey) {
+      return Response.json({ error: 'FIREBASE_SERVER_KEY not configured' }, { status: 500 });
     }
 
-    // Send notification to user via external ID (email)
-    const response = await fetch('https://onesignal.com/api/v1/notifications', {
+    // Look up FCM tokens for this user
+    const devices = await base44.asServiceRole.entities.UserDevice.filter({ user_email: recipient_email });
+
+    if (!devices || devices.length === 0) {
+      console.log(`No FCM tokens found for ${recipient_email}`);
+      return Response.json({ success: false, error: 'No device tokens for user' });
+    }
+
+    const tokens = devices.map(d => d.fcm_token).filter(Boolean);
+    if (tokens.length === 0) {
+      return Response.json({ success: false, error: 'No valid tokens' });
+    }
+
+    // Send via Firebase Legacy HTTP API
+    const fcmRes = await fetch('https://fcm.googleapis.com/fcm/send', {
       method: 'POST',
       headers: {
-        'Authorization': `Basic ${restApiKey}`,
+        'Authorization': `key=${firebaseServerKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        app_id: appId,
-        include_external_user_ids: [recipient_email],
-        headings: { en: title },
-        contents: { en: body },
-        priority: 10,
-        android_channel_id: 'emergency-alerts',
+        registration_ids: tokens,
+        notification: {
+          title,
+          body,
+          sound: 'default'
+        },
         data: {
           alertId: alert_id || ''
-        }
+        },
+        priority: 'high'
       })
     });
 
-    const data = await response.json();
+    const fcmData = await fcmRes.json();
 
-    if (!response.ok) {
-      console.error('OneSignal API error:', data);
-      return Response.json({
-        success: false,
-        error: data.errors?.join(', ') || 'Failed to send notification'
-      }, { status: response.status });
+    if (!fcmRes.ok) {
+      console.error(`FCM error for ${recipient_email}:`, JSON.stringify(fcmData));
+      return Response.json({ success: false, error: fcmData.error || 'FCM send failed' }, { status: 500 });
     }
 
-    return Response.json({
-      success: true,
-      recipient: recipient_email,
-      notificationId: data.body?.notification_id
-    });
+    console.log(`FCM sent to ${recipient_email} (${tokens.length} device(s)), success: ${fcmData.success}, failure: ${fcmData.failure}`);
+
+    return Response.json({ success: true, recipient: recipient_email, result: fcmData });
   } catch (error) {
     console.error('Error in sendFCMNotification:', error);
     return Response.json({ error: error.message }, { status: 500 });
