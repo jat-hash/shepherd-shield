@@ -65,7 +65,7 @@ export default function NotifyTeamButton({ user }) {
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="bg-[#1a2744] border-[rgba(212,168,67,0.2)]">
+        <DialogContent className="bg-[#1a2744] border-[rgba(212,168,67,0.2)] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <Bell className="w-5 h-5 text-blue-400" /> Send Team Notification
