@@ -54,6 +54,19 @@ Deno.serve(async (req) => {
           title: pushTitle,
           body: pushBody,
         }).catch(err => console.log('FCM push failed for', notif.user_email, err.message));
+
+        // Send WhatsApp for DMs
+        if (isDM) {
+          const allUsers = await base44.asServiceRole.entities.User.list();
+          const recipientUser = allUsers.find(u => u.email === notif.user_email);
+          const phone = recipientUser?.phone_number || recipientUser?.data?.phone_number;
+          if (phone) {
+            base44.functions.invoke('sendWhatsApp', {
+              to: phone,
+              message: `${pushTitle}\n\n${pushBody}`
+            }).catch(err => console.log('WhatsApp DM notification failed for', notif.user_email, err.message));
+          }
+        }
       }
     }
 
