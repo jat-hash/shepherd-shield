@@ -66,8 +66,8 @@ Deno.serve(async (req) => {
       }
     }));
 
-    const withPhone = recipients.filter(r => r.phone_number).length;
-    const withoutPhone = recipients.filter(r => !r.phone_number).map(r => r.email);
+    const withPhone = recipients.filter(r => r.phone_number || r.data?.phone_number).length;
+    const withoutPhone = recipients.filter(r => !r.phone_number && !r.data?.phone_number).map(r => r.email);
     return Response.json({ success: true, notified: recipients.length, whatsapp_sent: withPhone, whatsapp_skipped: withoutPhone });
   } catch (error) {
     console.error('sendTeamNotification error:', error);
