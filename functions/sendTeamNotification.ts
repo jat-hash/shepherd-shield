@@ -46,7 +46,9 @@ Deno.serve(async (req) => {
       const twilioAuth = Deno.env.get('TWILIO_AUTH_TOKEN');
       const twilioWA = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
       const recipientPhone = recipient.phone_number;
-      if (twilioSid && twilioAuth && twilioWA && recipientPhone) {
+      if (!recipientPhone) {
+        console.log(`WhatsApp skipped for ${recipient.email}: no phone_number on profile`);
+      } else if (twilioSid && twilioAuth && twilioWA) {
         let phone = recipientPhone.replace(/\D/g, '');
         if (!phone.startsWith('1') && phone.length === 10) phone = '1' + phone;
         if (!phone.startsWith('+')) phone = '+' + phone;
@@ -60,7 +62,7 @@ Deno.serve(async (req) => {
         });
         const waData = await waRes.json();
         if (!waRes.ok) console.log(`WhatsApp error for ${recipient.email}:`, JSON.stringify(waData));
-        else console.log(`WhatsApp sent to ${recipient.email}, SID: ${waData.sid}`);
+        else console.log(`WhatsApp sent to ${recipient.email} (${phone}), SID: ${waData.sid}`);
       }
     }));
 
