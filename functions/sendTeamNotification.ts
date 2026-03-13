@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
       const twilioSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       const twilioAuth = Deno.env.get('TWILIO_AUTH_TOKEN');
       const twilioWA = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
-      const recipientPhone = recipient.phone_number;
+      const recipientPhone = recipient.phone_number || recipient.data?.phone_number;
       if (!recipientPhone) {
         console.log(`WhatsApp skipped for ${recipient.email}: no phone_number on profile`);
       } else if (twilioSid && twilioAuth && twilioWA) {
