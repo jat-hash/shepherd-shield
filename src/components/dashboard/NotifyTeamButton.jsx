@@ -31,6 +31,17 @@ export default function NotifyTeamButton({ user }) {
 
   if (!hasAccess) return null;
 
+  const toggleUser = (email) => {
+    setSelectedEmails(prev =>
+      prev.includes(email) ? prev.filter(e => e !== email) : [...prev, email]
+    );
+  };
+
+  const handleSelectAll = (checked) => {
+    setSelectAll(checked);
+    if (checked) setSelectedEmails([]);
+  };
+
   const handleSend = async () => {
     if (!title || !message) return;
     setSending(true);
@@ -38,11 +49,12 @@ export default function NotifyTeamButton({ user }) {
     const res = await base44.functions.invoke("sendTeamNotification", {
       title,
       message,
-      recipient_emails: recipient === "all" ? [] : [recipient],
+      recipient_emails: selectAll ? [] : selectedEmails,
       send_sms: sendSMS ? true : undefined,
     });
 
-    toast.success(`Notification sent to ${recipient === "all" ? "all members" : recipient}`);
+    const count = selectAll ? "all members" : `${selectedEmails.length} member(s)`;
+    toast.success(`Notification sent to ${count}`);
     if (sendSMS && res?.data?.whatsapp_skipped?.length > 0) {
       toast.warning(`WhatsApp skipped for ${res.data.whatsapp_skipped.length} member(s) with no phone number on file.`);
     }
@@ -50,9 +62,9 @@ export default function NotifyTeamButton({ user }) {
     setOpen(false);
     setTitle("");
     setMessage("");
-    setRecipient("all");
+    setSelectedEmails([]);
+    setSelectAll(true);
     setSendSMS(false);
-    setPhoneNumber("");
   };
 
   return (
