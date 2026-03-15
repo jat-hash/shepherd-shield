@@ -86,19 +86,33 @@ export default function NotifyTeamButton({ user }) {
           <div className="space-y-4 py-2">
             <div>
               <Label className="text-slate-300">Send To</Label>
-              <Select value={recipient} onValueChange={setRecipient}>
-                <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-[#1a2744] border-slate-700">
-                  <SelectItem value="all" className="text-white">All Team Members</SelectItem>
-                  {allUsers.map(u => (
-                    <SelectItem key={u.email} value={u.email} className="text-white">
+              <div className="mt-1 bg-[#0a1128] border border-slate-700 rounded-md max-h-40 overflow-y-auto p-2 space-y-1">
+                <div className="flex items-center gap-2 pb-1 border-b border-slate-700 mb-1">
+                  <Checkbox
+                    id="select-all"
+                    checked={selectAll}
+                    onCheckedChange={handleSelectAll}
+                    className="border-slate-500"
+                  />
+                  <label htmlFor="select-all" className="text-white text-sm font-medium cursor-pointer">All Team Members</label>
+                </div>
+                {allUsers.map(u => (
+                  <div key={u.email} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`user-${u.email}`}
+                      checked={!selectAll && selectedEmails.includes(u.email)}
+                      onCheckedChange={() => { setSelectAll(false); toggleUser(u.email); }}
+                      className="border-slate-500"
+                    />
+                    <label htmlFor={`user-${u.email}`} className="text-slate-300 text-sm cursor-pointer">
                       {u.display_name || u.full_name || u.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    </label>
+                  </div>
+                ))}
+              </div>
+              {!selectAll && selectedEmails.length === 0 && (
+                <p className="text-yellow-400 text-xs mt-1">Please select at least one member.</p>
+              )}
             </div>
             <div>
               <Label className="text-slate-300">Title</Label>
