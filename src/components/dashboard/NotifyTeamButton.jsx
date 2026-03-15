@@ -14,10 +14,10 @@ export default function NotifyTeamButton({ user }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
-  const [recipient, setRecipient] = useState("all");
+  const [selectedEmails, setSelectedEmails] = useState([]);
+  const [selectAll, setSelectAll] = useState(true);
   const [sending, setSending] = useState(false);
   const [sendSMS, setSendSMS] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState("");
   const [allUsers, setAllUsers] = useState([]);
 
   const ALLOWED_ROLES = ["admin", "administrator", "security chief", "incident commander"];
