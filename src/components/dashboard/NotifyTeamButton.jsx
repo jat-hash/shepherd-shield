@@ -164,7 +164,7 @@ export default function NotifyTeamButton({ user }) {
             <Button variant="ghost" onClick={() => setOpen(false)} className="text-slate-400">Cancel</Button>
             <Button
               onClick={handleSend}
-              disabled={sending || !title || !message}
+              disabled={sending || !title || !message || (!selectAll && selectedEmails.length === 0)}
               className="flex-1 bg-blue-600 hover:bg-blue-500 text-white gap-2"
             >
               <Send className="w-4 h-4" />
