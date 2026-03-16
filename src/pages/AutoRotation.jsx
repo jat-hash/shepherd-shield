@@ -23,12 +23,12 @@ export default function AutoRotation() {
 
   const loadData = async () => {
     setLoading(true);
-    const [pos, usr] = await Promise.all([
+    const [pos, usrRes] = await Promise.all([
       base44.entities.Position.filter({ is_active: true }),
-      base44.entities.User.list()
+      base44.functions.invoke("listUsers")
     ]);
     setPositions(pos);
-    setUsers(usr);
+    setUsers(usrRes?.data?.users || []);
     setLoading(false);
   };
 
