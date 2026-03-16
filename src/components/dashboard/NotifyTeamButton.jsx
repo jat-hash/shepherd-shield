@@ -24,7 +24,7 @@ export default function NotifyTeamButton({ user }) {
 
   useEffect(() => {
     if (hasAccess) {
-      base44.entities.User.list().then(setAllUsers).catch(() => {});
+      base44.functions.invoke("listUsers").then(res => setAllUsers(res?.data?.users || [])).catch(() => {});
     }
   }, [user]);
 
