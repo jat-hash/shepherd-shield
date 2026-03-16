@@ -12,6 +12,13 @@ export default function Assignments() {
   const [formOpen, setFormOpen] = useState(false);
   const [editData, setEditData] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
+
+  const isAdmin = currentUser?.role === "admin";
 
   const loadData = async () => {
     setLoading(true);

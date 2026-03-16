@@ -16,6 +16,13 @@ export default function SpecialEvents() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
+
+  const isAdmin = currentUser?.role === "admin";
   const [editingEvent, setEditingEvent] = useState(null);
   const [reminders, setReminders] = useState([]);
   const [formData, setFormData] = useState({
