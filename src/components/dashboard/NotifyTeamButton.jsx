@@ -143,17 +143,7 @@ export default function NotifyTeamButton({ user }) {
                   <MessageSquare className="w-4 h-4 text-green-400" /> Also send via SMS & WhatsApp
                 </label>
               </div>
-              {sendSMS && recipient !== "all" && (
-                <div>
-                  <Label className="text-slate-400 text-xs">Override phone number (leave blank to use member's saved number)</Label>
-                  <Input
-                    placeholder="+1234567890"
-                    value={phoneNumber}
-                    onChange={e => setPhoneNumber(e.target.value)}
-                    className="bg-[#0a1128] border-slate-700 text-white mt-1 text-sm"
-                  />
-                </div>
-              )}
+
               {sendSMS && recipient === "all" && (
                 <p className="text-slate-500 text-xs">Will SMS & WhatsApp all members who have a phone number on file.</p>
               )}
