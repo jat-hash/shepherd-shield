@@ -165,9 +165,11 @@ export default function SpecialEvents() {
           <h1 className="text-2xl font-bold text-white">Special Events</h1>
           <p className="text-slate-400 text-sm mt-1">Manage special events requiring security coordination</p>
         </div>
-        <Button onClick={() => setDialogOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]">
-          <Plus className="w-4 h-4 mr-2" /> Add Event
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => setDialogOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]">
+            <Plus className="w-4 h-4 mr-2" /> Add Event
+          </Button>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -222,14 +224,16 @@ export default function SpecialEvents() {
                 )}
               </div>
 
-              <div className="flex gap-2 ml-4">
-                <Button variant="ghost" size="icon" onClick={() => handleEdit(event)}>
-                  <Edit className="w-4 h-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => handleDelete(event.id)}>
-                  <Trash2 className="w-4 h-4 text-red-400" />
-                </Button>
-              </div>
+              {isAdmin && (
+                <div className="flex gap-2 ml-4">
+                  <Button variant="ghost" size="icon" onClick={() => handleEdit(event)}>
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleDelete(event.id)}>
+                    <Trash2 className="w-4 h-4 text-red-400" />
+                  </Button>
+                </div>
+              )}
             </div>
           </Card>
         ))}
