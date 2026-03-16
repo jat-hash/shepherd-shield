@@ -144,8 +144,8 @@ export default function NotifyTeamButton({ user }) {
                 </label>
               </div>
 
-              {sendSMS && recipient === "all" && (
-                <p className="text-slate-500 text-xs">Will SMS & WhatsApp all members who have a phone number on file.</p>
+              {sendSMS && (
+                <p className="text-slate-500 text-xs">Will SMS & WhatsApp selected members who have a phone number on file.</p>
               )}
             </div>
           </div>
