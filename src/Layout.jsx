@@ -231,7 +231,7 @@ export default function Layout({ children, currentPageName }) {
                     {[
                       { name: "Equipment", page: "EquipmentInventory", icon: Wrench },
                       { name: "Special Events", page: "SpecialEvents", icon: Calendar },
-                      { name: "Auto Rotate Schedule", page: "AutoRotation", icon: Bot },
+                      ...(user?.role === 'admin' ? [{ name: "Auto Rotate Schedule", page: "AutoRotation", icon: Bot }] : []),
                       { name: "Documents", page: "Documents", icon: FolderOpen },
                     ].map(item => (
                       <Link
@@ -351,7 +351,7 @@ export default function Layout({ children, currentPageName }) {
                 {[
                   { name: "Equipment", page: "EquipmentInventory", icon: Wrench },
                   { name: "Special Events", page: "SpecialEvents", icon: Calendar },
-                  { name: "Auto Rotate Schedule", page: "AutoRotation", icon: Bot },
+                  ...(user?.role === 'admin' ? [{ name: "Auto Rotate Schedule", page: "AutoRotation", icon: Bot }] : []),
                   { name: "Documents", page: "Documents", icon: FolderOpen },
                   ].map(item => (
                   <Link
