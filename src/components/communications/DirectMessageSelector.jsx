@@ -12,7 +12,8 @@ export default function DirectMessageSelector({ currentUserEmail, onSelectDM }) 
 
   useEffect(() => {
     if (open && currentUserEmail) {
-      base44.entities.User.list().then(all => {
+      base44.functions.invoke("listUsers").then(res => {
+        const all = res?.data?.users || [];
         setUsers(all.filter(u => u.email !== currentUserEmail));
       }).catch(err => {
         console.error("Failed to load users:", err);

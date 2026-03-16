@@ -39,7 +39,7 @@ export default function AdminMonitor() {
         window.location.href = '/';
       }
     });
-    base44.entities.User.list().then(setAllUsers).catch(() => {});
+    base44.functions.invoke("listUsers").then(res => setAllUsers(res?.data?.users || [])).catch(() => {});
   }, []);
 
   const loadAssignments = async () => {
