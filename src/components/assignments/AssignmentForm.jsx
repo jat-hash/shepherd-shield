@@ -34,7 +34,7 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
   const [reminders, setReminders] = useState([]);
 
   useEffect(() => {
-    base44.entities.User.list().then(setUsers).catch(() => {});
+    base44.functions.invoke("listUsers").then(res => setUsers(res?.data?.users || [])).catch(() => {});
     base44.entities.Position.filter({ is_active: true }).then(setPositions).catch(() => {});
   }, []);
 
