@@ -118,15 +118,9 @@ export default function Members() {
     if (!editingCommandUser || !selectedCommandPosition) return;
 
     try {
-      const position = commandPositions.find(p => p.title === selectedCommandPosition || p.id === selectedCommandPosition);
-      if (!position) {
-        toast.error("Position not found");
-        return;
-      }
-
-      await base44.entities.CommandPosition.update(position.id, {
+      await base44.entities.CommandPosition.update(selectedCommandPosition, {
         assigned_to_email: editingCommandUser.email,
-        assigned_to_name: editingCommandUser.display_name || editingCommandUser.full_name
+        assigned_to_name: editingCommandUser.display_name || editingCommandUser.full_name || editingCommandUser.email
       });
       toast.success("Command position assigned");
       setCommandDialogOpen(false);
