@@ -95,7 +95,7 @@ export default function WatchList() {
             <button key={p.id} onClick={() => setDetailPerson(p)} className="w-full text-left bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-4 flex items-center gap-4 hover:border-[#d4a843]/30 transition-all">
               <div className="w-14 h-14 rounded-xl bg-[#0a1128] border border-slate-700 overflow-hidden flex-shrink-0">
                 {p.photo ? (
-                  <img src={p.photo} alt="" className="w-full h-full object-cover" />
+                  <img src={p.photo} alt="" className="w-full h-full object-contain" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-slate-600 text-lg font-bold">
                     {p.full_name?.charAt(0)}
@@ -166,7 +166,7 @@ export default function WatchList() {
             <div className="space-y-4">
               {detailPerson.photo && (
                 <div className="w-full h-48 rounded-xl overflow-hidden">
-                  <img src={detailPerson.photo} alt="" className="w-full h-full object-cover" />
+                  <img src={detailPerson.photo} alt="" className="w-full h-full object-contain" />
                 </div>
               )}
               <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${statusColors[detailPerson.status]}`}>{detailPerson.status}</span>
