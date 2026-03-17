@@ -34,6 +34,9 @@ export default function Members() {
   const [userRoleDialogOpen, setUserRoleDialogOpen] = useState(false);
   const [editingUserRole, setEditingUserRole] = useState(null);
   const [selectedUserRole, setSelectedUserRole] = useState("");
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [profileUser, setProfileUser] = useState(null);
+  const [profileStats, setProfileStats] = useState(null);
 
   useEffect(() => {
     loadCurrentUser();
