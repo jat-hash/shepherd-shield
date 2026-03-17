@@ -127,10 +127,10 @@ export default function WatchList() {
         </div>
       )}
 
-      {/* Add Form */}
-      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+      {/* Add/Edit Form */}
+      <Dialog open={formOpen} onOpenChange={(open) => { setFormOpen(open); if (!open) { setEditingPerson(null); setForm({ full_name: "", status: "Monitor", description: "", notes: "", photo: "" }); } }}>
         <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-md">
-          <DialogHeader><DialogTitle className="text-[#d4a843]">Add to Watch List</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-[#d4a843]">{editingPerson ? "Edit Watch List Entry" : "Add to Watch List"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
               <Label className="text-slate-300 text-xs">Full Name</Label>
