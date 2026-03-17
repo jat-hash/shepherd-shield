@@ -663,12 +663,7 @@ export default function Members() {
                 <SelectContent className="bg-[#141f3d] border-[rgba(212,168,67,0.15)] text-white max-h-[200px] overflow-y-auto" position="popper" style={{ zIndex: 9999 }}>
                   {commandPositions.map(pos => (
                     <SelectItem key={pos.id} value={pos.id} className="text-white">
-                      {pos.title}
-                      {pos.description && (
-                        <span className="text-xs text-slate-400 block mt-0.5">
-                          {pos.description}
-                        </span>
-                      )}
+                      {pos.title}{pos.description ? ` — ${pos.description}` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
