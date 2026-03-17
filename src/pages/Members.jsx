@@ -4,11 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { User, Search, Mail, Shield, UserPlus, Award, ChevronDown, ChevronUp, Plus, ArrowUp, ArrowDown, Phone, CalendarDays, FileText, Bell, BellOff } from "lucide-react";
+import { User, Search, Mail, Shield, UserPlus, Award, ChevronDown, ChevronUp, Plus, ArrowUp, ArrowDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import MemberProfileDialog from "@/components/members/MemberProfileDialog";
 
 export default function Members() {
   const [users, setUsers] = useState([]);
@@ -34,9 +35,7 @@ export default function Members() {
   const [userRoleDialogOpen, setUserRoleDialogOpen] = useState(false);
   const [editingUserRole, setEditingUserRole] = useState(null);
   const [selectedUserRole, setSelectedUserRole] = useState("");
-  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
-  const [profileUser, setProfileUser] = useState(null);
-  const [profileStats, setProfileStats] = useState(null);
+  const [profileDialogMember, setProfileDialogMember] = useState(null);
 
   useEffect(() => {
     loadCurrentUser();
@@ -266,17 +265,6 @@ export default function Members() {
       console.error("Failed to delete position:", error);
       toast.error("Failed to delete position");
     }
-  };
-
-  const openProfile = async (user) => {
-    setProfileUser(user);
-    setProfileStats(null);
-    setProfileDialogOpen(true);
-    const [assignments, incidents] = await Promise.all([
-      base44.entities.Assignment.filter({ assigned_to_email: user.email }),
-      base44.entities.Incident.filter({ reported_by: user.full_name || user.email }),
-    ]);
-    setProfileStats({ assignments: assignments.length, incidents: incidents.length });
   };
 
   const filteredUsers = users.filter(user =>
@@ -540,8 +528,8 @@ export default function Members() {
           {filteredUsers.map((user) => (
             <Card
               key={user.id}
-              className={`bg-[#141f3d] border-[rgba(212,168,67,0.15)] hover:border-[#d4a843] transition-all ${currentUser?.role === 'admin' ? 'cursor-pointer' : ''}`}
-              onClick={currentUser?.role === 'admin' ? () => openProfile(user) : undefined}
+              className="bg-[#141f3d] border-[rgba(212,168,67,0.15)] hover:border-[#d4a843] transition-all cursor-pointer"
+              onClick={() => currentUser?.role === 'admin' && setProfileDialogMember(user)}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
