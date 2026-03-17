@@ -642,7 +642,7 @@ export default function Members() {
                 <SelectTrigger className="bg-[#0a1128] border-[rgba(212,168,67,0.15)] text-white">
                   <SelectValue placeholder="Choose member" />
                 </SelectTrigger>
-                <SelectContent className="bg-[#141f3d] border-[rgba(212,168,67,0.15)] text-white max-h-[200px] overflow-y-auto" position="popper" sideOffset={4}>
+                <SelectContent className="bg-[#141f3d] border-[rgba(212,168,67,0.15)] text-white max-h-[200px] overflow-y-auto">
                   {users.map(user => (
                     <SelectItem key={user.email} value={user.email} className="text-white">
                       {user.display_name || user.full_name || user.email}
