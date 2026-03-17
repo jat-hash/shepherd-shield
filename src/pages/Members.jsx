@@ -629,7 +629,7 @@ export default function Members() {
               {editingCommandUser && ` - ${editingCommandUser.display_name || editingCommandUser.full_name || editingCommandUser.email}`}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 overflow-y-auto flex-1 py-2">
+          <div className="space-y-4 py-2">
             <div>
               <Label className="text-slate-300">Select Member</Label>
               <Select 
