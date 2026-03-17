@@ -622,7 +622,7 @@ export default function Members() {
 
       {/* Assign Command Position Dialog */}
       <Dialog open={commandDialogOpen} onOpenChange={setCommandDialogOpen}>
-        <DialogContent className="bg-[#141f3d] border-[rgba(212,168,67,0.15)] text-white w-[95vw] max-w-md max-h-[85vh] flex flex-col">
+        <DialogContent className="bg-[#141f3d] border-[rgba(212,168,67,0.15)] text-white w-[95vw] max-w-md">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="text-[#d4a843]">
               Assign Command Position
