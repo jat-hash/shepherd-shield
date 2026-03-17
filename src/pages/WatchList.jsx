@@ -18,6 +18,7 @@ export default function WatchList() {
   const [persons, setPersons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [editingPerson, setEditingPerson] = useState(null);
   const [filter, setFilter] = useState("all");
   const [detailPerson, setDetailPerson] = useState(null);
   const [form, setForm] = useState({ full_name: "", status: "Monitor", description: "", notes: "", photo: "" });
