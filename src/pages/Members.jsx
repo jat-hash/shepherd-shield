@@ -4,11 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { User, Search, Mail, Shield, UserPlus, Award, ChevronDown, ChevronUp, Plus, ArrowUp, ArrowDown, Phone, CalendarDays, FileText, Bell, BellOff } from "lucide-react";
+import { User, Search, Mail, Shield, UserPlus, Award, ChevronDown, ChevronUp, Plus, ArrowUp, ArrowDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import MemberProfileDialog from "@/components/members/MemberProfileDialog";
 
 export default function Members() {
   const [users, setUsers] = useState([]);
@@ -34,9 +35,6 @@ export default function Members() {
   const [userRoleDialogOpen, setUserRoleDialogOpen] = useState(false);
   const [editingUserRole, setEditingUserRole] = useState(null);
   const [selectedUserRole, setSelectedUserRole] = useState("");
-  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
-  const [profileUser, setProfileUser] = useState(null);
-  const [profileStats, setProfileStats] = useState(null);
 
   useEffect(() => {
     loadCurrentUser();
