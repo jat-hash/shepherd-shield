@@ -48,11 +48,23 @@ export default function WatchList() {
 
   const handleSave = async () => {
     setSaving(true);
-    await base44.entities.WatchListPerson.create(form);
+    if (editingPerson) {
+      await base44.entities.WatchListPerson.update(editingPerson.id, form);
+    } else {
+      await base44.entities.WatchListPerson.create(form);
+    }
     setSaving(false);
     setFormOpen(false);
+    setEditingPerson(null);
     setForm({ full_name: "", status: "Monitor", description: "", notes: "", photo: "" });
     load();
+  };
+
+  const handleEdit = (person) => {
+    setEditingPerson(person);
+    setForm({ full_name: person.full_name, status: person.status, description: person.description || "", notes: person.notes || "", photo: person.photo || "" });
+    setDetailPerson(null);
+    setFormOpen(true);
   };
 
   const handleDelete = async (id) => {
