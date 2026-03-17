@@ -681,7 +681,7 @@ export default function Members() {
               </Select>
             </div>
           </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
+          <DialogFooter className="flex-col sm:flex-row gap-2 flex-shrink-0">
             <div className="flex gap-2 w-full sm:w-auto">
               <Button
                 variant="outline"
