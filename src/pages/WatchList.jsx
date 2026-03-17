@@ -194,9 +194,14 @@ export default function WatchList() {
                 <p className="text-xs text-slate-500">Last seen: {detailPerson.last_seen_date}</p>
               )}
               {currentUser?.role === 'admin' && (
-                <Button onClick={() => handleDelete(detailPerson.id)} variant="destructive" className="w-full gap-2">
-                  <Trash2 className="w-4 h-4" /> Remove from Watch List
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={() => handleEdit(detailPerson)} className="flex-1 gap-2 bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
+                    <Pencil className="w-4 h-4" /> Edit
+                  </Button>
+                  <Button onClick={() => handleDelete(detailPerson.id)} variant="destructive" className="flex-1 gap-2">
+                    <Trash2 className="w-4 h-4" /> Remove
+                  </Button>
+                </div>
               )}
             </div>
           )}
