@@ -660,7 +660,7 @@ export default function Members() {
                 <SelectTrigger className="bg-[#0a1128] border-[rgba(212,168,67,0.15)] text-white">
                   <SelectValue placeholder="Choose position" />
                 </SelectTrigger>
-                <SelectContent className="bg-[#141f3d] border-[rgba(212,168,67,0.15)] text-white max-h-[200px] overflow-y-auto">
+                <SelectContent className="bg-[#141f3d] border-[rgba(212,168,67,0.15)] text-white max-h-[200px] overflow-y-auto" position="popper" style={{ zIndex: 9999 }}>
                   {commandPositions.map(pos => (
                     <SelectItem key={pos.id} value={pos.id} className="text-white">
                       {pos.title}
