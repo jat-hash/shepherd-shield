@@ -582,7 +582,7 @@ export default function Members() {
                     </p>
                     )}
                     {currentUser?.role === 'admin' && currentUser.id !== user.id && (
-                    <div className="mt-3 flex gap-2">
+                    <div className="mt-3 flex gap-2" onClick={e => e.stopPropagation()}>
                      <Button
                        size="sm"
                        onClick={() => {
