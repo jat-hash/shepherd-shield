@@ -346,6 +346,63 @@ export default function EquipmentInventory() {
           </DialogHeader>
           {detailItem && (
             <div className="space-y-4">
+              {editMode ? (
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-slate-300 text-xs">Name</Label>
+                    <Input value={editForm.name || ""} onChange={e => setEditForm({...editForm, name: e.target.value})} className="bg-[#0a1128] border-slate-700 text-white mt-1" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-slate-300 text-xs">Category</Label>
+                      <Select value={editForm.category} onValueChange={v => setEditForm({...editForm, category: v})}>
+                        <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white mt-1"><SelectValue /></SelectTrigger>
+                        <SelectContent className="bg-[#1a2744] border-slate-700">
+                          {CATEGORIES.map(c => <SelectItem key={c} value={c} className="text-white">{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-slate-300 text-xs">Condition</Label>
+                      <Select value={editForm.condition} onValueChange={v => setEditForm({...editForm, condition: v})}>
+                        <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white mt-1"><SelectValue /></SelectTrigger>
+                        <SelectContent className="bg-[#1a2744] border-slate-700">
+                          {CONDITIONS.map(c => <SelectItem key={c} value={c} className="text-white">{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-slate-300 text-xs">Serial Number</Label>
+                      <Input value={editForm.serial_number || ""} onChange={e => setEditForm({...editForm, serial_number: e.target.value})} className="bg-[#0a1128] border-slate-700 text-white mt-1" />
+                    </div>
+                    <div>
+                      <Label className="text-slate-300 text-xs">QR Code</Label>
+                      <Input value={editForm.qr_code || ""} onChange={e => setEditForm({...editForm, qr_code: e.target.value})} className="bg-[#0a1128] border-slate-700 text-white mt-1" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-slate-300 text-xs">Assigned To</Label>
+                    <Input value={editForm.assigned_to || ""} onChange={e => setEditForm({...editForm, assigned_to: e.target.value})} className="bg-[#0a1128] border-slate-700 text-white mt-1" />
+                  </div>
+                  <div>
+                    <Label className="text-slate-300 text-xs">Maintenance Schedule (days)</Label>
+                    <Input type="number" value={editForm.maintenance_frequency_days || ""} onChange={e => setEditForm({...editForm, maintenance_frequency_days: parseInt(e.target.value) || 0})} className="bg-[#0a1128] border-slate-700 text-white mt-1" />
+                  </div>
+                  <div>
+                    <Label className="text-slate-300 text-xs">Maintenance Notes</Label>
+                    <Textarea value={editForm.maintenance_notes || ""} onChange={e => setEditForm({...editForm, maintenance_notes: e.target.value})} className="bg-[#0a1128] border-slate-700 text-white mt-1" rows={2} />
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <Button variant="ghost" onClick={() => setEditMode(false)} className="text-slate-400 flex-1">Cancel</Button>
+                    <Button onClick={handleEditSave} disabled={saving || !editForm.name} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold flex-1">
+                      {saving ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+              <>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div><span className="text-slate-500 text-xs">Category</span><p className="text-white">{detailItem.category}</p></div>
                 <div><span className="text-slate-500 text-xs">Condition</span><p className={`font-semibold ${detailItem.condition === "Good" ? "text-emerald-400" : detailItem.condition === "Fair" ? "text-amber-400" : "text-red-400"}`}>{detailItem.condition}</p></div>
