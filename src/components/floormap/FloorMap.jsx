@@ -132,7 +132,7 @@ export default function FloorMap({ isAdmin }) {
                   stroke={borderColor}
                   strokeWidth={isHovered ? "0.5" : "0.3"}
                   style={{ cursor: isAdmin ? "pointer" : "default", transition: "fill 0.2s" }}
-                  onMouseEnter={e => handleZoneMouseEnter(zone, e)}
+                  onMouseEnter={() => handleZoneMouseEnter(zone)}
                   onMouseLeave={() => setHovered(null)}
                   onClick={() => handleZoneClick(zone)}
                 />
