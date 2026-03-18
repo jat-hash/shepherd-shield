@@ -9,6 +9,7 @@ import SpecialEventsDropdown from "@/components/dashboard/SpecialEventsDropdown"
 import NotifyTeamButton from "@/components/dashboard/NotifyTeamButton";
 
 import SafetyCheckInPanel from "@/components/dashboard/SafetyCheckInPanel";
+import FloorMap from "@/components/floormap/FloorMap";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
