@@ -330,10 +330,17 @@ export default function EquipmentInventory() {
       <Dialog open={!!detailItem} onOpenChange={() => { setDetailItem(null); setEditMode(false); }}>
         <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-[#d4a843] flex items-center gap-2">
-              {detailItem?.name}
-              {detailItem?.checked_out && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-500/20 text-orange-400">Checked Out</span>
+            <DialogTitle className="text-[#d4a843] flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                {detailItem?.name}
+                {detailItem?.checked_out && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-500/20 text-orange-400">Checked Out</span>
+                )}
+              </div>
+              {currentUser?.role === 'admin' && !editMode && (
+                <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white h-7 px-2" onClick={() => { setEditForm({ ...detailItem }); setEditMode(true); }}>
+                  <Pencil className="w-3.5 h-3.5 mr-1" /> Edit
+                </Button>
               )}
             </DialogTitle>
           </DialogHeader>
