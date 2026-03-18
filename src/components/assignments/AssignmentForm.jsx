@@ -183,12 +183,9 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
               <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white mt-1"><SelectValue placeholder="Select service type" /></SelectTrigger>
               <SelectContent className="bg-[#1a2744] border-slate-700">
                 <SelectItem value="Sunday AM" className="text-white">Sunday AM</SelectItem>
-                <SelectItem value="Sunday Spanish Services" className="text-white">Sunday Spanish Services</SelectItem>
                 <SelectItem value="Sunday PM" className="text-white">Sunday PM</SelectItem>
                 <SelectItem value="Tuesday Bible Study" className="text-white">Tuesday Bible Study</SelectItem>
-                <SelectItem value="Wednesday Spanish Bible Study" className="text-white">Wednesday Spanish Bible Study</SelectItem>
                 <SelectItem value="Thursday Services" className="text-white">Thursday Services</SelectItem>
-                <SelectItem value="Custom Date" className="text-white">Custom Date</SelectItem>
               </SelectContent>
             </Select>
           </div>
