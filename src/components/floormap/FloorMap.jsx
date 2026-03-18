@@ -48,13 +48,13 @@ export default function FloorMap({ isAdmin }) {
     return equipment.filter(e => ids.includes(e.id));
   };
 
-  const handleZoneMouseEnter = (zone, e) => {
+  const handleZoneMouseEnter = (zone) => {
     const svgRect = svgRef.current?.getBoundingClientRect();
     if (!svgRect) return;
     const cx = ((zone.x + zone.w / 2) / 100) * svgRect.width;
     const cy = (zone.y / 100) * svgRect.height;
     setTooltipPos({ x: cx, y: cy });
-    setHovered(zone);
+    setHovered({ id: zone.id, label: zone.label, x: zone.x, y: zone.y, w: zone.w, h: zone.h });
   };
 
   const handleZoneClick = (zone) => {
