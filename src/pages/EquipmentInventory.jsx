@@ -502,7 +502,7 @@ export default function EquipmentInventory() {
                   <CheckCircle className="w-4 h-4 mr-2" /> Inspect
                 </Button>
               </div>
-              </>
+              </div>
               )}
             </div>
           )}
