@@ -13,7 +13,7 @@ import ReminderSettings from "@/components/calendar/ReminderSettings";
 export default function AssignmentForm({ open, onClose, onSaved, editData }) {
   const [form, setForm] = useState({
     position_name: "",
-    service_date: new Date().toISOString().split("T")[0],
+    service_date: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })(),
     start_time: "09:00",
     end_time: "12:00",
     assigned_to_email: "",
@@ -47,7 +47,7 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
     } else {
       setForm({
         position_name: "",
-        service_date: new Date().toISOString().split("T")[0],
+        service_date: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })(),
         service_type: "",
         start_time: "09:00",
         end_time: "12:00",
