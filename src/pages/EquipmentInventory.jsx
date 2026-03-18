@@ -402,7 +402,7 @@ export default function EquipmentInventory() {
                   </div>
                 </div>
               ) : (
-              <>
+              <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div><span className="text-slate-500 text-xs">Category</span><p className="text-white">{detailItem.category}</p></div>
                 <div><span className="text-slate-500 text-xs">Condition</span><p className={`font-semibold ${detailItem.condition === "Good" ? "text-emerald-400" : detailItem.condition === "Fair" ? "text-amber-400" : "text-red-400"}`}>{detailItem.condition}</p></div>
