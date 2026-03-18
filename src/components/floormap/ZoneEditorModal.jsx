@@ -157,7 +157,7 @@ export default function ZoneEditorModal({ open, onOpenChange, zones, onSave }) {
           </div>
         </div>
 
-        <p className="text-slate-400 text-xs">Drag zones to move • Drag corners to resize • Click to select</p>
+        <p className="text-slate-400 text-xs">Drag zones to move • Drag corners to resize • Click a zone to select, then rename or delete below</p>
 
         {/* Interactive SVG Canvas */}
         <div className="relative select-none rounded-lg overflow-hidden border border-slate-700" style={{ paddingBottom: "60%" }}>
