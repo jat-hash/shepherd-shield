@@ -136,7 +136,7 @@ export default function FloorMap({ isAdmin }) {
           </defs>
           <rect width="100" height="80" fill="url(#grid)" />
 
-          {zones.map(zone => {
+          {zones.map((zone) => {
             const zoneEquip = getZoneEquipment(zone.id);
             const available = zoneEquip.filter(e => !e.checked_out).length;
             const checkedOut = zoneEquip.filter(e => e.checked_out).length;
