@@ -31,6 +31,10 @@ export default function EquipmentInventory() {
   const [scanMode, setScanMode] = useState(false);
   const [scannedCode, setScannedCode] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editForm, setEditForm] = useState({});
+  const [qrPrintItem, setQrPrintItem] = useState(null);
+  const qrRef = useRef(null);
 
   const load = async () => {
     setLoading(true);
