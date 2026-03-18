@@ -149,8 +149,12 @@ export default function FloorMap({ isAdmin }) {
             }
             if (isHovered) borderColor = "#d4a843";
 
+            const rot = zone.rotation || 0;
+            const cx = zone.x + zone.w / 2;
+            const cy = zone.y + zone.h / 2;
+
             return (
-              <g key={zone.id}>
+              <g key={zone.id} transform={`rotate(${rot}, ${cx}, ${cy})`}>
                 <rect
                   x={zone.x} y={zone.y} width={zone.w} height={zone.h}
                   rx="1"
