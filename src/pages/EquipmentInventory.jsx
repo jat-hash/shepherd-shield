@@ -506,6 +506,7 @@ export default function EquipmentInventory() {
               )}
             </div>
           )}
+
         </DialogContent>
       </Dialog>
 
