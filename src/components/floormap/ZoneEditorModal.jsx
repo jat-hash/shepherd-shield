@@ -232,38 +232,52 @@ export default function ZoneEditorModal({ open, onOpenChange, zones, onSave }) {
           </svg>
         </div>
 
-        {/* Selected zone tools */}
-        {selected && (
-          <div className="flex items-center gap-3 bg-[#0a1128] rounded-lg px-3 py-2">
-            <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ background: selected.color, border: "1px solid rgba(255,255,255,0.2)" }} />
-            {editingLabelId === selected.id ? (
-              <div className="flex-1 flex gap-1.5">
-                <Input
-                  value={editLabel}
-                  onChange={e => setEditLabel(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter") confirmLabel(); if (e.key === "Escape") setEditingLabelId(null); }}
-                  className="h-7 text-xs bg-[#1a2744] border-slate-600 text-white flex-1"
-                  autoFocus
-                />
-                <Button size="sm" onClick={confirmLabel} className="h-7 px-2 bg-[#d4a843] text-[#0a1128] hover:bg-[#e0bb5e] text-xs">Save</Button>
-                <Button size="sm" variant="ghost" onClick={() => setEditingLabelId(null)} className="h-7 px-2 text-slate-400 text-xs">✕</Button>
+        {/* Zone list — always visible */}
+        <div className="border-t border-slate-700 pt-2">
+          <p className="text-slate-500 text-xs mb-2">All Zones</p>
+          <div className="flex flex-col gap-1 max-h-40 overflow-y-auto pr-1">
+            {localZones.map(zone => (
+              <div
+                key={zone.id}
+                className={`flex items-center gap-2 rounded-lg px-3 py-1.5 cursor-pointer transition-colors ${selectedId === zone.id ? "bg-[#d4a843]/10 border border-[#d4a843]/30" : "bg-[#0a1128] hover:bg-white/5"}`}
+                onClick={() => setSelectedId(zone.id)}
+              >
+                <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ background: zone.color, border: "1px solid rgba(255,255,255,0.2)" }} />
+                {editingLabelId === zone.id ? (
+                  <div className="flex-1 flex gap-1.5" onClick={e => e.stopPropagation()}>
+                    <Input
+                      value={editLabel}
+                      onChange={e => setEditLabel(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") confirmLabel(); if (e.key === "Escape") setEditingLabelId(null); }}
+                      className="h-6 text-xs bg-[#1a2744] border-slate-600 text-white flex-1"
+                      autoFocus
+                    />
+                    <Button size="sm" onClick={confirmLabel} className="h-6 px-2 bg-[#d4a843] text-[#0a1128] hover:bg-[#e0bb5e] text-xs">✓</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingLabelId(null)} className="h-6 px-1 text-slate-400 text-xs">✕</Button>
+                  </div>
+                ) : (
+                  <>
+                    <span className="text-white text-xs flex-1">{zone.label}</span>
+                    <button
+                      onClick={e => { e.stopPropagation(); setSelectedId(zone.id); setEditingLabelId(zone.id); setEditLabel(zone.label); }}
+                      className="text-slate-500 hover:text-[#d4a843] p-1"
+                      title="Rename"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={e => { e.stopPropagation(); handleDelete(zone.id); }}
+                      className="text-slate-500 hover:text-red-400 p-1"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </>
+                )}
               </div>
-            ) : (
-              <>
-                <span className="text-white text-sm flex-1 font-medium">{selected.label}</span>
-                <span className="text-slate-500 text-xs">
-                  {Math.round(selected.w)}×{Math.round(selected.h)} at ({Math.round(selected.x)},{Math.round(selected.y)})
-                </span>
-                <button onClick={() => { setEditingLabelId(selected.id); setEditLabel(selected.label); }} className="text-slate-500 hover:text-[#d4a843] p-1" title="Rename">
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-                <button onClick={() => handleDelete(selected.id)} className="text-slate-500 hover:text-red-400 p-1" title="Delete">
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </>
-            )}
+            ))}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
