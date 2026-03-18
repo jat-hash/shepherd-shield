@@ -64,13 +64,13 @@ export default function ZoneEditorModal({ open, onOpenChange, zones, onSave }) {
   const dragRef = useRef(null);
 
   // Sync when modal opens
-  const prevOpen = useRef(false);
-  if (open && !prevOpen.current) {
-    setLocalZones(zones);
-    setSelectedId(null);
-    setEditingLabelId(null);
-  }
-  prevOpen.current = open;
+  useEffect(() => {
+    if (open) {
+      setLocalZones(zones);
+      setSelectedId(null);
+      setEditingLabelId(null);
+    }
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateZone = useCallback((id, updater) => {
     setLocalZones(prev => prev.map(z => z.id === id ? { ...z, ...updater(z) } : z));
