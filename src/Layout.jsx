@@ -12,7 +12,7 @@ import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
 const NAV_ITEMS = [
   { name: "Dashboard", icon: Home, page: "Dashboard" },
-
+  { name: "WhatsApp", icon: MessageCircle, page: "WhatsAppAdmin" },
   { name: "Comm", icon: MessageSquare, page: "Communications" },
   { name: "Assign", icon: CalendarDays, page: "Assignments" },
   { name: "Reports", icon: FileText, page: "Incidents" },

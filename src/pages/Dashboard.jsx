@@ -9,7 +9,6 @@ import SpecialEventsDropdown from "@/components/dashboard/SpecialEventsDropdown"
 import NotifyTeamButton from "@/components/dashboard/NotifyTeamButton";
 
 import SafetyCheckInPanel from "@/components/dashboard/SafetyCheckInPanel";
-import FloorMap from "@/components/floormap/FloorMap";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
@@ -87,12 +86,6 @@ export default function Dashboard() {
             <AssignmentCard key={assignment.id} assignment={assignment} onUpdate={loadData} />
           ))
         )}
-      </div>
-
-      {/* Floor Map */}
-      <div className="space-y-2">
-        <h2 className="text-sm uppercase tracking-widest text-[#d4a843] font-semibold">Facility Floor Map</h2>
-        <FloorMap isAdmin={user?.role === "admin"} />
       </div>
 
       <SafetyCheckInPanel />
