@@ -89,6 +89,12 @@ export default function Dashboard() {
         )}
       </div>
 
+      {/* Floor Map */}
+      <div className="space-y-2">
+        <h2 className="text-sm uppercase tracking-widest text-[#d4a843] font-semibold">Facility Floor Map</h2>
+        <FloorMap isAdmin={user?.role === "admin"} />
+      </div>
+
       <SafetyCheckInPanel />
       <NotifyTeamButton user={user} />
       <EmergencyButton />
