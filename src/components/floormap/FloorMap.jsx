@@ -235,14 +235,22 @@ export default function FloorMap({ isAdmin }) {
 
       {/* Pin Modal */}
       {isAdmin && (
-        <PinEquipmentModal
-          open={pinModal}
-          onOpenChange={setPinModal}
-          zone={selectedZone}
-          allEquipment={equipment}
-          pinnedItems={equipment.filter(e => Object.values(zonePins).flat().includes(e.id))}
-          onSave={handleSavePins}
-        />
+        <>
+          <PinEquipmentModal
+            open={pinModal}
+            onOpenChange={setPinModal}
+            zone={selectedZone}
+            allEquipment={equipment}
+            pinnedItems={equipment.filter(e => Object.values(zonePins).flat().includes(e.id))}
+            onSave={handleSavePins}
+          />
+          <ZoneEditorModal
+            open={zoneEditorOpen}
+            onOpenChange={setZoneEditorOpen}
+            zones={zones}
+            onSave={handleSaveZones}
+          />
+        </>
       )}
     </div>
   );
