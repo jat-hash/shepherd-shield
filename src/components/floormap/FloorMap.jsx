@@ -22,8 +22,8 @@ function loadZones(defaults) {
     return saved ? JSON.parse(saved) : defaults;
   } catch { return defaults; }
 }
-function saveZones(zones) {
-  localStorage.setItem(ZONES_KEY, JSON.stringify(zones));
+function saveZones(data) {
+  localStorage.setItem(ZONES_KEY, JSON.stringify(data));
 }
 
 export default function FloorMap({ isAdmin }) {
