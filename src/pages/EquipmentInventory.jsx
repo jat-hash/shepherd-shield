@@ -127,6 +127,43 @@ export default function EquipmentInventory() {
     load();
   };
 
+  const handleEditSave = async () => {
+    setSaving(true);
+    await base44.entities.Equipment.update(detailItem.id, editForm);
+    setSaving(false);
+    setEditMode(false);
+    setDetailItem({ ...detailItem, ...editForm });
+    load();
+    toast.success("Equipment updated");
+  };
+
+  const handlePrintQR = (item) => {
+    setQrPrintItem(item);
+    setTimeout(() => {
+      const printWindow = window.open('', '_blank');
+      const svgEl = document.getElementById('qr-print-svg');
+      if (!svgEl || !printWindow) return;
+      const svgHTML = svgEl.outerHTML;
+      printWindow.document.write(`
+        <html><head><title>QR - ${item.name}</title>
+        <style>
+          body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: sans-serif; background: white; }
+          .label { font-size: 18px; font-weight: bold; margin-top: 12px; }
+          .sub { font-size: 13px; color: #555; margin-top: 4px; }
+          svg { width: 200px; height: 200px; }
+        </style></head>
+        <body>
+          ${svgHTML}
+          <div class="label">${item.name}</div>
+          ${item.serial_number ? `<div class="sub">SN: ${item.serial_number}</div>` : ''}
+          <div class="sub">${item.qr_code}</div>
+          <script>window.onload = () => { window.print(); window.close(); }</script>
+        </body></html>
+      `);
+      printWindow.document.close();
+    }, 100);
+  };
+
   const markInspected = async (id, item) => {
     const today = new Date().toISOString().split("T")[0];
     const nextMaintenance = item.maintenance_frequency_days
