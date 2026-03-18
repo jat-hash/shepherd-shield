@@ -34,6 +34,8 @@ export default function FloorMap({ isAdmin }) {
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [pinModal, setPinModal] = useState(false);
   const [selectedZone, setSelectedZone] = useState(null);
+  const [zones, setZones] = useState(() => loadZones(DEFAULT_ZONES));
+  const [zoneEditorOpen, setZoneEditorOpen] = useState(false);
   const svgRef = useRef(null);
 
   useEffect(() => {
