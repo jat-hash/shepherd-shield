@@ -76,7 +76,11 @@ export default function FloorMap({ isAdmin }) {
     setPinModal(true);
   };
 
-  const zones = DEFAULT_ZONES.map(z => ({ ...z, pinned: zonePins[z.id] || [] }));
+  const handleSaveZones = (updatedZones) => {
+    setZones(updatedZones);
+    saveZones(updatedZones);
+  };
+
   const allPinnedCount = Object.values(zonePins).flat().length;
 
   return (
