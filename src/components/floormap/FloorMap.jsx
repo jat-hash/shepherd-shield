@@ -3,16 +3,27 @@ import { base44 } from "@/api/base44Client";
 import { DEFAULT_ZONES } from "./FloorMapData";
 import ZoneTooltip from "./ZoneTooltip";
 import PinEquipmentModal from "./PinEquipmentModal";
-import { MapPin, RefreshCw, Info } from "lucide-react";
+import { MapPin, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ZoneEditorModal from "./ZoneEditorModal";
 
 const STORAGE_KEY = "floormap_zone_pins";
+const ZONES_KEY = "floormap_custom_zones";
 
 function loadPins() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch { return {}; }
 }
 function savePins(pins) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(pins));
+}
+function loadZones(defaults) {
+  try {
+    const saved = localStorage.getItem(ZONES_KEY);
+    return saved ? JSON.parse(saved) : defaults;
+  } catch { return defaults; }
+}
+function saveZones(zones) {
+  localStorage.setItem(ZONES_KEY, JSON.stringify(zones));
 }
 
 export default function FloorMap({ isAdmin }) {
