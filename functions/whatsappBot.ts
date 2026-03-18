@@ -62,23 +62,31 @@ Deno.serve(async (req) => {
 
       return twiml(`HELP REQUEST RECEIVED\n\nYour request has been escalated as CRITICAL. Security team notified.\n\nIf life-threatening, call 911.\nStay in a safe location.`);
 
-    } else if (command === 'CHECKIN') {
+    } else if (command === 'CHECKIN' || command === 'CONFIRM') {
       const activeAlerts = await base44.asServiceRole.entities.EmergencyAlert.filter({ is_active: true });
       const alertId = activeAlerts.length > 0 ? activeAlerts[0].id : 'manual';
+
+      // Check if already confirmed to avoid duplicates
+      const existing = await base44.asServiceRole.entities.SafetyCheckIn.filter({ alert_id: alertId, user_phone: from });
+
+      if (existing && existing.length > 0) {
+        return twiml(`✅ Already confirmed!\n\nYou previously acknowledged the alert: ${activeAlerts[0]?.alert_type || 'Emergency'}.\n\nThank you for your response.`);
+      }
 
       await base44.asServiceRole.entities.SafetyCheckIn.create({
         alert_id: alertId,
         user_email: from,
+        user_phone: from,
         user_name: profileName,
         status: 'safe',
         latitude: latitude ? parseFloat(latitude) : undefined,
         longitude: longitude ? parseFloat(longitude) : undefined
       });
 
-      return twiml(`CHECK-IN CONFIRMED\n\nYou have been marked as SAFE.\n${activeAlerts.length > 0 ? `Alert: ${activeAlerts[0].alert_type}` : 'No active alerts.'}\n\nThank you.`);
+      return twiml(`✅ CONFIRMED\n\nYou have acknowledged the emergency alert.\n${activeAlerts.length > 0 ? `Alert: ${activeAlerts[0].alert_type}` : 'No active alerts.'}\n\nYou will no longer receive repeat notifications for this alert.\nStay safe.`);
 
     } else {
-      return twiml(`Shepherd Shield Security Bot\n\nCommands:\n- ALERT [details] - Report an emergency\n- HELP - Request immediate assistance\n- CHECKIN - Confirm you are safe\n\nShare your location with any command for faster response.`);
+      return twiml(`Shepherd Shield Security Bot\n\nCommands:\n- ALERT [details] - Report an emergency\n- HELP - Request immediate assistance\n- CONFIRM - Acknowledge an emergency alert\n- CHECKIN - Confirm you are safe\n\nShare your location with any command for faster response.`);
     }
 
   } catch (error) {
