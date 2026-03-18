@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Check } from "lucide-react";
+import { Plus, Check, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import ReminderSettings from "@/components/calendar/ReminderSettings";
 
@@ -25,6 +25,7 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
     notes: "",
   });
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [users, setUsers] = useState([]);
   const [positions, setPositions] = useState([]);
   const [selectedResponsibilities, setSelectedResponsibilities] = useState([]);
