@@ -319,8 +319,15 @@ export default function EquipmentInventory() {
         </DialogContent>
       </Dialog>
 
+      {/* Hidden QR for printing */}
+      {qrPrintItem && (
+        <div className="hidden">
+          <QRCodeSVG id="qr-print-svg" value={qrPrintItem.qr_code || qrPrintItem.id} size={200} />
+        </div>
+      )}
+
       {/* Detail */}
-      <Dialog open={!!detailItem} onOpenChange={() => setDetailItem(null)}>
+      <Dialog open={!!detailItem} onOpenChange={() => { setDetailItem(null); setEditMode(false); }}>
         <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#d4a843] flex items-center gap-2">
