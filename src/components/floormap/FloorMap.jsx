@@ -93,7 +93,16 @@ export default function FloorMap({ isAdmin }) {
           <span className="text-slate-500 text-xs">({allPinnedCount} items pinned)</span>
         </div>
         <div className="flex items-center gap-2 text-xs text-slate-500">
-          {isAdmin && <span className="text-[#d4a843]/70">Click zone to pin equipment</span>}
+          {isAdmin && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setZoneEditorOpen(true)}
+              className="h-7 px-2 text-[#d4a843]/70 hover:text-[#d4a843] hover:bg-[#d4a843]/10 text-xs gap-1"
+            >
+              <Pencil className="w-3 h-3" /> Edit Zones
+            </Button>
+          )}
           <span className="text-slate-600">Hover to inspect</span>
         </div>
       </div>
