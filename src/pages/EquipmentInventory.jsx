@@ -477,6 +477,17 @@ export default function EquipmentInventory() {
                 </div>
               )}
 
+              {/* QR Code Section */}
+              {detailItem.qr_code && (
+                <div className="bg-[#0a1128] rounded-lg p-4 border border-slate-700 flex flex-col items-center gap-3">
+                  <QRCodeSVG value={detailItem.qr_code} size={120} bgColor="#0a1128" fgColor="#d4a843" />
+                  <p className="text-xs text-slate-400 font-mono">{detailItem.qr_code}</p>
+                  <Button onClick={() => handlePrintQR(detailItem)} variant="outline" size="sm" className="border-[#d4a843] text-[#d4a843] hover:bg-[#d4a843]/10 gap-2">
+                    <Printer className="w-3.5 h-3.5" /> Print QR Label
+                  </Button>
+                </div>
+              )}
+
               <div className="flex gap-2 pt-2">
                 {detailItem.checked_out ? (
                   <Button onClick={() => handleCheckIn(detailItem)} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm">
@@ -491,6 +502,8 @@ export default function EquipmentInventory() {
                   <CheckCircle className="w-4 h-4 mr-2" /> Inspect
                 </Button>
               </div>
+              </>
+              )}
             </div>
           )}
         </DialogContent>
