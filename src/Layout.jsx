@@ -9,6 +9,7 @@ import NotificationProvider from "@/components/notifications/NotificationProvide
 import NotificationBell from "@/components/notifications/NotificationBell";
 import PWAInstaller from "@/components/PWAInstaller";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import OfflineIndicator from "@/components/notifications/OfflineIndicator";
 
 const NAV_ITEMS = [
   { name: "Dashboard", icon: Home, page: "Dashboard" },

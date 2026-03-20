@@ -29,6 +29,10 @@ export const openDB = () => {
       if (!db.objectStoreNames.contains('alerts')) {
         db.createObjectStore('alerts', { keyPath: 'id' });
       }
+
+      if (!db.objectStoreNames.contains('specialEvents')) {
+        db.createObjectStore('specialEvents', { keyPath: 'id' });
+      }
     };
   });
 };
