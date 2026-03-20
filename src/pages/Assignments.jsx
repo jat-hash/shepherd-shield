@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, CheckCircle, Clock, XCircle, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { Plus, CheckCircle, Clock, XCircle, ChevronLeft, ChevronRight, Calendar, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import AssignmentForm from "@/components/assignments/AssignmentForm";
+import useOfflineData from "@/hooks/useOfflineData";
 
 export default function Assignments() {
   const [assignments, setAssignments] = useState([]);

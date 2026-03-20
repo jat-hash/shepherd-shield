@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import AssignmentCard from "@/components/dashboard/AssignmentCard";
 import EmergencyButton from "@/components/dashboard/EmergencyButton";
@@ -7,51 +7,36 @@ import QuickActionGrid from "@/components/dashboard/QuickActionGrid";
 import SOPQuickAccess from "@/components/dashboard/SOPQuickAccess";
 import SpecialEventsDropdown from "@/components/dashboard/SpecialEventsDropdown";
 import NotifyTeamButton from "@/components/dashboard/NotifyTeamButton";
-
 import SafetyCheckInPanel from "@/components/dashboard/SafetyCheckInPanel";
+import useOfflineData from "@/hooks/useOfflineData";
+import { WifiOff } from "lucide-react";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
-  const [assignments, setAssignments] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const u = await base44.auth.me();
-      setUser(u);
-      
-      // Get start and end of current month
-      const today = new Date();
-      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      
-      const allAssignments = await base44.entities.Assignment.filter({
-        assigned_to_email: u.email
-      }, "-service_date", 1000);
-      
-      // Filter assignments for this month
-      const monthAssignments = allAssignments.filter(a => {
-        const assignmentDate = new Date(a.service_date);
-        return assignmentDate >= startOfMonth && assignmentDate <= endOfMonth;
-      });
-      
-      setAssignments(monthAssignments);
-    } catch (error) {
-      console.error("Error loading data:", error);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => { 
-    loadData();
+  useEffect(() => {
+    base44.auth.me().then(setUser).catch(() => {});
   }, []);
+
+  const fetchAssignments = useCallback(async () => {
+    if (!user) return [];
+    const today = new Date();
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    const all = await base44.entities.Assignment.filter({ assigned_to_email: user.email }, "-service_date", 1000);
+    return all.filter(a => {
+      const d = new Date(a.service_date);
+      return d >= startOfMonth && d <= endOfMonth;
+    });
+  }, [user]);
+
+  const { data: assignments, loading, isOffline, reload } = useOfflineData("assignments", fetchAssignments, [user]);
 
   useEffect(() => {
     if (!user) return;
-    const unsub = base44.entities.Assignment.subscribe(() => loadData());
+    const unsub = base44.entities.Assignment.subscribe(() => reload());
     return unsub;
-  }, [user]);
+  }, [user, reload]);
 
   if (loading) {
     return (
