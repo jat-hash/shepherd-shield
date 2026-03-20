@@ -119,8 +119,15 @@ export default function Assignments() {
         </Button>
       </div>
 
+      {isOffline && (
+        <div className="flex items-center gap-2 bg-orange-900/40 border border-orange-500/30 rounded-lg px-3 py-2 text-orange-300 text-xs">
+          <WifiOff className="w-3.5 h-3.5 shrink-0" />
+          You're offline — showing cached data
+        </div>
+      )}
+
       {/* Calendar Rows */}
-      {loading ? (
+      {loadingA ? (
         <div className="flex justify-center py-12">
           <div className="w-6 h-6 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
         </div>
@@ -129,7 +136,7 @@ export default function Assignments() {
           {days.filter(Boolean).map((date, i) => {
             const dayAssignments = getAssignmentsForDate(date);
             const dayEvents = getEventsForDate(date);
-            const isToday = date.toISOString().split("T")[0] === new Date().toISOString().split("T")[0];
+            const d = date; const isToday = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` === (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; })();
             const hasItems = dayAssignments.length > 0 || dayEvents.length > 0;
 
             return (
