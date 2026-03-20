@@ -47,8 +47,21 @@ export const AuthProvider = ({ children }) => {
         setIsLoadingPublicSettings(false);
       } catch (appError) {
         console.error('App state check failed:', appError);
+
+        // If it's a network error (offline), don't block the app — let it load with cached data
+        const isNetworkError = !appError.status || appError.message === 'Network Error' || appError.code === 'ERR_NETWORK';
+        if (isNetworkError) {
+          // Still try to load user from token if available, then show app offline
+          if (appParams.token) {
+            await checkUserAuth();
+          } else {
+            setIsLoadingAuth(false);
+          }
+          setIsLoadingPublicSettings(false);
+          return;
+        }
         
-        // Handle app-level errors
+        // Handle app-level errors (only for real server responses)
         if (appError.status === 403 && appError.data?.extra_data?.reason) {
           const reason = appError.data.extra_data.reason;
           if (reason === 'auth_required') {
