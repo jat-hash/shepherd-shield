@@ -18,10 +18,10 @@ Deno.serve(async (req) => {
     // Get recipients: either specific users or all users
     let recipients;
     if (recipient_emails && recipient_emails.length > 0) {
-      const allUsers = await base44.asServiceRole.entities.User.list();
+      const allUsers = await base44.asServiceRole.entities.User.list(undefined, 1000);
       recipients = allUsers.filter(u => recipient_emails.includes(u.email));
     } else {
-      recipients = await base44.asServiceRole.entities.User.list();
+      recipients = await base44.asServiceRole.entities.User.list(undefined, 1000);
     }
 
     await Promise.all(recipients.map(async (recipient) => {
