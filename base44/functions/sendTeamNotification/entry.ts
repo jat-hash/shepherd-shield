@@ -24,7 +24,8 @@ Deno.serve(async (req) => {
       recipients = await base44.asServiceRole.entities.User.list(undefined, 1000);
     }
 
-    await Promise.all(recipients.map(async (recipient) => {
+    // Process notifications sequentially to avoid CPU timeout
+    for (const recipient of recipients) {
       // Create in-app notification
       await base44.asServiceRole.entities.Notification.create({
         user_email: recipient.email,
@@ -45,9 +46,9 @@ Deno.serve(async (req) => {
       const twilioSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       const twilioAuth = Deno.env.get('TWILIO_AUTH_TOKEN');
       const twilioWA = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
-      const recipientPhone = recipient.phone_number || recipient.data?.phone_number;
+      const recipientPhone = recipient.phone || recipient.phone_number;
       if (!recipientPhone) {
-        console.log(`WhatsApp skipped for ${recipient.email}: no phone_number on profile`);
+        console.log(`WhatsApp skipped for ${recipient.email}: no phone on profile`);
       } else if (twilioSid && twilioAuth && twilioWA) {
         let phone = recipientPhone.replace(/\D/g, '');
         if (!phone.startsWith('1') && phone.length === 10) phone = '1' + phone;
@@ -64,7 +65,7 @@ Deno.serve(async (req) => {
         if (!waRes.ok) console.log(`WhatsApp error for ${recipient.email}:`, JSON.stringify(waData));
         else console.log(`WhatsApp sent to ${recipient.email} (${phone}), SID: ${waData.sid}`);
       }
-    }));
+    }
 
     const withPhone = recipients.filter(r => r.phone_number || r.data?.phone_number).length;
     const withoutPhone = recipients.filter(r => !r.phone_number && !r.data?.phone_number).map(r => r.email);
