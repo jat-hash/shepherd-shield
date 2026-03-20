@@ -11,38 +11,48 @@ export default function Assignments() {
   const [editData, setEditData] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [currentUser, setCurrentUser] = useState(null);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
   }, []);
 
   const isAdmin = currentUser?.role === "admin";
+
+  const { data: assignments, loading: loadingA, reload: reloadA } = useOfflineData(
+    "assignments",
+    useCallback(async () => base44.entities.Assignment.filter({}, "service_date", 1000), []),
+    [currentMonth]
+  );
+
+  const { data: specialEvents, loading: loadingE, reload: reloadE } = useOfflineData(
+    "specialEvents",
+    useCallback(async () => base44.entities.SpecialEvent.filter({}, "event_date", 1000), []),
+    [currentMonth]
+  );
+
+  const loading = loadingA || loadingE;
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
   const startDate = new Date(year, month, 1).toISOString().split("T")[0];
   const endDate = new Date(year, month + 1, 0).toISOString().split("T")[0];
 
-  const fetchAssignments = useCallback(async () => {
-    const all = await base44.entities.Assignment.filter({}, "service_date", 1000);
-    return all.filter(a => a.service_date >= startDate && a.service_date <= endDate);
-  }, [startDate, endDate]);
+  const filteredAssignments = assignments.filter(a => a.service_date >= startDate && a.service_date <= endDate);
+  const filteredEvents = specialEvents.filter(e => e.event_date >= startDate && e.event_date <= endDate);
 
-  const fetchEvents = useCallback(async () => {
-    const all = await base44.entities.SpecialEvent.filter({}, "event_date", 1000);
-    return all.filter(e => e.event_date >= startDate && e.event_date <= endDate);
-  }, [startDate, endDate]);
-
-  const { data: assignments, loading: loadingA, isOffline, reload: reloadA } = useOfflineData("assignments", fetchAssignments, [currentMonth]);
-  const { data: specialEvents, reload: reloadE } = useOfflineData("specialEvents", fetchEvents, [currentMonth]);
-
-  const loadData = useCallback(() => { reloadA(); reloadE(); }, [reloadA, reloadE]);
+  const loadData = () => { reloadA(); reloadE(); };
 
   useEffect(() => {
     const unsubA = base44.entities.Assignment.subscribe(() => reloadA());
     const unsubE = base44.entities.SpecialEvent.subscribe(() => reloadE());
     return () => { unsubA(); unsubE(); };
-  }, [reloadA, reloadE]);
+  }, []);
 
   const getDaysInMonth = () => {
     const year = currentMonth.getFullYear();
@@ -69,13 +79,13 @@ export default function Assignments() {
   const getAssignmentsForDate = (date) => {
     if (!date) return [];
     const dateStr = date.toISOString().split("T")[0];
-    return assignments.filter(a => a.service_date === dateStr);
+    return filteredAssignments.filter(a => a.service_date === dateStr);
   };
 
   const getEventsForDate = (date) => {
     if (!date) return [];
     const dateStr = date.toISOString().split("T")[0];
-    return specialEvents.filter(e => e.event_date === dateStr);
+    return filteredEvents.filter(e => e.event_date === dateStr);
   };
 
   const goToPreviousMonth = () => {
@@ -119,15 +129,8 @@ export default function Assignments() {
         </Button>
       </div>
 
-      {isOffline && (
-        <div className="flex items-center gap-2 bg-orange-900/40 border border-orange-500/30 rounded-lg px-3 py-2 text-orange-300 text-xs">
-          <WifiOff className="w-3.5 h-3.5 shrink-0" />
-          You're offline — showing cached data
-        </div>
-      )}
-
       {/* Calendar Rows */}
-      {loadingA ? (
+      {loading ? (
         <div className="flex justify-center py-12">
           <div className="w-6 h-6 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
         </div>
@@ -136,7 +139,7 @@ export default function Assignments() {
           {days.filter(Boolean).map((date, i) => {
             const dayAssignments = getAssignmentsForDate(date);
             const dayEvents = getEventsForDate(date);
-            const d = date; const isToday = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` === (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; })();
+            const isToday = date.toISOString().split("T")[0] === new Date().toISOString().split("T")[0];
             const hasItems = dayAssignments.length > 0 || dayEvents.length > 0;
 
             return (
