@@ -55,6 +55,7 @@ export default function Layout({ children, currentPageName }) {
       <ServiceWorkerRegister />
       <Toaster richColors closeButton position="top-right" />
       <PWAInstaller />
+      <OfflineIndicator />
       <div className="min-h-screen bg-[#0a1128] text-white flex flex-col">
       <style>{`
         :root {
