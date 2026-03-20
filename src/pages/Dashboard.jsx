@@ -38,7 +38,7 @@ export default function Dashboard() {
     return unsub;
   }, [user, reload]);
 
-  if (loading) {
+  if (loading && !assignments.length) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-8 h-8 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
@@ -48,6 +48,12 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-2xl mx-auto px-3 py-4 lg:px-4 lg:py-6 lg:ml-60 space-y-4">
+      {isOffline && (
+        <div className="flex items-center gap-2 bg-orange-900/40 border border-orange-500/30 rounded-lg px-3 py-2 text-orange-300 text-xs">
+          <WifiOff className="w-3.5 h-3.5 shrink-0" />
+          You're offline — showing cached data
+        </div>
+      )}
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-white">
           Welcome back, <span className="text-[#d4a843]">{user?.display_name?.split(" ")[0] || user?.full_name?.split(" ")[0] || "Officer"}</span>
