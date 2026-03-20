@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
-import twilio from 'npm:twilio@4.10.0';
 
 const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID');
 const TWILIO_AUTH_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN');
@@ -13,20 +12,35 @@ const menuOptions = {
   'menu': '*Welcome to Shepherd Shield!* 🛡️\n\nReply with:\n1️⃣ - Assignments\n2️⃣ - Report Incident\n3️⃣ - Team Status\n4️⃣ - Contact Support'
 };
 
+async function verifyTwilioSignature(signature, url, params, authToken) {
+  try {
+    const data = url + Object.keys(params)
+      .sort()
+      .map(key => key + params[key])
+      .join('');
+
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(authToken);
+    const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+    const hashBuffer = await crypto.subtle.sign('HMAC', key, encoder.encode(data));
+    const hash = btoa(String.fromCharCode(...new Uint8Array(hashBuffer)));
+
+    return signature === hash;
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   try {
-    // Only accept POST
     if (req.method !== 'POST') {
       return Response.json({ error: 'Method not allowed' }, { status: 405 });
     }
 
-    // Parse incoming Twilio webhook
     const formData = await req.formData();
     const incomingMessage = (formData.get('Body') || '').trim().toLowerCase();
     const fromNumber = formData.get('From') || '';
-    const accountSid = formData.get('AccountSid') || '';
 
-    // Validate Twilio signature
     const twilioSignature = req.headers.get('X-Twilio-Signature') || '';
     const url = new URL(req.url);
     const params = {};
@@ -34,16 +48,15 @@ Deno.serve(async (req) => {
       params[key] = value;
     });
 
-    if (!verifyTwilioSignature(twilioSignature, url.toString(), params, TWILIO_AUTH_TOKEN)) {
+    const isValid = await verifyTwilioSignature(twilioSignature, url.toString(), params, TWILIO_AUTH_TOKEN);
+    if (!isValid) {
       console.warn('Invalid Twilio signature');
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Extract phone number and sender info
     const senderPhone = fromNumber.replace('whatsapp:', '').trim();
     const base44 = createClientFromRequest(req);
 
-    // Try to find user by phone
     let senderEmail = 'unknown';
     let senderName = senderPhone;
     try {
@@ -60,7 +73,6 @@ Deno.serve(async (req) => {
       console.log('Could not match sender to user:', err.message);
     }
 
-    // Store incoming message in TeamMessage entity
     try {
       await base44.asServiceRole.entities.TeamMessage.create({
         channel: 'whatsapp',
@@ -73,17 +85,14 @@ Deno.serve(async (req) => {
       console.log('Could not store message:', err.message);
     }
 
-    // Determine reply based on user input
-    let reply = menuOptions[incomingMessage];
-    if (!reply) {
-      reply = menuOptions['menu']; // Default to menu
-    }
+    let reply = menuOptions[incomingMessage] || menuOptions['menu'];
 
-    // Send reply back via Twilio
-    const twimlResponse = new twilio.twiml.MessagingResponse();
-    twimlResponse.message(reply);
+    const twimlXml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${escapeXml(reply)}</Message>
+</Response>`;
 
-    return new Response(twimlResponse.toString(), {
+    return new Response(twimlXml, {
       headers: { 'Content-Type': 'application/xml' }
     });
 
@@ -93,25 +102,13 @@ Deno.serve(async (req) => {
   }
 });
 
-// Verify Twilio signature
-function verifyTwilioSignature(signature, url, params, authToken) {
-  try {
-    const data = url + Object.keys(params)
-      .sort()
-      .map(key => key + params[key])
-      .join('');
-
-    const hash = btoa(
-      new TextEncoder().encode(
-        await crypto.subtle.sign('HMAC', 
-          await crypto.subtle.importKey('raw', new TextEncoder().encode(authToken), { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']),
-          new TextEncoder().encode(data)
-        )
-      )
-    );
-
-    return signature === hash;
-  } catch {
-    return false;
-  }
+function escapeXml(unsafe) {
+  return unsafe
+    .replace(/[<>&'"]/g, c => ({
+      '<': '&lt;',
+      '>': '&gt;',
+      '&': '&amp;',
+      "'": '&apos;',
+      '"': '&quot;'
+    }[c]));
 }
