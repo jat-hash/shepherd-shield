@@ -7,9 +7,6 @@ import AssignmentForm from "@/components/assignments/AssignmentForm";
 import useOfflineData from "@/hooks/useOfflineData";
 
 export default function Assignments() {
-  const [assignments, setAssignments] = useState([]);
-  const [specialEvents, setSpecialEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editData, setEditData] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -21,34 +18,31 @@ export default function Assignments() {
 
   const isAdmin = currentUser?.role === "admin";
 
-  const loadData = async () => {
-    setLoading(true);
-    
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-    const startDate = new Date(year, month, 1).toISOString().split("T")[0];
-    const endDate = new Date(year, month + 1, 0).toISOString().split("T")[0];
-    
-    const [allAssignments, allEvents] = await Promise.all([
-      base44.entities.Assignment.filter({}, "service_date", 1000),
-      base44.entities.SpecialEvent.filter({}, "event_date", 1000)
-    ]);
-    
-    const filteredAssignments = allAssignments.filter(a => a.service_date >= startDate && a.service_date <= endDate);
-    setAssignments(filteredAssignments);
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const startDate = new Date(year, month, 1).toISOString().split("T")[0];
+  const endDate = new Date(year, month + 1, 0).toISOString().split("T")[0];
 
-    const filteredEvents = allEvents.filter(e => e.event_date >= startDate && e.event_date <= endDate);
-    setSpecialEvents(filteredEvents);
-    
-    setLoading(false);
-  };
+  const fetchAssignments = useCallback(async () => {
+    const all = await base44.entities.Assignment.filter({}, "service_date", 1000);
+    return all.filter(a => a.service_date >= startDate && a.service_date <= endDate);
+  }, [startDate, endDate]);
+
+  const fetchEvents = useCallback(async () => {
+    const all = await base44.entities.SpecialEvent.filter({}, "event_date", 1000);
+    return all.filter(e => e.event_date >= startDate && e.event_date <= endDate);
+  }, [startDate, endDate]);
+
+  const { data: assignments, loading: loadingA, isOffline, reload: reloadA } = useOfflineData("assignments", fetchAssignments, [currentMonth]);
+  const { data: specialEvents, reload: reloadE } = useOfflineData("specialEvents", fetchEvents, [currentMonth]);
+
+  const loadData = useCallback(() => { reloadA(); reloadE(); }, [reloadA, reloadE]);
 
   useEffect(() => {
-    loadData();
-    const unsubA = base44.entities.Assignment.subscribe(() => loadData());
-    const unsubE = base44.entities.SpecialEvent.subscribe(() => loadData());
+    const unsubA = base44.entities.Assignment.subscribe(() => reloadA());
+    const unsubE = base44.entities.SpecialEvent.subscribe(() => reloadE());
     return () => { unsubA(); unsubE(); };
-  }, [currentMonth]);
+  }, [reloadA, reloadE]);
 
   const getDaysInMonth = () => {
     const year = currentMonth.getFullYear();
