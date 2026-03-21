@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
       },
       body: new URLSearchParams({
         To: `whatsapp:${toFormatted}`,
-        From: fromFormatted,
+        MessagingServiceSid: 'HXa8f2d0c8dd650aa0c4a6d08f9b44197e',
         Body: message
       }).toString()
     });
