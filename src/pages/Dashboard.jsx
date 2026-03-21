@@ -74,7 +74,7 @@ export default function Dashboard() {
           </div>
         ) : (
           assignments.map(assignment => (
-            <AssignmentCard key={assignment.id} assignment={assignment} onUpdate={loadData} />
+            <AssignmentCard key={assignment.id} assignment={assignment} onUpdate={reload} />
           ))
         )}
       </div>
