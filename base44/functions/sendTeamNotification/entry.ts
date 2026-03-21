@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
               'Authorization': 'Basic ' + btoa(`${twilioSid}:${twilioAuth}`),
               'Content-Type': 'application/x-www-form-urlencoded'
             },
-            body: new URLSearchParams({ To: `whatsapp:${phone}`, MessagingServiceSid: 'HXa8f2d0c8dd650aa0c4a6d08f9b44197e', Body: `${title}\n\n${message}` }).toString()
+            body: new URLSearchParams({ To: `whatsapp:${phone}`, From: waFrom, Body: `${title}\n\n${message}` }).toString()
           });
           const waData = await waRes.json();
           if (!waRes.ok) {
