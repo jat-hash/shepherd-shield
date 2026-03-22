@@ -82,7 +82,7 @@ export default function RadioQRCheckIn() {
   return (
     <>
       <button
-        onClick={() => { setOpen(true); setCameraMode(true); }}
+        onClick={() => { setOpen(true); setTimeout(() => setCameraMode(true), 400); }}
         className="flex flex-col items-center justify-center gap-1.5 bg-[#1a2744] border border-[rgba(212,168,67,0.15)] hover:border-[#d4a843]/40 rounded-xl p-4 transition-all w-full"
       >
         <div className="w-10 h-10 rounded-full bg-[#d4a843]/15 flex items-center justify-center">
