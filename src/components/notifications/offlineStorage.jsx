@@ -33,6 +33,9 @@ export const openDB = () => {
       if (!db.objectStoreNames.contains('pendingCheckIns')) {
         db.createObjectStore('pendingCheckIns', { keyPath: 'tempId', autoIncrement: true });
       }
+      if (!db.objectStoreNames.contains('team_users')) {
+        db.createObjectStore('team_users', { keyPath: 'id' });
+      }
     };
   });
 };
