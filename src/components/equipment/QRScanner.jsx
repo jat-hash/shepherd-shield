@@ -15,20 +15,20 @@ export default function QRScanner({ onScan, onClose, scannerId = "qr-reader" }) 
 
     // Small delay to ensure the DOM element is mounted inside the dialog
     const timer = setTimeout(() => {
-    scanner.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      (decodedText) => {
-        if (hasScanned.current) return;
-        hasScanned.current = true;
-        scanner.stop().catch(() => {});
-        onScan(decodedText);
-      },
-      () => {}
-    ).then(() => setStarted(true)).catch((err) => {
-      setError("Camera access denied or unavailable. Please enter code manually.");
-      console.error(err);
-    });
+      scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          if (hasScanned.current) return;
+          hasScanned.current = true;
+          scanner.stop().catch(() => {});
+          onScan(decodedText);
+        },
+        () => {}
+      ).then(() => setStarted(true)).catch((err) => {
+        setError("Camera access denied or unavailable. Please enter code manually.");
+        console.error(err);
+      });
     }, 300);
 
     return () => {
