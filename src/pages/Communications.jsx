@@ -228,12 +228,21 @@ export default function Communications() {
   };
 
   const loadMessages = () => {
+    if (!navigator.onLine) {
+      getCachedData('messages').then(cached => {
+        const channelMsgs = (cached || []).filter(m => m.channel === activeChannel.name).sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+        setMessages(channelMsgs.filter(m => !m.is_pinned));
+        setPinnedMessages(channelMsgs.filter(m => m.is_pinned));
+      });
+      return;
+    }
     setLoading(true);
     base44.entities.TeamMessage.filter({ channel: activeChannel.name }, "-created_date", 100)
       .then(msgs => {
         const sorted = msgs.reverse();
         setMessages(sorted.filter(m => !m.is_pinned));
         setPinnedMessages(sorted.filter(m => m.is_pinned));
+        cacheData('messages', sorted).catch(() => {});
         setLoading(false);
       });
   };
