@@ -23,14 +23,13 @@ const conditionColors = {
 };
 
 export default function EquipmentInventory() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [detailItem, setDetailItem] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [form, setForm] = useState({ name: "", category: "Radio", serial_number: "", qr_code: "", assigned_to: "", condition: "Good", maintenance_frequency_days: 30, equipment_manual: "", maintenance_notes: "" });
   const [saving, setSaving] = useState(false);
   const [scanMode, setScanMode] = useState(false);
+  const [cameraMode, setCameraMode] = useState(false);
   const [scannedCode, setScannedCode] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
   const [editMode, setEditMode] = useState(false);
@@ -38,15 +37,10 @@ export default function EquipmentInventory() {
   const [qrPrintItem, setQrPrintItem] = useState(null);
   const qrRef = useRef(null);
 
-  const load = async () => {
-    setLoading(true);
-    const all = await base44.entities.Equipment.list("-created_date", 200);
-    setItems(all);
-    setLoading(false);
-  };
+  const fetchFn = useCallback(() => base44.entities.Equipment.list("-created_date", 200), []);
+  const { data: items, loading, isOffline, reload: load } = useOfflineData("equipment", fetchFn, []);
 
   useEffect(() => { 
-    load();
     base44.auth.me().then(setCurrentUser).catch(() => {});
     const unsub = base44.entities.Equipment.subscribe(() => load());
     return unsub;
