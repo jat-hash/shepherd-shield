@@ -44,8 +44,8 @@ export const cacheData = async (storeName, data) => {
     const transaction = db.transaction([storeName], 'readwrite');
     const store = transaction.objectStore(storeName);
     if (Array.isArray(data)) {
-      data.forEach(item => store.put(item));
-    } else {
+      data.filter(item => item.id && !String(item.id).startsWith('pending-')).forEach(item => store.put(item));
+    } else if (data.id && !String(data.id).startsWith('pending-')) {
       store.put(data);
     }
     return new Promise((resolve, reject) => {
@@ -127,25 +127,21 @@ export const clearPendingMessages = async () => {
 export const syncPendingMessages = async (base44) => {
   try {
     const pendingMessages = await getPendingMessages();
-    const failed = [];
     for (const message of pendingMessages) {
       try {
-        const { tempId, timestamp, isPending, ...msgData } = message;
         await base44.entities.TeamMessage.create({
-          ...msgData,
-          message_type: msgData.message_type || 'text'
+          channel: message.channel,
+          content: message.content,
+          sender_name: message.sender_name,
+          sender_email: message.sender_email,
+          message_type: message.message_type || 'text'
         });
       } catch (error) {
         console.error('Failed to sync message:', error);
-        failed.push(message);
       }
     }
     await clearPendingMessages();
-    // Re-save any that failed so they aren't lost
-    for (const msg of failed) {
-      await savePendingMessage(msg).catch(() => {});
-    }
-    return failed.length === 0;
+    return true;
   } catch (error) {
     console.error('Sync failed:', error);
     return false;
