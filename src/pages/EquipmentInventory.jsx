@@ -516,37 +516,55 @@ export default function EquipmentInventory() {
       </Dialog>
 
       {/* Scan Mode */}
-      <Dialog open={scanMode} onOpenChange={setScanMode}>
+      <Dialog open={scanMode} onOpenChange={(open) => { setScanMode(open); if (!open) { setCameraMode(false); setScannedCode(""); } }}>
         <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-[#d4a843] flex items-center gap-2">
               <QrCode className="w-5 h-5" />
-              Scan Equipment
+              Scan Equipment QR
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="bg-[#0a1128] rounded-lg p-8 border-2 border-dashed border-slate-700 text-center">
-              <Camera className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-              <p className="text-sm text-slate-400">Scan QR code or enter manually</p>
-            </div>
-            <div>
-              <Label className="text-slate-300 text-xs">QR Code or Serial Number</Label>
-              <Input
-                value={scannedCode}
-                onChange={e => setScannedCode(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleScan()}
-                className="bg-[#0a1128] border-slate-700 text-white mt-1"
-                placeholder="Enter code..."
-                autoFocus
-              />
-            </div>
+            {cameraMode ? (
+              <>
+                <QRScanner
+                  onScan={(code) => handleScan(code)}
+                  onClose={() => setCameraMode(false)}
+                />
+                <button onClick={() => setCameraMode(false)} className="text-xs text-slate-400 underline w-full text-center">
+                  Enter code manually instead
+                </button>
+              </>
+            ) : (
+              <>
+                <Button
+                  onClick={() => setCameraMode(true)}
+                  className="w-full bg-[#0a1128] border border-dashed border-slate-600 hover:border-[#d4a843]/50 text-slate-300 h-20 flex-col gap-2"
+                  variant="ghost"
+                >
+                  <Camera className="w-8 h-8 text-[#d4a843]" />
+                  <span className="text-xs">Tap to open camera</span>
+                </Button>
+                <div>
+                  <Label className="text-slate-300 text-xs">Or enter QR Code / Serial Number manually</Label>
+                  <Input
+                    value={scannedCode}
+                    onChange={e => setScannedCode(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && handleScan()}
+                    className="bg-[#0a1128] border-slate-700 text-white mt-1"
+                    placeholder="Enter code..."
+                    autoFocus
+                  />
+                </div>
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => { setScanMode(false); setScannedCode(""); }} className="text-slate-400">Cancel</Button>
+                  <Button onClick={() => handleScan()} disabled={!scannedCode.trim()} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
+                    Find Equipment
+                  </Button>
+                </DialogFooter>
+              </>
+            )}
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => { setScanMode(false); setScannedCode(""); }} className="text-slate-400">Cancel</Button>
-            <Button onClick={handleScan} disabled={!scannedCode.trim()} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
-              Find Equipment
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
