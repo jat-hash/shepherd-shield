@@ -311,7 +311,38 @@ export default function AdminMonitor() {
     <div className="max-w-6xl mx-auto px-4 py-6 lg:ml-60 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">Admin Monitor</h1>
-        <p className="text-slate-400 text-sm mt-1">Real-time check-in/check-out tracking</p>
+        <p className="text-slate-400 text-sm mt-1">Real-time tracking dashboard</p>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 bg-[#1a2744] p-1 rounded-xl border border-[rgba(212,168,67,0.1)] w-fit">
+        <button
+          onClick={() => setActiveTab("assignments")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            activeTab === "assignments"
+              ? "bg-[#d4a843] text-[#0a1128]"
+              : "text-slate-400 hover:text-white"
+          }`}
+        >
+          <CheckCircle className="w-4 h-4" />
+          Personnel Check-In
+        </button>
+        <button
+          onClick={() => setActiveTab("tools")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            activeTab === "tools"
+              ? "bg-[#d4a843] text-[#0a1128]"
+              : "text-slate-400 hover:text-white"
+          }`}
+        >
+          <Wrench className="w-4 h-4" />
+          Tool Monitoring
+          {checkedOutEquipment.length > 0 && (
+            <span className="bg-orange-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
+              {checkedOutEquipment.length}
+            </span>
+          )}
+        </button>
       </div>
 
       {isOffline && (
