@@ -68,6 +68,21 @@ export default function Communications() {
     const handleOnline = async () => {
       setIsOffline(false);
       await syncPendingMessages(base44).catch(() => {});
+      // Reload DM channels from server
+      if (user) {
+        try {
+          const all = await base44.entities.TeamMessage.list("-created_date", 500);
+          const dmSet = new Set();
+          all.forEach(msg => {
+            if (msg.channel?.startsWith("DM: ") && msg.channel.includes(user.email)) {
+              dmSet.add(msg.channel);
+            }
+          });
+          setDmChannels(Array.from(dmSet));
+        } catch (e) {
+          console.error('Failed to reload DM channels:', e);
+        }
+      }
       loadMessages();
     };
     const handleOffline = () => setIsOffline(true);
@@ -77,7 +92,7 @@ export default function Communications() {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, [activeChannel.name]);
+  }, [user]);
 
   useEffect(() => {
     setLoading(true);
