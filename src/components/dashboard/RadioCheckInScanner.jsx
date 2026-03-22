@@ -42,22 +42,35 @@ export default function RadioCheckInScanner({ user }) {
     setLoading(false);
   };
 
+  const retryWithBackoff = async (fn, maxRetries = 3) => {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await fn();
+      } catch (error) {
+        if (i === maxRetries - 1) throw error;
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+      }
+    }
+  };
+
   const handleCheckOut = async () => {
     setLoading(true);
     try {
-      await base44.entities.Equipment.update(foundItem.id, {
-        checked_out: true,
-        checked_out_by: user?.full_name || user?.email,
-        checked_out_at: new Date().toISOString(),
-        usage_history: [
-        ...(foundItem.usage_history || []),
-        { action: "check-out", user: user?.full_name || user?.email, timestamp: new Date().toISOString() }]
-
-      });
+      await retryWithBackoff(() =>
+        base44.entities.Equipment.update(foundItem.id, {
+          checked_out: true,
+          checked_out_by: user?.full_name || user?.email,
+          checked_out_at: new Date().toISOString(),
+          usage_history: [
+            ...(foundItem.usage_history || []),
+            { action: "check-out", user: user?.full_name || user?.email, timestamp: new Date().toISOString() }
+          ]
+        })
+      );
       toast.success(`${foundItem.name} checked out`);
       handleClose();
-    } catch {
-      toast.error("Failed to check out");
+    } catch (error) {
+      toast.error(error?.message?.includes("Rate limit") ? "Server busy, please try again" : "Failed to check out");
     }
     setLoading(false);
   };
@@ -65,19 +78,21 @@ export default function RadioCheckInScanner({ user }) {
   const handleCheckIn = async () => {
     setLoading(true);
     try {
-      await base44.entities.Equipment.update(foundItem.id, {
-        checked_out: false,
-        checked_out_by: null,
-        checked_out_at: null,
-        usage_history: [
-        ...(foundItem.usage_history || []),
-        { action: "check-in", user: user?.full_name || user?.email, timestamp: new Date().toISOString() }]
-
-      });
+      await retryWithBackoff(() =>
+        base44.entities.Equipment.update(foundItem.id, {
+          checked_out: false,
+          checked_out_by: null,
+          checked_out_at: null,
+          usage_history: [
+            ...(foundItem.usage_history || []),
+            { action: "check-in", user: user?.full_name || user?.email, timestamp: new Date().toISOString() }
+          ]
+        })
+      );
       toast.success(`${foundItem.name} checked in`);
       handleClose();
-    } catch {
-      toast.error("Failed to check in");
+    } catch (error) {
+      toast.error(error?.message?.includes("Rate limit") ? "Server busy, please try again" : "Failed to check in");
     }
     setLoading(false);
   };
