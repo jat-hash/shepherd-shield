@@ -262,6 +262,12 @@ export default function Communications() {
 
   return (
     <div className="max-w-2xl mx-auto lg:ml-60 flex flex-col h-[calc(100vh-130px)] lg:h-[calc(100vh-70px)]">
+      {isOffline && (
+        <div className="bg-amber-900/40 border-b border-amber-500/30 px-4 py-2 text-xs text-amber-400 flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+          Offline — showing cached messages. New messages will send when reconnected.
+        </div>
+      )}
       {/* Channel Pills */}
       <div className="px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar border-b border-[rgba(212,168,67,0.1)]">
         <DirectMessageSelector currentUserEmail={user?.email} onSelectDM={handleSelectDM} />
