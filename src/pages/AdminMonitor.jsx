@@ -132,31 +132,45 @@ export default function AdminMonitor() {
     setEditDialogOpen(true);
   };
 
+  const applyCheckInLocally = (assignmentId, updates) => {
+    const apply = (list) => list.map(a => a.id === assignmentId ? { ...a, ...updates } : a);
+    setAssignments(apply);
+    setFilteredAssignments(apply);
+    // Update cache
+    getCachedData('assignments').then(cached => {
+      if (cached) cacheData('assignments', cached.map(a => a.id === assignmentId ? { ...a, ...updates } : a)).catch(() => {});
+    });
+  };
+
   const handleCheckInToggle = async (assignment) => {
+    let updates = {};
+    let msg = "";
+    if (!assignment.checked_in) {
+      updates = { checked_in: true, check_in_time: new Date().toISOString() };
+      msg = `${assignment.assigned_to_name} checked in`;
+    } else if (!assignment.checked_out) {
+      updates = { checked_out: true, check_out_time: new Date().toISOString() };
+      msg = `${assignment.assigned_to_name} checked out`;
+    } else {
+      updates = { checked_in: false, checked_out: false, check_in_time: null, check_out_time: null };
+      msg = "Check-in status reset";
+    }
+
+    // Apply optimistically to UI
+    applyCheckInLocally(assignment.id, updates);
+
+    if (!navigator.onLine) {
+      await savePendingCheckIn({ assignmentId: assignment.id, data: updates });
+      toast.info(`${msg} (will sync when online)`);
+      return;
+    }
+
     try {
-      if (!assignment.checked_in) {
-        await base44.entities.Assignment.update(assignment.id, {
-          checked_in: true,
-          check_in_time: new Date().toISOString()
-        });
-        toast.success(`${assignment.assigned_to_name} checked in`);
-      } else if (!assignment.checked_out) {
-        await base44.entities.Assignment.update(assignment.id, {
-          checked_out: true,
-          check_out_time: new Date().toISOString()
-        });
-        toast.success(`${assignment.assigned_to_name} checked out`);
-      } else {
-        await base44.entities.Assignment.update(assignment.id, {
-          checked_in: false,
-          checked_out: false,
-          check_in_time: null,
-          check_out_time: null
-        });
-        toast.info("Check-in status reset");
-      }
+      await base44.entities.Assignment.update(assignment.id, updates);
+      toast.success(msg);
     } catch (error) {
-      toast.error("Failed to update check-in status");
+      await savePendingCheckIn({ assignmentId: assignment.id, data: updates });
+      toast.info(`${msg} (saved offline, will sync later)`);
     }
   };
 
