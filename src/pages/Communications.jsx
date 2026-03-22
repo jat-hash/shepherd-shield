@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import DirectMessageSelector from "@/components/communications/DirectMessageSelector";
 import MessageBubble from "@/components/communications/MessageBubble";
 import { toast } from "sonner";
-import { savePendingMessage, getCachedData } from "@/components/notifications/offlineStorage";
+import { savePendingMessage, getCachedData, cacheData, syncPendingMessages } from "@/components/notifications/offlineStorage";
 
 const CHANNELS = ["All Team"];
 
@@ -22,6 +22,7 @@ export default function Communications() {
   const [dmChannels, setDmChannels] = useState([]);
   const [activeChannel, setActiveChannel] = useState({ name: "All Team", type: "group" });
   const [uploading, setUploading] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
   const fileInputRef = useRef(null);
