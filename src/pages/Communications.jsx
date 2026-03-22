@@ -191,6 +191,11 @@ export default function Communications() {
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!navigator.onLine) {
+      toast.error("File uploads require an internet connection");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
 
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
