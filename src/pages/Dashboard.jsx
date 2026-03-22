@@ -10,6 +10,7 @@ import NotifyTeamButton from "@/components/dashboard/NotifyTeamButton";
 import SafetyCheckInPanel from "@/components/dashboard/SafetyCheckInPanel";
 import useOfflineData from "@/hooks/useOfflineData";
 import { WifiOff } from "lucide-react";
+import RadioCheckInScanner from "@/components/dashboard/RadioCheckInScanner";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
