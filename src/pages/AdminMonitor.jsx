@@ -48,6 +48,11 @@ export default function AdminMonitor() {
       }
     });
     base44.functions.invoke("listUsers").then(res => setAllUsers(res?.data?.users || [])).catch(() => {});
+    base44.entities.Equipment.list("-updated_date", 200).then(setEquipment).catch(() => {});
+    const unsub = base44.entities.Equipment.subscribe(() => {
+      base44.entities.Equipment.list("-updated_date", 200).then(setEquipment).catch(() => {});
+    });
+    return unsub;
   }, []);
 
   const loadAssignments = async () => {
