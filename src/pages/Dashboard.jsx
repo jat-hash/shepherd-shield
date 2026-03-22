@@ -64,6 +64,10 @@ export default function Dashboard() {
         </p>
       </div>
 
+      <div className="flex justify-center">
+        <RadioCheckInScanner user={user} />
+      </div>
+
       <SpecialEventsDropdown />
 
       {/* This Month's Assignments */}
