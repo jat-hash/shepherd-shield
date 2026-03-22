@@ -352,7 +352,8 @@ export default function AdminMonitor() {
         </div>
       )}
 
-      {activeTab === "assignments" && <>
+      {activeTab === "assignments" && (
+      <><>
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-4">
