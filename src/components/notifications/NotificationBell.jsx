@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Bell, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ export default function NotificationBell({ userEmail }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
+  const debounceTimer = useRef(null);
 
   useEffect(() => {
     if (!userEmail) return;
@@ -17,11 +18,18 @@ export default function NotificationBell({ userEmail }) {
 
     const unsub = base44.entities.Notification.subscribe((event) => {
       if (event.data?.user_email === userEmail || event.old_data?.user_email === userEmail) {
-        loadNotifications();
+        // Debounce to avoid rate limiting
+        clearTimeout(debounceTimer.current);
+        debounceTimer.current = setTimeout(() => {
+          loadNotifications();
+        }, 500);
       }
     });
 
-    return unsub;
+    return () => {
+      unsub();
+      clearTimeout(debounceTimer.current);
+    };
   }, [userEmail]);
 
   const loadNotifications = async () => {
