@@ -26,7 +26,6 @@ export default function Communications() {
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
   const fileInputRef = useRef(null);
-  const activeChannelRef = useRef(activeChannel);
 
   useEffect(() => {
     base44.auth.me().then(u => {
@@ -44,16 +43,15 @@ export default function Communications() {
     }).catch(() => {});
   }, []);
 
-  // Keep ref in sync so online handler always has fresh channel name
-  useEffect(() => {
-    activeChannelRef.current = activeChannel;
-  }, [activeChannel]);
+  // Keep a ref to activeChannel so the online handler always sees the latest value
+  const activeChannelRef = useRef(activeChannel);
+  useEffect(() => { activeChannelRef.current = activeChannel; }, [activeChannel]);
 
   useEffect(() => {
     const handleOnline = async () => {
       setIsOffline(false);
       await syncPendingMessages(base44).catch(() => {});
-      // Use ref to avoid stale closure
+      // Use the ref so we always reload the currently-visible channel
       const ch = activeChannelRef.current.name;
       setLoading(true);
       base44.entities.TeamMessage.filter({ channel: ch }, "-created_date", 100)
@@ -72,7 +70,7 @@ export default function Communications() {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, []); // empty deps — uses ref internally
+  }, []); // run once only — uses ref for channel
 
   useEffect(() => {
     setLoading(true);
@@ -93,8 +91,8 @@ export default function Communications() {
         const sorted = msgs.reverse();
         setMessages(sorted.filter(m => !m.is_pinned));
         setPinnedMessages(sorted.filter(m => m.is_pinned));
-        // Cache all messages for this channel
-        cacheData('messages', sorted).catch(() => {});
+        // Cache confirmed messages only (they have real IDs)
+        cacheData('messages', sorted.filter(m => m.id && !String(m.id).startsWith('pending-'))).catch(() => {});
         setLoading(false);
         
         // Mark as read
@@ -163,34 +161,30 @@ export default function Communications() {
       read_by: [user.email],
     };
 
-    // Clear input immediately
-    setNewMsg("");
-
-    // If offline, queue and show optimistic message
+    // If offline, save to pending messages
     if (!navigator.onLine) {
       await savePendingMessage(messageData);
+      
+      // Add to UI optimistically
       setMessages(prev => [...prev, {
         ...messageData,
         id: 'pending-' + Date.now(),
         created_date: new Date().toISOString(),
         isPending: true
       }]);
-      toast.info('Offline — message queued and will send when reconnected');
+      
+      toast.info('Message saved - will send when online');
+      setNewMsg("");
       return;
     }
 
     try {
       await base44.entities.TeamMessage.create(messageData);
+      setNewMsg("");
     } catch (error) {
-      // Request failed even though online — queue it
+      // If online but request failed, save as pending
       await savePendingMessage(messageData);
-      setMessages(prev => [...prev, {
-        ...messageData,
-        id: 'pending-' + Date.now(),
-        created_date: new Date().toISOString(),
-        isPending: true
-      }]);
-      toast.error('Send failed — saved for retry when reconnected');
+      toast.error('Send failed - saved for later');
     }
   };
 
