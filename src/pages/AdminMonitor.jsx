@@ -277,6 +277,13 @@ export default function AdminMonitor() {
         <p className="text-slate-400 text-sm mt-1">Real-time check-in/check-out tracking</p>
       </div>
 
+      {isOffline && (
+        <div className="bg-amber-900/30 border border-amber-500/30 rounded-xl px-4 py-3 flex items-center gap-3 text-amber-400 text-sm">
+          <WifiOff className="w-4 h-4 shrink-0" />
+          <span>Offline — showing cached data. Check-ins will sync automatically when reconnected.</span>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-4">
