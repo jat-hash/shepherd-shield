@@ -245,6 +245,11 @@ export default function Communications() {
     
     if (!dmChannels.includes(dmChannel)) {
       setDmChannels(prev => [...prev, dmChannel]);
+      // If offline, queue the DM so it persists
+      if (!navigator.onLine) {
+        savePendingDM(dmChannel, otherUser).catch(() => {});
+        toast.info('DM saved locally - will sync when online');
+      }
     }
   };
 
