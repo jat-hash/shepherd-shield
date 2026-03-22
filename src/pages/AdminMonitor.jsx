@@ -31,6 +31,7 @@ export default function AdminMonitor() {
   const [notifySendSMS, setNotifySendSMS] = useState(false);
   const [notifyPhoneNumber, setNotifyPhoneNumber] = useState("");
   const [allUsers, setAllUsers] = useState([]);
+  const [dateFilter, setDateFilter] = useState("");
 
   useEffect(() => {
     base44.auth.me().then(u => {
