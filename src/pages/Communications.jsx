@@ -32,16 +32,35 @@ export default function Communications() {
   useEffect(() => {
     base44.auth.me().then(u => {
       setUser(u);
-      // Load DM channels
-      base44.entities.TeamMessage.list("-created_date", 500).then(all => {
-        const dmSet = new Set();
-        all.forEach(msg => {
-          if (msg.channel?.startsWith("DM: ") && msg.channel.includes(u.email)) {
-            dmSet.add(msg.channel);
-          }
+      if (navigator.onLine) {
+        // Load DM channels and cache users
+        base44.entities.TeamMessage.list("-created_date", 500).then(all => {
+          const dmSet = new Set();
+          all.forEach(msg => {
+            if (msg.channel?.startsWith("DM: ") && msg.channel.includes(u.email)) {
+              dmSet.add(msg.channel);
+            }
+          });
+          setDmChannels(Array.from(dmSet));
         });
-        setDmChannels(Array.from(dmSet));
-      });
+        // Pre-cache users for offline DM selector
+        base44.functions.invoke("listUsers").then(res => {
+          const all = res?.data?.users || [];
+          cacheData(USERS_CACHE_KEY, all).catch(() => {});
+        }).catch(() => {});
+      } else {
+        // Load DM channels from cached messages
+        getCachedData('messages').then(cached => {
+          if (!cached) return;
+          const dmSet = new Set();
+          cached.forEach(msg => {
+            if (msg.channel?.startsWith("DM: ") && msg.channel.includes(u.email)) {
+              dmSet.add(msg.channel);
+            }
+          });
+          setDmChannels(Array.from(dmSet));
+        });
+      }
     }).catch(() => {});
   }, []);
 
