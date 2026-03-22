@@ -10,6 +10,7 @@ import NotificationBell from "@/components/notifications/NotificationBell";
 import PWAInstaller from "@/components/PWAInstaller";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import OfflineIndicator from "@/components/notifications/OfflineIndicator";
+import AIAssistant from "@/components/AIAssistant";
 
 const NAV_ITEMS = [
   { name: "Dashboard", icon: Home, page: "Dashboard" },
@@ -56,6 +57,7 @@ export default function Layout({ children, currentPageName }) {
       <Toaster richColors closeButton position="top-right" />
       <PWAInstaller />
       <OfflineIndicator />
+      <AIAssistant />
       <div className="min-h-screen bg-[#0a1128] text-white flex flex-col">
       <style>{`
         :root {
