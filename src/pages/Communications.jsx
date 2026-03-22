@@ -8,6 +8,8 @@ import MessageBubble from "@/components/communications/MessageBubble";
 import { toast } from "sonner";
 import { savePendingMessage, getCachedData, cacheData, syncPendingMessages } from "@/components/notifications/offlineStorage";
 
+const USERS_CACHE_KEY = "team_users";
+
 const CHANNELS = ["All Team"];
 
 export default function Communications() {
