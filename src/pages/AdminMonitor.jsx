@@ -33,6 +33,7 @@ export default function AdminMonitor() {
   const [notifyPhoneNumber, setNotifyPhoneNumber] = useState("");
   const [allUsers, setAllUsers] = useState([]);
   const [dateFilter, setDateFilter] = useState("");
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   useEffect(() => {
     base44.auth.me().then(u => {
