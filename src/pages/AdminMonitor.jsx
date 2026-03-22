@@ -76,6 +76,21 @@ export default function AdminMonitor() {
   }, [user]);
 
   useEffect(() => {
+    const handleOnline = async () => {
+      setIsOffline(false);
+      await syncPendingCheckIns(base44).catch(() => {});
+      loadAssignments();
+    };
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!user) return;
     const unsub = base44.entities.Assignment.subscribe(() => {
       loadAssignments();
