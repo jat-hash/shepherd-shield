@@ -3,21 +3,24 @@ import { Html5Qrcode } from "html5-qrcode";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function QRScanner({ onScan, onClose }) {
+export default function QRScanner({ onScan, onClose, scannerId = "qr-reader" }) {
   const scannerRef = useRef(null);
   const [error, setError] = useState(null);
   const [started, setStarted] = useState(false);
+  const hasScanned = useRef(false);
 
   useEffect(() => {
-    const scanner = new Html5Qrcode("qr-reader");
+    const scanner = new Html5Qrcode(scannerId);
     scannerRef.current = scanner;
 
     scanner.start(
       { facingMode: "environment" },
       { fps: 10, qrbox: { width: 250, height: 250 } },
       (decodedText) => {
-        onScan(decodedText);
+        if (hasScanned.current) return;
+        hasScanned.current = true;
         scanner.stop().catch(() => {});
+        onScan(decodedText);
       },
       () => {}
     ).then(() => setStarted(true)).catch((err) => {
