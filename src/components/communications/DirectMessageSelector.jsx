@@ -25,37 +25,26 @@ export default function DirectMessageSelector({ currentUserEmail, onSelectDM }) 
     };
   }, []);
 
-  const loadFromCache = (currentEmail) => {
-    // Try localStorage first (faster, always available)
-    try {
-      const stored = localStorage.getItem("team_users_cache");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setUsers(parsed.filter(u => u.email !== currentEmail));
-        return;
-      }
-    } catch {}
-    // Fallback to IndexedDB
-    getCachedData(USERS_CACHE_KEY).then(cached => {
-      if (cached?.length) setUsers(cached.filter(u => u.email !== currentEmail));
-    });
-  };
-
   useEffect(() => {
     if (open && currentUserEmail) {
       if (!navigator.onLine) {
-        loadFromCache(currentUserEmail);
+        // Load from cache when offline
+        getCachedData(USERS_CACHE_KEY).then(cached => {
+          if (cached) setUsers(cached.filter(u => u.email !== currentUserEmail));
+        });
         return;
       }
       base44.functions.invoke("listUsers").then(res => {
         const all = res?.data?.users || [];
         const others = all.filter(u => u.email !== currentUserEmail);
         setUsers(others);
-        // Cache in both localStorage and IndexedDB
-        try { localStorage.setItem("team_users_cache", JSON.stringify(all)); } catch {}
+        // Cache the full list for offline use
         cacheData(USERS_CACHE_KEY, all).catch(() => {});
       }).catch(() => {
-        loadFromCache(currentUserEmail);
+        // Fallback to cache on error
+        getCachedData(USERS_CACHE_KEY).then(cached => {
+          if (cached) setUsers(cached.filter(u => u.email !== currentUserEmail));
+        });
       });
     }
   }, [open, currentUserEmail]);
