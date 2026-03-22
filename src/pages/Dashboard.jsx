@@ -80,6 +80,7 @@ export default function Dashboard() {
         )}
       </div>
 
+      <RadioCheckInScanner user={user} />
       <SafetyCheckInPanel />
       <NotifyTeamButton user={user} />
       <EmergencyButton />
