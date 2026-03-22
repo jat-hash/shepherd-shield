@@ -46,6 +46,7 @@ export default function Communications() {
         // Pre-cache users for offline DM selector
         base44.functions.invoke("listUsers").then(res => {
           const all = res?.data?.users || [];
+          try { localStorage.setItem("team_users_cache", JSON.stringify(all)); } catch {}
           cacheData(USERS_CACHE_KEY, all).catch(() => {});
         }).catch(() => {});
       } else {
