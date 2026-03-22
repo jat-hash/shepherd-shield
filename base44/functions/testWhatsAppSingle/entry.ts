@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
       body: new URLSearchParams({
         To: `whatsapp:${phone}`,
         From: from.startsWith('whatsapp:') ? from : `whatsapp:${from}`,
-        Body: 'Test message from Shepherd Shield'
+        Body: body.message || 'Test message from Shepherd Shield'
       }).toString()
     });
 
