@@ -1,6 +1,6 @@
 // IndexedDB for offline storage
 const DB_NAME = 'ShepherdShieldDB';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export const openDB = () => {
   return new Promise((resolve, reject) => {
