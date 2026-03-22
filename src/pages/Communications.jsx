@@ -256,7 +256,7 @@ export default function Communications() {
         const sorted = msgs.reverse();
         setMessages(sorted.filter(m => !m.is_pinned));
         setPinnedMessages(sorted.filter(m => m.is_pinned));
-        cacheData('messages', sorted).catch(() => {});
+        cacheData('messages', sorted.filter(m => m.id && !String(m.id).startsWith('pending-'))).catch(() => {});
         setLoading(false);
       });
   };
