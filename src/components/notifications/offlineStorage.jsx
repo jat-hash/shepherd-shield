@@ -127,21 +127,25 @@ export const clearPendingMessages = async () => {
 export const syncPendingMessages = async (base44) => {
   try {
     const pendingMessages = await getPendingMessages();
+    const failed = [];
     for (const message of pendingMessages) {
       try {
+        const { tempId, timestamp, isPending, ...msgData } = message;
         await base44.entities.TeamMessage.create({
-          channel: message.channel,
-          content: message.content,
-          sender_name: message.sender_name,
-          sender_email: message.sender_email,
-          message_type: message.message_type || 'text'
+          ...msgData,
+          message_type: msgData.message_type || 'text'
         });
       } catch (error) {
         console.error('Failed to sync message:', error);
+        failed.push(message);
       }
     }
     await clearPendingMessages();
-    return true;
+    // Re-save any that failed so they aren't lost
+    for (const msg of failed) {
+      await savePendingMessage(msg).catch(() => {});
+    }
+    return failed.length === 0;
   } catch (error) {
     console.error('Sync failed:', error);
     return false;
