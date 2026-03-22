@@ -66,6 +66,7 @@ export default function Dashboard() {
       </div>
 
       <SpecialEventsDropdown />
+      <RadioQRCheckIn />
 
       {/* This Month's Assignments */}
       <div className="space-y-3">
