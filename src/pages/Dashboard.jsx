@@ -66,6 +66,8 @@ export default function Dashboard() {
 
       <SpecialEventsDropdown />
 
+      <RadioCheckInScanner user={user} />
+
       {/* This Month's Assignments */}
       <div className="space-y-3">
         <h2 className="text-sm uppercase tracking-widest text-[#d4a843] font-semibold">This Month's Assignments</h2>
