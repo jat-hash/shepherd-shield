@@ -30,7 +30,7 @@ export default function QRScanner({ onScan, onClose }) {
         scannerRef.current.stop().catch(() => {});
       }
     };
-  }, []);
+  }, [onScan]);
 
   return (
     <div className="space-y-3">
