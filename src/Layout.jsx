@@ -28,6 +28,12 @@ export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    window.location.reload();
+  };
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
