@@ -136,7 +136,9 @@ export default function RadioQRCheckIn() {
           ) : cameraMode ? (
             <div className="space-y-3">
               <QRScanner
-                onScan={(code) => lookupCode(code)}
+                onScan={async (code) => {
+                  await lookupCode(code);
+                }}
                 onClose={() => setCameraMode(false)}
               />
               <button onClick={() => setCameraMode(false)} className="text-xs text-slate-400 underline w-full text-center">
