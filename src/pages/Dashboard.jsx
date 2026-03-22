@@ -80,6 +80,7 @@ export default function Dashboard() {
         )}
       </div>
 
+      {user?.role === 'admin' && <TeamLocationMap />}
       <SafetyCheckInPanel />
       <NotifyTeamButton user={user} />
       <EmergencyButton />
