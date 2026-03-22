@@ -45,19 +45,9 @@ export default function AdminMonitor() {
   const loadAssignments = async () => {
     setLoading(true);
     try {
-      const today = new Date();
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - today.getDay());
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 6);
-
       const all = await base44.entities.Assignment.list("service_date");
-      const thisWeek = all.filter(a => {
-        const assignmentDate = new Date(a.service_date);
-        return assignmentDate >= startOfWeek && assignmentDate <= endOfWeek;
-      });
-      setAssignments(thisWeek);
-      setFilteredAssignments(thisWeek);
+      setAssignments(all);
+      setFilteredAssignments(all);
     } catch (error) {
       toast.error("Failed to load assignments");
     }
