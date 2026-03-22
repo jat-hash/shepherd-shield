@@ -521,7 +521,7 @@ export default function EquipmentInventory() {
           <DialogHeader>
             <DialogTitle className="text-[#d4a843] flex items-center gap-2">
               <QrCode className="w-5 h-5" />
-              Scan Equipment QR
+              Equipment Check In / Out
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
