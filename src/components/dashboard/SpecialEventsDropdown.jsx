@@ -9,6 +9,8 @@ export default function SpecialEventsDropdown() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let debounceTimer = null;
+
     const loadEvents = async () => {
       setLoading(true);
       const today = new Date();
@@ -28,10 +30,14 @@ export default function SpecialEventsDropdown() {
     loadEvents();
     
     const unsub = base44.entities.SpecialEvent.subscribe(() => {
-      loadEvents();
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(loadEvents, 2000);
     });
     
-    return unsub;
+    return () => {
+      unsub();
+      clearTimeout(debounceTimer);
+    };
   }, []);
 
   if (loading) return null;
