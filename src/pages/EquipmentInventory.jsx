@@ -179,10 +179,17 @@ export default function EquipmentInventory() {
   return (
     <div className="max-w-2xl mx-auto px-3 py-4 lg:px-4 lg:py-6 lg:ml-60 space-y-4">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-lg sm:text-xl font-bold text-white">Equipment</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg sm:text-xl font-bold text-white">Equipment</h1>
+          {isOffline && (
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-400">
+              <WifiOff className="w-3 h-3" /> Offline
+            </span>
+          )}
+        </div>
         <div className="flex gap-1 sm:gap-2">
-          <Button onClick={() => setScanMode(true)} variant="outline" className="border-[#d4a843] text-[#d4a843] hover:bg-[#d4a843]/10 text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-3">
-            <QrCode className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Scan</span>
+          <Button onClick={() => { setScanMode(true); setCameraMode(true); }} variant="outline" className="border-[#d4a843] text-[#d4a843] hover:bg-[#d4a843]/10 text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-3">
+            <Camera className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Scan QR</span>
           </Button>
           {currentUser?.role === 'admin' && (
             <Button onClick={() => setFormOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-4">
