@@ -137,6 +137,14 @@ export default function Layout({ children, currentPageName }) {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="p-2 text-slate-400 hover:text-[#d4a843] transition-colors disabled:opacity-50"
+            title="Refresh page"
+          >
+            <RotateCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </button>
           <NotificationBell userEmail={user?.email} />
           <Link to={createPageUrl("Profile")}>
             <div className="w-8 h-8 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-xs cursor-pointer hover:bg-[#e0bb5e] transition-colors" title={user?.display_name || "User"}>
