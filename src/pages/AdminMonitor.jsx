@@ -268,6 +268,33 @@ export default function AdminMonitor() {
     }
   };
 
+  const handleForceReturn = async (item) => {
+    await base44.entities.Equipment.update(item.id, {
+      checked_out: false,
+      checked_out_by: null,
+      checked_out_at: null,
+      usage_history: [
+        ...(item.usage_history || []),
+        { action: "force-return", user: "Admin", timestamp: new Date().toISOString() }
+      ]
+    });
+    toast.success(`${item.name} marked as returned`);
+  };
+
+  const filteredEquipment = equipment.filter(e => {
+    const matchSearch = !equipmentSearch ||
+      e.name?.toLowerCase().includes(equipmentSearch.toLowerCase()) ||
+      e.serial_number?.toLowerCase().includes(equipmentSearch.toLowerCase()) ||
+      e.checked_out_by?.toLowerCase().includes(equipmentSearch.toLowerCase());
+    const matchFilter =
+      equipmentFilter === "all" ||
+      (equipmentFilter === "checked_out" && e.checked_out) ||
+      (equipmentFilter === "available" && !e.checked_out);
+    return matchSearch && matchFilter;
+  });
+
+  const checkedOutEquipment = equipment.filter(e => e.checked_out);
+
   if (!user || loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
