@@ -13,8 +13,12 @@ import AssignmentForm from "@/components/assignments/AssignmentForm";
 import { toast } from "sonner";
 
 export default function AdminMonitor() {
+  const [activeTab, setActiveTab] = useState("assignments");
   const [user, setUser] = useState(null);
   const [assignments, setAssignments] = useState([]);
+  const [equipment, setEquipment] = useState([]);
+  const [equipmentSearch, setEquipmentSearch] = useState("");
+  const [equipmentFilter, setEquipmentFilter] = useState("all");
   const [filteredAssignments, setFilteredAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
