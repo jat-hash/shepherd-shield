@@ -554,7 +554,7 @@ export default function AdminMonitor() {
         )}
       </div>
 
-      </>}
+      </div>}
 
       {activeTab === "tools" && (
         <div className="space-y-4">
