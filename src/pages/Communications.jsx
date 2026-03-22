@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import DirectMessageSelector from "@/components/communications/DirectMessageSelector";
 import MessageBubble from "@/components/communications/MessageBubble";
 import { toast } from "sonner";
-import { savePendingMessage, getCachedData, cacheData, syncPendingMessages } from "@/components/notifications/offlineStorage";
+import { savePendingMessage, getCachedData, cacheData, syncPendingMessages, savePendingDM } from "@/components/notifications/offlineStorage";
 
 const USERS_CACHE_KEY = "team_users";
 
