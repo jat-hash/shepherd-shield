@@ -44,11 +44,26 @@ export default function Communications() {
     }).catch(() => {});
   }, []);
 
+  // Keep ref in sync so online handler always has fresh channel name
+  useEffect(() => {
+    activeChannelRef.current = activeChannel;
+  }, [activeChannel]);
+
   useEffect(() => {
     const handleOnline = async () => {
       setIsOffline(false);
       await syncPendingMessages(base44).catch(() => {});
-      loadMessages();
+      // Use ref to avoid stale closure
+      const ch = activeChannelRef.current.name;
+      setLoading(true);
+      base44.entities.TeamMessage.filter({ channel: ch }, "-created_date", 100)
+        .then(msgs => {
+          const sorted = msgs.reverse();
+          setMessages(sorted.filter(m => !m.is_pinned));
+          setPinnedMessages(sorted.filter(m => m.is_pinned));
+          cacheData('messages', sorted).catch(() => {});
+          setLoading(false);
+        }).catch(() => setLoading(false));
     };
     const handleOffline = () => setIsOffline(true);
     window.addEventListener("online", handleOnline);
@@ -57,7 +72,7 @@ export default function Communications() {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, [activeChannel.name]);
+  }, []); // empty deps — uses ref internally
 
   useEffect(() => {
     setLoading(true);
