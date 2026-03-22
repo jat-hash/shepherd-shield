@@ -15,27 +15,18 @@ export default function RadioQRCheckIn() {
   const [loading, setLoading] = useState(false);
 
   const lookupCode = async (code) => {
-    const searchCode = (code || "").trim();
+    const searchCode = code.trim();
     if (!searchCode) return;
     setLoading(true);
-    try {
-      // Fetch all equipment and search client-side for reliability
-      const items = await base44.entities.Equipment.list("-created_date", 500);
-      const found = items.find(i =>
-        i.qr_code === searchCode ||
-        i.serial_number === searchCode ||
-        i.qr_code?.toLowerCase() === searchCode.toLowerCase() ||
-        i.serial_number?.toLowerCase() === searchCode.toLowerCase()
-      );
-      if (found) {
-        setFoundItem(found);
-        setCameraMode(false);
-        setManualCode("");
-      } else {
-        toast.error("Equipment not found — check the QR code or serial number");
-      }
-    } finally {
-      setLoading(false);
+    const items = await base44.entities.Equipment.filter({ category: "Radio" });
+    const found = items.find(i => i.qr_code === searchCode || i.serial_number === searchCode);
+    setLoading(false);
+    if (found) {
+      setFoundItem(found);
+      setCameraMode(false);
+      setManualCode("");
+    } else {
+      toast.error("Radio not found — check QR code or serial number");
     }
   };
 
@@ -136,10 +127,9 @@ export default function RadioQRCheckIn() {
           ) : cameraMode ? (
             <div className="space-y-3">
               <QRScanner
-                onScan={async (code) => {
-                  await lookupCode(code);
-                }}
+                onScan={(code) => lookupCode(code)}
                 onClose={() => setCameraMode(false)}
+                scannerId="qr-reader-radio"
               />
               <button onClick={() => setCameraMode(false)} className="text-xs text-slate-400 underline w-full text-center">
                 Enter code manually instead
