@@ -26,6 +26,7 @@ export default function Communications() {
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
   const fileInputRef = useRef(null);
+  const activeChannelRef = useRef(activeChannel);
 
   useEffect(() => {
     base44.auth.me().then(u => {
