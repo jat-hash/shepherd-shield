@@ -79,12 +79,14 @@ export default function EquipmentInventory() {
     toast.success("QR Code generated");
   };
 
-  const handleScan = async () => {
-    if (!scannedCode.trim()) return;
-    const found = items.find(i => i.qr_code === scannedCode.trim() || i.serial_number === scannedCode.trim());
+  const handleScan = async (code) => {
+    const searchCode = (code || scannedCode).trim();
+    if (!searchCode) return;
+    const found = items.find(i => i.qr_code === searchCode || i.serial_number === searchCode);
     if (found) {
       setDetailItem(found);
       setScanMode(false);
+      setCameraMode(false);
       setScannedCode("");
     } else {
       toast.error("Equipment not found");
