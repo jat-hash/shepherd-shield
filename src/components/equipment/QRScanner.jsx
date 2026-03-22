@@ -10,11 +10,10 @@ export default function QRScanner({ onScan, onClose, scannerId = "qr-reader" }) 
   const hasScanned = useRef(false);
 
   useEffect(() => {
-    const scanner = new Html5Qrcode(scannerId);
-    scannerRef.current = scanner;
-
-    // Small delay to ensure the DOM element is mounted inside the dialog
+    // Delay to ensure the DOM element is mounted inside the dialog
     const timer = setTimeout(() => {
+      const scanner = new Html5Qrcode(scannerId);
+      scannerRef.current = scanner;
       scanner.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 250, height: 250 } },
