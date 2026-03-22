@@ -91,8 +91,12 @@ export default function AdminMonitor() {
       filtered = filtered.filter(a => !a.checked_in);
     }
 
+    if (dateFilter) {
+      filtered = filtered.filter(a => a.service_date === dateFilter);
+    }
+
     setFilteredAssignments(filtered);
-  }, [searchQuery, statusFilter, checkInFilter, assignments]);
+  }, [searchQuery, statusFilter, checkInFilter, dateFilter, assignments]);
 
   const handleEdit = (assignment) => {
     setEditingAssignment(assignment);
