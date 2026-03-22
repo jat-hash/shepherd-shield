@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { CheckCircle, XCircle, Clock, Edit2, Search, Trash2, Bell, Send, MessageSquare, WifiOff, Wrench, LogIn, LogOut, Radio } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Edit2, Search, Trash2, Bell, Send, MessageSquare, WifiOff } from "lucide-react";
 import { cacheData, getCachedData, savePendingCheckIn, syncPendingCheckIns } from "@/components/notifications/offlineStorage";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,8 @@ import AssignmentForm from "@/components/assignments/AssignmentForm";
 import { toast } from "sonner";
 
 export default function AdminMonitor() {
-  const [activeTab, setActiveTab] = useState("assignments");
   const [user, setUser] = useState(null);
   const [assignments, setAssignments] = useState([]);
-  const [equipment, setEquipment] = useState([]);
-  const [equipmentSearch, setEquipmentSearch] = useState("");
-  const [equipmentFilter, setEquipmentFilter] = useState("all");
   const [filteredAssignments, setFilteredAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -48,11 +44,6 @@ export default function AdminMonitor() {
       }
     });
     base44.functions.invoke("listUsers").then(res => setAllUsers(res?.data?.users || [])).catch(() => {});
-    base44.entities.Equipment.list("-updated_date", 200).then(setEquipment).catch(() => {});
-    const unsub = base44.entities.Equipment.subscribe(() => {
-      base44.entities.Equipment.list("-updated_date", 200).then(setEquipment).catch(() => {});
-    });
-    return unsub;
   }, []);
 
   const loadAssignments = async () => {
@@ -268,33 +259,6 @@ export default function AdminMonitor() {
     }
   };
 
-  const handleForceReturn = async (item) => {
-    await base44.entities.Equipment.update(item.id, {
-      checked_out: false,
-      checked_out_by: null,
-      checked_out_at: null,
-      usage_history: [
-        ...(item.usage_history || []),
-        { action: "force-return", user: "Admin", timestamp: new Date().toISOString() }
-      ]
-    });
-    toast.success(`${item.name} marked as returned`);
-  };
-
-  const filteredEquipment = equipment.filter(e => {
-    const matchSearch = !equipmentSearch ||
-      e.name?.toLowerCase().includes(equipmentSearch.toLowerCase()) ||
-      e.serial_number?.toLowerCase().includes(equipmentSearch.toLowerCase()) ||
-      e.checked_out_by?.toLowerCase().includes(equipmentSearch.toLowerCase());
-    const matchFilter =
-      equipmentFilter === "all" ||
-      (equipmentFilter === "checked_out" && e.checked_out) ||
-      (equipmentFilter === "available" && !e.checked_out);
-    return matchSearch && matchFilter;
-  });
-
-  const checkedOutEquipment = equipment.filter(e => e.checked_out);
-
   if (!user || loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -311,38 +275,7 @@ export default function AdminMonitor() {
     <div className="max-w-6xl mx-auto px-4 py-6 lg:ml-60 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">Admin Monitor</h1>
-        <p className="text-slate-400 text-sm mt-1">Real-time tracking dashboard</p>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-2 bg-[#1a2744] p-1 rounded-xl border border-[rgba(212,168,67,0.1)] w-fit">
-        <button
-          onClick={() => setActiveTab("assignments")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            activeTab === "assignments"
-              ? "bg-[#d4a843] text-[#0a1128]"
-              : "text-slate-400 hover:text-white"
-          }`}
-        >
-          <CheckCircle className="w-4 h-4" />
-          Personnel Check-In
-        </button>
-        <button
-          onClick={() => setActiveTab("tools")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            activeTab === "tools"
-              ? "bg-[#d4a843] text-[#0a1128]"
-              : "text-slate-400 hover:text-white"
-          }`}
-        >
-          <Wrench className="w-4 h-4" />
-          Tool Monitoring
-          {checkedOutEquipment.length > 0 && (
-            <span className="bg-orange-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
-              {checkedOutEquipment.length}
-            </span>
-          )}
-        </button>
+        <p className="text-slate-400 text-sm mt-1">Real-time check-in/check-out tracking</p>
       </div>
 
       {isOffline && (
@@ -352,7 +285,6 @@ export default function AdminMonitor() {
         </div>
       )}
 
-      {activeTab === "assignments" && <div className="space-y-4">
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-4">
@@ -553,110 +485,6 @@ export default function AdminMonitor() {
           ))
         )}
       </div>
-
-      </div>}
-
-      {activeTab === "tools" && (
-        <div className="space-y-4">
-          {/* Equipment Stats */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-orange-900/20 border border-orange-500/30 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <LogOut className="w-5 h-5 text-orange-500" />
-                <span className="text-orange-400 text-sm font-medium">Checked Out</span>
-              </div>
-              <p className="text-3xl font-bold text-white">{equipment.filter(e => e.checked_out).length}</p>
-            </div>
-            <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <LogIn className="w-5 h-5 text-emerald-500" />
-                <span className="text-emerald-400 text-sm font-medium">Available</span>
-              </div>
-              <p className="text-3xl font-bold text-white">{equipment.filter(e => !e.checked_out).length}</p>
-            </div>
-            <div className="bg-[#1a2744] border border-[rgba(212,168,67,0.15)] rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Wrench className="w-5 h-5 text-[#d4a843]" />
-                <span className="text-[#d4a843] text-sm font-medium">Total Items</span>
-              </div>
-              <p className="text-3xl font-bold text-white">{equipment.length}</p>
-            </div>
-          </div>
-
-          {/* Filters */}
-          <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-4 flex gap-3 flex-wrap">
-            <div className="relative flex-1 min-w-[180px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input
-                placeholder="Search by name, serial, or person..."
-                value={equipmentSearch}
-                onChange={e => setEquipmentSearch(e.target.value)}
-                className="pl-10 bg-[#0a1128] border-[rgba(212,168,67,0.2)] text-white"
-              />
-            </div>
-            <Select value={equipmentFilter} onValueChange={setEquipmentFilter}>
-              <SelectTrigger className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] text-white w-44">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Equipment</SelectItem>
-                <SelectItem value="checked_out">Checked Out</SelectItem>
-                <SelectItem value="available">Available</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Equipment List */}
-          <div className="space-y-3">
-            {filteredEquipment.length === 0 ? (
-              <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-8 text-center">
-                <p className="text-slate-400">No equipment found</p>
-              </div>
-            ) : filteredEquipment.map(item => (
-              <div
-                key={item.id}
-                className={`bg-[#1a2744] rounded-xl border p-4 transition-colors ${
-                  item.checked_out
-                    ? "border-orange-500/30 hover:border-orange-400/50"
-                    : "border-[rgba(212,168,67,0.1)] hover:border-[#d4a843]/30"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-1">
-                      <span className="text-white font-semibold">{item.name}</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">{item.category}</span>
-                      {item.checked_out ? (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 font-medium">Checked Out</span>
-                      ) : (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-medium">Available</span>
-                      )}
-                    </div>
-                    <div className="flex gap-4 text-sm text-slate-400">
-                      {item.serial_number && <span>SN: {item.serial_number}</span>}
-                      {item.checked_out && item.checked_out_by && (
-                        <span className="text-orange-400 font-medium">By: {item.checked_out_by}</span>
-                      )}
-                      {item.checked_out && item.checked_out_at && (
-                        <span>Since: {new Date(item.checked_out_at).toLocaleString()}</span>
-                      )}
-                    </div>
-                  </div>
-                  {item.checked_out && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleForceReturn(item)}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1 shrink-0"
-                    >
-                      <LogIn className="w-4 h-4" /> Force Return
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Edit Assignment Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>

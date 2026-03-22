@@ -43,25 +43,11 @@ export default function Communications() {
     }).catch(() => {});
   }, []);
 
-  // Keep a ref to activeChannel so the online handler always sees the latest value
-  const activeChannelRef = useRef(activeChannel);
-  useEffect(() => { activeChannelRef.current = activeChannel; }, [activeChannel]);
-
   useEffect(() => {
     const handleOnline = async () => {
       setIsOffline(false);
       await syncPendingMessages(base44).catch(() => {});
-      // Use the ref so we always reload the currently-visible channel
-      const ch = activeChannelRef.current.name;
-      setLoading(true);
-      base44.entities.TeamMessage.filter({ channel: ch }, "-created_date", 100)
-        .then(msgs => {
-          const sorted = msgs.reverse();
-          setMessages(sorted.filter(m => !m.is_pinned));
-          setPinnedMessages(sorted.filter(m => m.is_pinned));
-          cacheData('messages', sorted).catch(() => {});
-          setLoading(false);
-        }).catch(() => setLoading(false));
+      loadMessages();
     };
     const handleOffline = () => setIsOffline(true);
     window.addEventListener("online", handleOnline);
@@ -70,7 +56,7 @@ export default function Communications() {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, []); // run once only — uses ref for channel
+  }, [activeChannel.name]);
 
   useEffect(() => {
     setLoading(true);
@@ -91,8 +77,8 @@ export default function Communications() {
         const sorted = msgs.reverse();
         setMessages(sorted.filter(m => !m.is_pinned));
         setPinnedMessages(sorted.filter(m => m.is_pinned));
-        // Cache confirmed messages only (they have real IDs)
-        cacheData('messages', sorted.filter(m => m.id && !String(m.id).startsWith('pending-'))).catch(() => {});
+        // Cache all messages for this channel
+        cacheData('messages', sorted).catch(() => {});
         setLoading(false);
         
         // Mark as read
@@ -191,11 +177,6 @@ export default function Communications() {
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!navigator.onLine) {
-      toast.error("File uploads require an internet connection");
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      return;
-    }
 
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
@@ -261,7 +242,7 @@ export default function Communications() {
         const sorted = msgs.reverse();
         setMessages(sorted.filter(m => !m.is_pinned));
         setPinnedMessages(sorted.filter(m => m.is_pinned));
-        cacheData('messages', sorted.filter(m => m.id && !String(m.id).startsWith('pending-'))).catch(() => {});
+        cacheData('messages', sorted).catch(() => {});
         setLoading(false);
       });
   };

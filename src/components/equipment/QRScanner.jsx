@@ -3,35 +3,29 @@ import { Html5Qrcode } from "html5-qrcode";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function QRScanner({ onScan, onClose, scannerId = "qr-reader" }) {
+export default function QRScanner({ onScan, onClose }) {
   const scannerRef = useRef(null);
   const [error, setError] = useState(null);
   const [started, setStarted] = useState(false);
-  const hasScanned = useRef(false);
 
   useEffect(() => {
-    // Delay to ensure the DOM element is mounted inside the dialog
-    const timer = setTimeout(() => {
-      const scanner = new Html5Qrcode(scannerId);
-      scannerRef.current = scanner;
-      scanner.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decodedText) => {
-          if (hasScanned.current) return;
-          hasScanned.current = true;
-          scanner.stop().catch(() => {});
-          onScan(decodedText);
-        },
-        () => {}
-      ).then(() => setStarted(true)).catch((err) => {
-        setError("Camera access denied or unavailable. Please enter code manually.");
-        console.error(err);
-      });
-    }, 500);
+    const scanner = new Html5Qrcode("qr-reader");
+    scannerRef.current = scanner;
+
+    scanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      (decodedText) => {
+        onScan(decodedText);
+        scanner.stop().catch(() => {});
+      },
+      () => {}
+    ).then(() => setStarted(true)).catch((err) => {
+      setError("Camera access denied or unavailable. Please enter code manually.");
+      console.error(err);
+    });
 
     return () => {
-      clearTimeout(timer);
       if (scannerRef.current) {
         scannerRef.current.stop().catch(() => {});
       }
@@ -41,7 +35,7 @@ export default function QRScanner({ onScan, onClose, scannerId = "qr-reader" }) 
   return (
     <div className="space-y-3">
       <div className="relative bg-black rounded-lg overflow-hidden">
-        <div id={scannerId} className="w-full" style={{ minHeight: 280 }} />
+        <div id="qr-reader" className="w-full" style={{ minHeight: 280 }} />
         <Button
           onClick={onClose}
           size="icon"

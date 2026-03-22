@@ -44,8 +44,8 @@ export const cacheData = async (storeName, data) => {
     const transaction = db.transaction([storeName], 'readwrite');
     const store = transaction.objectStore(storeName);
     if (Array.isArray(data)) {
-      data.filter(item => item.id && !String(item.id).startsWith('pending-')).forEach(item => store.put(item));
-    } else if (data.id && !String(data.id).startsWith('pending-')) {
+      data.forEach(item => store.put(item));
+    } else {
       store.put(data);
     }
     return new Promise((resolve, reject) => {

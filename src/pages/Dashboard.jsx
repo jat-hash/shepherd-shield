@@ -9,9 +9,7 @@ import SpecialEventsDropdown from "@/components/dashboard/SpecialEventsDropdown"
 import NotifyTeamButton from "@/components/dashboard/NotifyTeamButton";
 import SafetyCheckInPanel from "@/components/dashboard/SafetyCheckInPanel";
 import useOfflineData from "@/hooks/useOfflineData";
-import TeamLocationMap from "@/components/dashboard/TeamLocationMap";
 import { WifiOff } from "lucide-react";
-import RadioQRCheckIn from "@/components/dashboard/RadioQRCheckIn";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
@@ -66,7 +64,6 @@ export default function Dashboard() {
       </div>
 
       <SpecialEventsDropdown />
-      <RadioQRCheckIn />
 
       {/* This Month's Assignments */}
       <div className="space-y-3">
@@ -82,7 +79,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      {user?.role === 'admin' && <TeamLocationMap />}
       <SafetyCheckInPanel />
       <NotifyTeamButton user={user} />
       <EmergencyButton />

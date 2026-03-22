@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
-import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, MessageCircle, RefreshCw } from "lucide-react";
+import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, MessageCircle } from "lucide-react";
 import { Toaster } from "sonner";
 
 import NotificationProvider from "@/components/notifications/NotificationProvider";
@@ -129,13 +129,6 @@ export default function Layout({ children, currentPageName }) {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => window.location.reload()}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-            title="Refresh app"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
           <NotificationBell userEmail={user?.email} />
           <Link to={createPageUrl("Profile")}>
             <div className="w-8 h-8 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-xs cursor-pointer hover:bg-[#e0bb5e] transition-colors" title={user?.display_name || "User"}>

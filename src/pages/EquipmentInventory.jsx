@@ -188,8 +188,8 @@ export default function EquipmentInventory() {
           )}
         </div>
         <div className="flex gap-1 sm:gap-2">
-          <Button onClick={() => { setScanMode(true); setTimeout(() => setCameraMode(true), 400); }} variant="outline" className="border-[#d4a843] text-[#d4a843] hover:bg-[#d4a843]/10 text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-3">
-            <Camera className="w-3 h-3 sm:w-4 sm:h-4" /> Check In / Out
+          <Button onClick={() => { setScanMode(true); setCameraMode(true); }} variant="outline" className="border-[#d4a843] text-[#d4a843] hover:bg-[#d4a843]/10 text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-3">
+            <Camera className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Scan QR</span>
           </Button>
           {currentUser?.role === 'admin' && (
             <Button onClick={() => setFormOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-4">
@@ -521,7 +521,7 @@ export default function EquipmentInventory() {
           <DialogHeader>
             <DialogTitle className="text-[#d4a843] flex items-center gap-2">
               <QrCode className="w-5 h-5" />
-              Equipment Check In / Out
+              Scan Equipment QR
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
