@@ -8,7 +8,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Twilio credentials not configured' }, { status: 500 });
     }
 
-    let phone = '2532329036'.replace(/\D/g, '');
+    const body = await req.json();
+    let phone = (body.phone_number || '').replace(/\D/g, '');
     if (!phone.startsWith('1') && phone.length === 10) phone = '1' + phone;
     if (!phone.startsWith('+')) phone = '+' + phone;
 
