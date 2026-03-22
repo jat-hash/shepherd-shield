@@ -183,31 +183,22 @@ export default function Communications() {
       read_by: [user.email],
     };
 
-    // If offline, save to pending messages
-    if (!navigator.onLine) {
-      await savePendingMessage(messageData);
-      
-      // Add to UI optimistically
-      setMessages(prev => [...prev, {
-        ...messageData,
-        id: 'pending-' + Date.now(),
-        created_date: new Date().toISOString(),
-        isPending: true
-      }]);
-      
-      toast.info('Message saved - will send when online');
-      setNewMsg("");
-      return;
-    }
+    // Add to UI optimistically
+    setMessages(prev => [...prev, {
+      ...messageData,
+      id: 'pending-' + Date.now(),
+      created_date: new Date().toISOString(),
+      isPending: true
+    }]);
 
     try {
       await base44.entities.TeamMessage.create(messageData);
-      setNewMsg("");
     } catch (error) {
-      // If online but request failed, save as pending
+      // If send fails (offline or network error), save as pending
       await savePendingMessage(messageData);
-      toast.error('Send failed - saved for later');
     }
+    
+    setNewMsg("");
   };
 
   const handleFileUpload = async (e) => {
