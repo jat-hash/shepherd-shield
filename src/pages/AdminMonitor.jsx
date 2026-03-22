@@ -298,6 +298,19 @@ export default function AdminMonitor() {
             </SelectContent>
           </Select>
         </div>
+        <div className="flex items-center gap-2 mt-2">
+          <Input
+            type="date"
+            value={dateFilter}
+            onChange={e => setDateFilter(e.target.value)}
+            className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] text-white w-48"
+          />
+          {dateFilter && (
+            <Button variant="ghost" size="sm" onClick={() => setDateFilter("")} className="text-slate-400 hover:text-white">
+              Clear date
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Assignments List */}
