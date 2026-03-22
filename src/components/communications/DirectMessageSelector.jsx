@@ -80,6 +80,12 @@ export default function DirectMessageSelector({ currentUserEmail, onSelectDM }) 
           </DialogHeader>
 
           <div className="space-y-3">
+            {isOffline && (
+              <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-900/20 border border-amber-500/20 rounded-lg px-3 py-2">
+                <WifiOff className="w-3.5 h-3.5 shrink-0" />
+                Offline — showing cached contacts. Messages will send when reconnected.
+              </div>
+            )}
             <div className="relative">
               <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
               <Input
