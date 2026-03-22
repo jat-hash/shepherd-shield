@@ -1,22 +1,50 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { UserPlus, Search } from "lucide-react";
+import { UserPlus, Search, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { cacheData, getCachedData } from "@/components/notifications/offlineStorage";
+
+const USERS_CACHE_KEY = "team_users";
 
 export default function DirectMessageSelector({ currentUserEmail, onSelectDM }) {
   const [open, setOpen] = useState(false);
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     if (open && currentUserEmail) {
+      if (!navigator.onLine) {
+        // Load from cache when offline
+        getCachedData(USERS_CACHE_KEY).then(cached => {
+          if (cached) setUsers(cached.filter(u => u.email !== currentUserEmail));
+        });
+        return;
+      }
       base44.functions.invoke("listUsers").then(res => {
         const all = res?.data?.users || [];
-        setUsers(all.filter(u => u.email !== currentUserEmail));
-      }).catch(err => {
-        console.error("Failed to load users:", err);
+        const others = all.filter(u => u.email !== currentUserEmail);
+        setUsers(others);
+        // Cache the full list for offline use
+        cacheData(USERS_CACHE_KEY, all).catch(() => {});
+      }).catch(() => {
+        // Fallback to cache on error
+        getCachedData(USERS_CACHE_KEY).then(cached => {
+          if (cached) setUsers(cached.filter(u => u.email !== currentUserEmail));
+        });
       });
     }
   }, [open, currentUserEmail]);
