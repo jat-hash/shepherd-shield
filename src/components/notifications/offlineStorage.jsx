@@ -216,3 +216,32 @@ export const syncPendingCheckIns = async (base44) => {
     return false;
   }
 };
+
+// ---- Pending DM Channels (track DMs started offline) ----
+
+export const savePendingDM = async (dmChannel, otherUser) => {
+  // Save the DM channel so it persists even if offline
+  try {
+    const db = await openDB();
+    const transaction = db.transaction(['messages'], 'readwrite');
+    const store = transaction.objectStore('messages');
+    // Store a marker message so the channel is tracked
+    store.put({
+      id: `dm-marker-${dmChannel}`,
+      channel: dmChannel,
+      content: '',
+      sender_name: otherUser.full_name || otherUser.email,
+      sender_email: otherUser.email,
+      created_date: new Date().toISOString(),
+      is_pinned: false,
+      read_by: [],
+      isPending: true
+    });
+    return new Promise((resolve, reject) => {
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+  } catch (error) {
+    console.error('Save pending DM error:', error);
+  }
+};
