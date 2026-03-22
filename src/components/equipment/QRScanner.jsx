@@ -28,7 +28,7 @@ export default function QRScanner({ onScan, onClose, scannerId = "qr-reader" }) 
         setError("Camera access denied or unavailable. Please enter code manually.");
         console.error(err);
       });
-    }, 300);
+    }, 500);
 
     return () => {
       clearTimeout(timer);
