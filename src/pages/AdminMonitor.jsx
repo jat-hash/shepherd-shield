@@ -554,6 +554,110 @@ export default function AdminMonitor() {
         )}
       </div>
 
+      </>}
+
+      {activeTab === "tools" && (
+        <div className="space-y-4">
+          {/* Equipment Stats */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-orange-900/20 border border-orange-500/30 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <LogOut className="w-5 h-5 text-orange-500" />
+                <span className="text-orange-400 text-sm font-medium">Checked Out</span>
+              </div>
+              <p className="text-3xl font-bold text-white">{equipment.filter(e => e.checked_out).length}</p>
+            </div>
+            <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <LogIn className="w-5 h-5 text-emerald-500" />
+                <span className="text-emerald-400 text-sm font-medium">Available</span>
+              </div>
+              <p className="text-3xl font-bold text-white">{equipment.filter(e => !e.checked_out).length}</p>
+            </div>
+            <div className="bg-[#1a2744] border border-[rgba(212,168,67,0.15)] rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Wrench className="w-5 h-5 text-[#d4a843]" />
+                <span className="text-[#d4a843] text-sm font-medium">Total Items</span>
+              </div>
+              <p className="text-3xl font-bold text-white">{equipment.length}</p>
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-4 flex gap-3 flex-wrap">
+            <div className="relative flex-1 min-w-[180px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                placeholder="Search by name, serial, or person..."
+                value={equipmentSearch}
+                onChange={e => setEquipmentSearch(e.target.value)}
+                className="pl-10 bg-[#0a1128] border-[rgba(212,168,67,0.2)] text-white"
+              />
+            </div>
+            <Select value={equipmentFilter} onValueChange={setEquipmentFilter}>
+              <SelectTrigger className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] text-white w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Equipment</SelectItem>
+                <SelectItem value="checked_out">Checked Out</SelectItem>
+                <SelectItem value="available">Available</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Equipment List */}
+          <div className="space-y-3">
+            {filteredEquipment.length === 0 ? (
+              <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-8 text-center">
+                <p className="text-slate-400">No equipment found</p>
+              </div>
+            ) : filteredEquipment.map(item => (
+              <div
+                key={item.id}
+                className={`bg-[#1a2744] rounded-xl border p-4 transition-colors ${
+                  item.checked_out
+                    ? "border-orange-500/30 hover:border-orange-400/50"
+                    : "border-[rgba(212,168,67,0.1)] hover:border-[#d4a843]/30"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className="text-white font-semibold">{item.name}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">{item.category}</span>
+                      {item.checked_out ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 font-medium">Checked Out</span>
+                      ) : (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-medium">Available</span>
+                      )}
+                    </div>
+                    <div className="flex gap-4 text-sm text-slate-400">
+                      {item.serial_number && <span>SN: {item.serial_number}</span>}
+                      {item.checked_out && item.checked_out_by && (
+                        <span className="text-orange-400 font-medium">By: {item.checked_out_by}</span>
+                      )}
+                      {item.checked_out && item.checked_out_at && (
+                        <span>Since: {new Date(item.checked_out_at).toLocaleString()}</span>
+                      )}
+                    </div>
+                  </div>
+                  {item.checked_out && (
+                    <Button
+                      size="sm"
+                      onClick={() => handleForceReturn(item)}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1 shrink-0"
+                    >
+                      <LogIn className="w-4 h-4" /> Force Return
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Edit Assignment Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-[#1a2744] border-[rgba(212,168,67,0.2)]">
