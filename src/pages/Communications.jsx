@@ -26,7 +26,6 @@ export default function Communications() {
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
   const fileInputRef = useRef(null);
-  const activeChannelRef = useRef(activeChannel);
 
   useEffect(() => {
     base44.auth.me().then(u => {
@@ -44,16 +43,15 @@ export default function Communications() {
     }).catch(() => {});
   }, []);
 
-  // Keep ref in sync so online handler always has fresh channel name
-  useEffect(() => {
-    activeChannelRef.current = activeChannel;
-  }, [activeChannel]);
+  // Keep a ref to activeChannel so the online handler always sees the latest value
+  const activeChannelRef = useRef(activeChannel);
+  useEffect(() => { activeChannelRef.current = activeChannel; }, [activeChannel]);
 
   useEffect(() => {
     const handleOnline = async () => {
       setIsOffline(false);
       await syncPendingMessages(base44).catch(() => {});
-      // Use ref to avoid stale closure
+      // Use the ref so we always reload the currently-visible channel
       const ch = activeChannelRef.current.name;
       setLoading(true);
       base44.entities.TeamMessage.filter({ channel: ch }, "-created_date", 100)
@@ -72,7 +70,7 @@ export default function Communications() {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, []); // empty deps — uses ref internally
+  }, []); // run once only — uses ref for channel
 
   useEffect(() => {
     setLoading(true);
