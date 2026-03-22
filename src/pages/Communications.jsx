@@ -44,14 +44,41 @@ export default function Communications() {
   }, []);
 
   useEffect(() => {
+    const handleOnline = async () => {
+      setIsOffline(false);
+      await syncPendingMessages(base44).catch(() => {});
+      loadMessages();
+    };
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [activeChannel.name]);
+
+  useEffect(() => {
     setLoading(true);
     const currentChannel = activeChannel.name;
+
+    if (!navigator.onLine) {
+      getCachedData('messages').then(cached => {
+        const channelMsgs = (cached || []).filter(m => m.channel === currentChannel).sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+        setMessages(channelMsgs.filter(m => !m.is_pinned));
+        setPinnedMessages(channelMsgs.filter(m => m.is_pinned));
+        setLoading(false);
+      });
+      return;
+    }
     
     base44.entities.TeamMessage.filter({ channel: currentChannel }, "-created_date", 100)
       .then(msgs => {
         const sorted = msgs.reverse();
         setMessages(sorted.filter(m => !m.is_pinned));
         setPinnedMessages(sorted.filter(m => m.is_pinned));
+        // Cache all messages for this channel
+        cacheData('messages', sorted).catch(() => {});
         setLoading(false);
         
         // Mark as read
