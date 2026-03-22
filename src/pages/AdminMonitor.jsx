@@ -47,12 +47,24 @@ export default function AdminMonitor() {
 
   const loadAssignments = async () => {
     setLoading(true);
+    if (!navigator.onLine) {
+      const cached = await getCachedData('assignments');
+      setAssignments(cached || []);
+      setFilteredAssignments(cached || []);
+      setLoading(false);
+      return;
+    }
     try {
       const all = await base44.entities.Assignment.list("service_date");
       setAssignments(all);
       setFilteredAssignments(all);
+      await cacheData('assignments', all).catch(() => {});
     } catch (error) {
-      toast.error("Failed to load assignments");
+      // fallback to cache on network error
+      const cached = await getCachedData('assignments');
+      setAssignments(cached || []);
+      setFilteredAssignments(cached || []);
+      toast.error("Offline — showing cached data");
     }
     setLoading(false);
   };
