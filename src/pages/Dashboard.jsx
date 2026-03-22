@@ -9,6 +9,7 @@ import SpecialEventsDropdown from "@/components/dashboard/SpecialEventsDropdown"
 import NotifyTeamButton from "@/components/dashboard/NotifyTeamButton";
 import SafetyCheckInPanel from "@/components/dashboard/SafetyCheckInPanel";
 import useOfflineData from "@/hooks/useOfflineData";
+import TeamLocationMap from "@/components/dashboard/TeamLocationMap";
 import { WifiOff } from "lucide-react";
 
 export default function Dashboard() {
