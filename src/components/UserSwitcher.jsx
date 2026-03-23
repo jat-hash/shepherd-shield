@@ -9,7 +9,10 @@ export default function UserSwitcher({ user }) {
 
   useEffect(() => {
     base44.functions.invoke("listUsers")
-      .then(res => setUsers(res.data.users || []))
+      .then(res => {
+        const userList = res?.data?.users || [];
+        setUsers(userList);
+      })
       .catch(err => {
         console.error("Failed to load users:", err);
         setUsers([]);
