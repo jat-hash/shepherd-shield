@@ -65,7 +65,6 @@ export default function UserSwitcher({ user }) {
            ))
           )}
           </SelectContent>
-        </SelectContent>
       </Select>
       {impersonatedEmail && (
         <button
