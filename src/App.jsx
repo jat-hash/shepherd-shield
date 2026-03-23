@@ -74,10 +74,10 @@ function App() {
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>
-          <ServiceWorkerRegister />
-          <PWAInstaller />
-          <NavigationTracker />
           <NotificationProvider>
+            <ServiceWorkerRegister />
+            <PWAInstaller />
+            <NavigationTracker />
             <AuthenticatedApp />
             <OfflineIndicator />
           </NotificationProvider>
