@@ -519,27 +519,20 @@ export default function EquipmentInventory() {
         </DialogContent>
       </Dialog>
 
-      {/* Scan Mode */}
-      <Dialog open={scanMode} onOpenChange={(open) => {
-        setScanMode(open);
-        if (!open) {
-          setCameraMode(false);
-          setScannedCode("");
-          if (pendingScanResult.current) {
-            const result = pendingScanResult.current;
-            pendingScanResult.current = null;
-            setTimeout(() => setDetailItem(result), 50);
-          }
-        }
-      }}>
-        <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-[#d4a843] flex items-center gap-2">
-              <QrCode className="w-5 h-5" />
-              Scan Equipment QR
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
+      {/* Scan Mode - plain overlay to avoid Radix Dialog conflicting with html5-qrcode */}
+      {scanMode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={(e) => { if (e.target === e.currentTarget) { setScanMode(false); setCameraMode(false); setScannedCode(""); } }}>
+          <div className="bg-[#1a2744] border border-slate-700 rounded-xl text-white w-full max-w-sm mx-4 p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-[#d4a843] font-semibold">
+                <QrCode className="w-5 h-5" />
+                Scan Equipment QR
+              </div>
+              <button onClick={() => { setScanMode(false); setCameraMode(false); setScannedCode(""); }} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
             {cameraMode ? (
               <>
                 <QRScanner
@@ -571,17 +564,17 @@ export default function EquipmentInventory() {
                     autoFocus
                   />
                 </div>
-                <DialogFooter>
+                <div className="flex gap-2 justify-end">
                   <Button variant="ghost" onClick={() => { setScanMode(false); setScannedCode(""); }} className="text-slate-400">Cancel</Button>
                   <Button onClick={() => handleScan()} disabled={!scannedCode.trim()} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
                     Find Equipment
                   </Button>
-                </DialogFooter>
+                </div>
               </>
             )}
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
     </div>
   );
 }
