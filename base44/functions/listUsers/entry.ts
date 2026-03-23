@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
         }
 
         const users = await base44.asServiceRole.entities.User.list(undefined, 1000);
-        return Response.json({ data: { users } });
+        return Response.json({ users });
     } catch (error) {
         return Response.json({ error: error.message }, { status: 500 });
     }
