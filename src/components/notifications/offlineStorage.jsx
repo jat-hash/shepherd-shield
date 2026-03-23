@@ -1,6 +1,6 @@
 // IndexedDB for offline storage
 const DB_NAME = 'ShepherdShieldDB';
-const DB_VERSION = 6;
+const DB_VERSION = 5;
 
 export const openDB = () => {
   return new Promise((resolve, reject) => {
@@ -35,6 +35,9 @@ export const openDB = () => {
       }
       if (!db.objectStoreNames.contains('team_users')) {
         db.createObjectStore('team_users', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('pendingEquipmentActions')) {
+        db.createObjectStore('pendingEquipmentActions', { keyPath: 'tempId', autoIncrement: true });
       }
     };
   });
