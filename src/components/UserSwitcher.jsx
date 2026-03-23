@@ -5,9 +5,13 @@ import { LogOut } from "lucide-react";
 
 export default function UserSwitcher({ user }) {
   const [users, setUsers] = useState([]);
-  const [isOpen, setIsOpen] = useState(false);
+  const [impersonatedEmail, setImpersonatedEmail] = useState(null);
 
   useEffect(() => {
+    // Load impersonation state from sessionStorage
+    setImpersonatedEmail(sessionStorage.getItem("dev_impersonate_email"));
+    
+    // Fetch users list
     base44.functions.invoke("listUsers")
       .then(res => {
         const userList = res?.data?.users || [];
@@ -31,7 +35,7 @@ export default function UserSwitcher({ user }) {
     window.location.reload();
   };
 
-  const impersonatedEmail = sessionStorage.getItem("dev_impersonate_email");
+
 
   return (
     <div className="flex items-center gap-2">
