@@ -4,7 +4,7 @@ import { UserPlus, Search, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { cacheData, getCachedData } from "@/components/notifications/offlineStorage";
+import { cacheData, getCachedData } from "@/lib/offlineStorage";
 
 const USERS_CACHE_KEY = "team_users";
 
