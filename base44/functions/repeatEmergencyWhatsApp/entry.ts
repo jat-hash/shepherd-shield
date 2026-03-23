@@ -31,20 +31,22 @@ Deno.serve(async (req) => {
       const confirmedPhones = new Set(confirmations.map(c => c.user_phone).filter(Boolean));
       const confirmedEmails = new Set(confirmations.map(c => c.user_email).filter(Boolean));
 
-      for (const user of allUsers) {
+      const usersToNotify = allUsers.filter(user => {
         const userPhone = user.phone_number || user.data?.phone_number;
-        if (!userPhone) continue;
-
-        // Skip if already confirmed
-        if (confirmedEmails.has(user.email)) continue;
-
+        if (!userPhone) return false;
+        if (confirmedEmails.has(user.email)) return false;
         let phone = userPhone.replace(/\D/g, '');
         if (!phone.startsWith('1') && phone.length === 10) phone = '1' + phone;
         if (!phone.startsWith('+')) phone = '+' + phone;
+        return !confirmedPhones.has(phone);
+      });
 
-        if (confirmedPhones.has(phone)) continue;
+      const waBody = `🚨 EMERGENCY ALERT — STILL ACTIVE 🚨\nType: ${alert.alert_type}\n\n${alert.message}\n\n⚠️ You have NOT confirmed this alert.\nReply *CONFIRM* right now to acknowledge.`;
 
-        const waBody = `🚨 EMERGENCY ALERT — STILL ACTIVE 🚨\nType: ${alert.alert_type}\n\n${alert.message}\n\n⚠️ You have NOT confirmed this alert.\nReply *CONFIRM* right now to acknowledge.`;
+      const results = await Promise.all(usersToNotify.map(async (user) => {
+        let phone = (user.phone_number || user.data?.phone_number).replace(/\D/g, '');
+        if (!phone.startsWith('1') && phone.length === 10) phone = '1' + phone;
+        if (!phone.startsWith('+')) phone = '+' + phone;
 
         const waRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
           method: 'POST',
@@ -56,13 +58,16 @@ Deno.serve(async (req) => {
         });
 
         if (waRes.ok) {
-          totalSent++;
           console.log(`Repeat alert sent to ${user.email}`);
+          return 1;
         } else {
           const err = await waRes.json();
           console.log(`Failed to send to ${user.email}:`, JSON.stringify(err));
+          return 0;
         }
-      }
+      }));
+
+      totalSent += results.reduce((a, b) => a + b, 0);
     }
 
     return Response.json({ success: true, sent: totalSent, alerts: activeAlerts.length });
