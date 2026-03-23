@@ -40,6 +40,12 @@ export default function Dashboard() {
     return unsub;
   }, [user, reload]);
 
+  useEffect(() => {
+    const onRefresh = () => reload();
+    window.addEventListener("app:refresh", onRefresh);
+    return () => window.removeEventListener("app:refresh", onRefresh);
+  }, [reload]);
+
   if (loading && !assignments.length) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
