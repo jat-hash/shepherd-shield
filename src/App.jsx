@@ -72,14 +72,13 @@ function App() {
 
   return (
     <AuthProvider>
+      <ServiceWorkerRegister />
+      <PWAInstaller />
       <QueryClientProvider client={queryClientInstance}>
         <Router>
           <NotificationProvider>
-            <ServiceWorkerRegister />
-            <PWAInstaller />
             <NavigationTracker />
             <AuthenticatedApp />
-            <OfflineIndicator />
           </NotificationProvider>
         </Router>
         <Toaster richColors closeButton position="top-right" />
