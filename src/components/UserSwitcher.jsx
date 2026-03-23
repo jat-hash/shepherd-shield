@@ -15,7 +15,7 @@ export default function UserSwitcher({ user }) {
     base44.functions.invoke("listUsers")
       .then(res => {
         console.log("listUsers response:", res);
-        const userList = res?.data?.users || [];
+        const userList = res?.data?.users || res?.users || [];
         console.log("Users loaded:", userList.length, userList);
         setUsers(userList);
       })
