@@ -67,7 +67,8 @@ export default function PersonalCheckIn({ user }) {
       if (!navigator.geolocation) return resolve({});
       navigator.geolocation.getCurrentPosition(
         (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-        () => resolve({}, { timeout: 5000 })
+        () => resolve({}),
+        { timeout: 5000 }
       );
     });
 
