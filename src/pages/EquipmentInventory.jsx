@@ -520,7 +520,18 @@ export default function EquipmentInventory() {
       </Dialog>
 
       {/* Scan Mode */}
-      <Dialog open={scanMode} onOpenChange={(open) => { setScanMode(open); if (!open) { setCameraMode(false); setScannedCode(""); } }}>
+      <Dialog open={scanMode} onOpenChange={(open) => {
+        setScanMode(open);
+        if (!open) {
+          setCameraMode(false);
+          setScannedCode("");
+          if (pendingScanResult.current) {
+            const result = pendingScanResult.current;
+            pendingScanResult.current = null;
+            setTimeout(() => setDetailItem(result), 50);
+          }
+        }
+      }}>
         <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-[#d4a843] flex items-center gap-2">
