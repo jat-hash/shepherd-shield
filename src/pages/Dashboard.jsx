@@ -11,6 +11,7 @@ import SafetyCheckInPanel from "@/components/dashboard/SafetyCheckInPanel";
 import useOfflineData from "@/hooks/useOfflineData";
 import { WifiOff } from "lucide-react";
 import RadioCheckInScanner from "@/components/dashboard/RadioCheckInScanner";
+import PersonalCheckIn from "@/components/dashboard/PersonalCheckIn";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
