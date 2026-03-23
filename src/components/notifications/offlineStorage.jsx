@@ -1,6 +1,6 @@
 // IndexedDB for offline storage
 const DB_NAME = 'ShepherdShieldDB';
-const DB_VERSION = 6;
+const DB_VERSION = 5;
 
 export const openDB = () => {
   return new Promise((resolve, reject) => {
@@ -216,6 +216,50 @@ export const syncPendingCheckIns = async (base44) => {
     return true;
   } catch (error) {
     console.error('Sync check-ins failed:', error);
+    return false;
+  }
+};
+
+// ---- Pending Equipment Check-in/out (offline) ----
+
+export const savePendingEquipmentAction = async (action) => {
+  // action: { equipmentId, type: 'check-in'|'check-out', data: {...}, userName }
+  try {
+    const db = await openDB();
+    const transaction = db.transaction(['pendingEquipmentActions'], 'readwrite');
+    const store = transaction.objectStore('pendingEquipmentActions');
+    store.add({ ...action, timestamp: Date.now() });
+    return new Promise((resolve, reject) => {
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+  } catch (error) {
+    console.error('Save pending equipment action error:', error);
+  }
+};
+
+export const syncPendingEquipmentActions = async (base44) => {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(['pendingEquipmentActions'], 'readonly');
+    const store = tx.objectStore('pendingEquipmentActions');
+    const request = store.getAll();
+    const pending = await new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    for (const action of pending) {
+      try {
+        await base44.entities.Equipment.update(action.equipmentId, action.data);
+      } catch (error) {
+        console.error('Failed to sync equipment action:', error);
+      }
+    }
+    const tx2 = db.transaction(['pendingEquipmentActions'], 'readwrite');
+    tx2.objectStore('pendingEquipmentActions').clear();
+    return true;
+  } catch (error) {
+    console.error('Sync equipment actions failed:', error);
     return false;
   }
 };
