@@ -1,23 +1,36 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function QRScanner({ onScan, onClose }) {
   const scannerRef = useRef(null);
+  const onScanRef = useRef(onScan);
+  const scannedRef = useRef(false);
   const [error, setError] = useState(null);
   const [started, setStarted] = useState(false);
 
+  // Keep onScan ref fresh without re-running effect
+  useEffect(() => { onScanRef.current = onScan; }, [onScan]);
+
   useEffect(() => {
-    const scanner = new Html5Qrcode("qr-reader");
+    const scannerId = "qr-reader-" + Date.now();
+    const el = document.getElementById("qr-reader");
+    if (el) el.id = scannerId;
+
+    const scanner = new Html5Qrcode(el ? scannerId : "qr-reader");
     scannerRef.current = scanner;
+    scannedRef.current = false;
 
     scanner.start(
       { facingMode: "environment" },
       { fps: 10, qrbox: { width: 250, height: 250 } },
       (decodedText) => {
-        onScan(decodedText);
-        scanner.stop().catch(() => {});
+        if (scannedRef.current) return;
+        scannedRef.current = true;
+        scanner.stop().catch(() => {}).finally(() => {
+          onScanRef.current(decodedText);
+        });
       },
       () => {}
     ).then(() => setStarted(true)).catch((err) => {
@@ -30,7 +43,7 @@ export default function QRScanner({ onScan, onClose }) {
         scannerRef.current.stop().catch(() => {});
       }
     };
-  }, [onScan]);
+  }, []);
 
   return (
     <div className="space-y-3">
