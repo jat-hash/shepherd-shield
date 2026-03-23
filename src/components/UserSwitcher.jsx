@@ -23,7 +23,7 @@ export default function UserSwitcher({ user }) {
         console.error("Failed to load users:", err);
         setUsers([]);
       });
-  }, [];
+  }, []);
 
   const handleSwitchUser = async (email) => {
     // Store the override in sessionStorage
@@ -58,12 +58,13 @@ export default function UserSwitcher({ user }) {
           {users.length === 0 ? (
             <div className="p-2 text-xs text-slate-400">Loading users...</div>
           ) : (
-            users.map(u => (
-              <SelectItem key={u.email} value={u.email}>
-                {u.display_name || u.full_name || u.email}
-              </SelectItem>
-            ))
+           users.map(u => (
+             <SelectItem key={u.email} value={u.email}>
+               {u.display_name || u.full_name || u.email}
+             </SelectItem>
+           ))
           )}
+          </SelectContent>
         </SelectContent>
       </Select>
       {impersonatedEmail && (
