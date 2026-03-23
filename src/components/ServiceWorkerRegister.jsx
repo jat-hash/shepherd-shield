@@ -4,6 +4,13 @@ import { base44 } from "@/api/base44Client";
 
 export default function ServiceWorkerRegister() {
   useEffect(() => {
+    // Register service worker for offline support
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
     // Initialize OneSignal for push notifications
     const initOneSignal = async () => {
       if (typeof window !== 'undefined' && 'OneSignal' in window) {
