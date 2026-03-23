@@ -32,9 +32,8 @@ export default function Layout({ children, currentPageName }) {
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    // Works online and offline (loads from service worker cache when offline)
-    window.location.reload();
-    setTimeout(() => setIsRefreshing(false), 2000);
+    window.dispatchEvent(new CustomEvent("app:refresh"));
+    setTimeout(() => setIsRefreshing(false), 1500);
   };
 
   useEffect(() => {
