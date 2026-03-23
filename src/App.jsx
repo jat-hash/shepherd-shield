@@ -6,6 +6,11 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import NotificationProvider from '@/components/notifications/NotificationProvider';
+import PWAInstaller from '@/components/PWAInstaller';
+import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
+import OfflineIndicator from '@/components/notifications/OfflineIndicator';
+import { Toaster } from 'sonner';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -68,10 +73,16 @@ function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <NavigationTracker />
-          <AuthenticatedApp />
-        </Router>
+        <NotificationProvider>
+          <Router>
+            <ServiceWorkerRegister />
+            <PWAInstaller />
+            <OfflineIndicator />
+            <NavigationTracker />
+            <AuthenticatedApp />
+          </Router>
+          <Toaster richColors closeButton position="top-right" />
+        </NotificationProvider>
       </QueryClientProvider>
     </AuthProvider>
   )
