@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { AlertTriangle, MessageSquare, CalendarCheck } from "lucide-react";
 import EmergencyOverlay from "./EmergencyOverlay";
 import OfflineIndicator from "./OfflineIndicator";
-import { cacheData, syncPendingMessages } from "./offlineStorage";
+import { cacheData, syncPendingMessages } from "@/lib/offlineStorage";
 
 // Loud sound notification helper
 const playNotificationSound = (type = 'message') => {
