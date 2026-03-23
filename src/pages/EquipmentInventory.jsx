@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Wrench, CheckCircle, Upload, QrCode, Camera, FileText, LogIn, LogOut, Calendar, Pencil, Printer, WifiOff } from "lucide-react";
+import { Plus, Wrench, CheckCircle, Upload, QrCode, Camera, FileText, LogIn, LogOut, Calendar, Pencil, Printer, WifiOff, X } from "lucide-react";
 import useOfflineData from "@/hooks/useOfflineData";
 import QRScanner from "@/components/equipment/QRScanner";
 import { Button } from "@/components/ui/button";
