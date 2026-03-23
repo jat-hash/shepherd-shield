@@ -209,24 +209,78 @@ export const savePendingEquipmentAction = async (action) => {
 };
 
 export const syncPendingEquipmentActions = async (base44) => {
-  const database = await getDB();
-  const transaction = database.transaction(['pending_actions'], 'readonly');
-  const store = transaction.objectStore('pending_actions');
-  const request = store.getAll();
-  
-  return new Promise(async (resolve) => {
-    request.onsuccess = async () => {
-      const equipmentActions = request.result.filter(item => item.type === 'equipment');
-      
-      for (const action of equipmentActions) {
-        try {
-          await base44.entities.Equipment.update(action.equipmentId, action.data);
-          await clearPendingAction(action.id);
-        } catch (error) {
-          console.error('Failed to sync equipment action:', error);
-        }
-      }
-      resolve(equipmentActions.length > 0);
-    };
-  });
+   const database = await getDB();
+   const transaction = database.transaction(['pending_actions'], 'readonly');
+   const store = transaction.objectStore('pending_actions');
+   const request = store.getAll();
+
+   return new Promise(async (resolve) => {
+     request.onsuccess = async () => {
+       const equipmentActions = request.result.filter(item => item.type === 'equipment');
+
+       for (const action of equipmentActions) {
+         try {
+           await base44.entities.Equipment.update(action.equipmentId, action.data);
+           await clearPendingAction(action.id);
+         } catch (error) {
+           console.error('Failed to sync equipment action:', error);
+         }
+       }
+       resolve(equipmentActions.length > 0);
+     };
+   });
+};
+
+export const savePersonalCheckInState = async (state) => {
+   if (typeof localStorage === 'undefined') return;
+   localStorage.setItem('personal_checkin_state', JSON.stringify(state));
+};
+
+export const getPersonalCheckInState = async () => {
+   if (typeof localStorage === 'undefined') return null;
+   const stored = localStorage.getItem('personal_checkin_state');
+   return stored ? JSON.parse(stored) : null;
+};
+
+export const savePendingPersonalCheckIn = async (action) => {
+   const database = await getDB();
+   const transaction = database.transaction(['pending_actions'], 'readwrite');
+   const store = transaction.objectStore('pending_actions');
+   const request = store.add({
+     type: 'personal_checkin',
+     ...action,
+     timestamp: new Date().toISOString()
+   });
+
+   return new Promise((resolve, reject) => {
+     request.onsuccess = () => resolve(request.result);
+     request.onerror = () => reject(request.error);
+   });
+};
+
+export const syncPendingPersonalCheckIns = async (base44) => {
+   const database = await getDB();
+   const transaction = database.transaction(['pending_actions'], 'readonly');
+   const store = transaction.objectStore('pending_actions');
+   const request = store.getAll();
+
+   return new Promise(async (resolve) => {
+     request.onsuccess = async () => {
+       const checkins = request.result.filter(item => item.type === 'personal_checkin');
+
+       for (const action of checkins) {
+         try {
+           if (action.action?.type === 'check_in') {
+             await base44.entities.PersonalCheckIn.create(action.action?.data);
+           } else if (action.action?.type === 'check_out' && action.action?.recordId) {
+             await base44.entities.PersonalCheckIn.update(action.action?.recordId, action.action?.data);
+           }
+           await clearPendingAction(action.id);
+         } catch (error) {
+           console.error('Failed to sync personal check-in:', error);
+         }
+       }
+       resolve(checkins.length > 0);
+     };
+   });
 };
