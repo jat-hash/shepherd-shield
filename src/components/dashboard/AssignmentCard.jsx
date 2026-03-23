@@ -31,27 +31,37 @@ export default function AssignmentCard({ assignment, onUpdate }) {
         { timeout: 10000, enableHighAccuracy: true, maximumAge: 0 }
       ));
     }
-    await base44.entities.Assignment.update(assignment.id, {
-      checked_in: true,
-      check_in_time: now,
-      status: "Confirmed",
-      ...(lat !== null && { check_in_latitude: lat, check_in_longitude: lng })
-    }, { data_env: "dev" });
-    onUpdate?.();
+    try {
+      await base44.entities.Assignment.update(assignment.id, {
+        checked_in: true,
+        check_in_time: now,
+        status: "Confirmed",
+        ...(lat !== null && { check_in_latitude: lat, check_in_longitude: lng })
+      });
+      toast.success("Checked in successfully");
+      onUpdate?.();
+    } catch (error) {
+      toast.error("Check-in failed, please try again");
+    }
   };
 
   const handleCheckOut = async () => {
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    await base44.entities.Assignment.update(assignment.id, {
-      checked_out: true,
-      check_out_time: now
-    }, { data_env: "dev" });
-    onUpdate?.();
+    try {
+      await base44.entities.Assignment.update(assignment.id, {
+        checked_out: true,
+        check_out_time: now
+      });
+      toast.success("Checked out successfully");
+      onUpdate?.();
+    } catch (error) {
+      toast.error("Check-out failed, please try again");
+    }
   };
 
   const handleDelete = async () => {
     try {
-      await base44.entities.Assignment.delete(assignment.id, { data_env: "dev" });
+      await base44.entities.Assignment.delete(assignment.id);
       toast.success("Assignment deleted");
       setDeleteDialogOpen(false);
       onUpdate?.();
