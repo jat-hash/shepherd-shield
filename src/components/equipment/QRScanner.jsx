@@ -3,6 +3,8 @@ import { Html5Qrcode } from "html5-qrcode";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+const SCANNER_ID = "qr-reader-container";
+
 export default function QRScanner({ onScan, onClose }) {
   const scannerRef = useRef(null);
   const onScanRef = useRef(onScan);
@@ -13,36 +15,56 @@ export default function QRScanner({ onScan, onClose }) {
   useEffect(() => { onScanRef.current = onScan; }, [onScan]);
 
   useEffect(() => {
-    const scanner = new Html5Qrcode("qr-reader");
-    scannerRef.current = scanner;
     scannedRef.current = false;
+
+    // Clear any leftover html5-qrcode DOM from a previous mount
+    const container = document.getElementById(SCANNER_ID);
+    if (container) container.innerHTML = "";
+
+    let scanner;
+    let stopped = false;
+
+    try {
+      scanner = new Html5Qrcode(SCANNER_ID);
+      scannerRef.current = scanner;
+    } catch (e) {
+      setError("Could not initialize scanner. Please enter code manually.");
+      return;
+    }
 
     scanner.start(
       { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 250, height: 250 } },
+      { fps: 10, qrbox: { width: 220, height: 220 } },
       (decodedText) => {
-        if (scannedRef.current) return;
+        if (scannedRef.current || stopped) return;
         scannedRef.current = true;
-        // Stop scanner then notify parent
-        scanner.stop().catch(() => {}).finally(() => {
-          onScanRef.current(decodedText);
-        });
+        scanner.stop()
+          .catch(() => {})
+          .finally(() => {
+            onScanRef.current(decodedText);
+          });
       },
-      () => {}
-    ).then(() => setStarted(true)).catch((err) => {
-      setError("Camera access denied or unavailable. Please enter code manually.");
-      console.error(err);
-    });
+      () => {} // suppress per-frame errors
+    )
+      .then(() => setStarted(true))
+      .catch((err) => {
+        console.error("QR Scanner start error:", err);
+        setError("Camera access denied or unavailable. Please enter code manually.");
+      });
 
     return () => {
-      scannerRef.current?.stop().catch(() => {});
+      stopped = true;
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch(() => {});
+        scannerRef.current = null;
+      }
     };
   }, []);
 
   return (
     <div className="space-y-3">
       <div className="relative bg-black rounded-lg overflow-hidden">
-        <div id="qr-reader" className="w-full" style={{ minHeight: 280 }} />
+        <div id={SCANNER_ID} className="w-full" style={{ minHeight: 280 }} />
         <Button
           onClick={onClose}
           size="icon"
