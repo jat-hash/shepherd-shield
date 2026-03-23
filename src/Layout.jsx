@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, MessageCircle, RotateCw } from "lucide-react";
-import { Toaster } from "sonner";
 
 import NotificationBell from "@/components/notifications/NotificationBell";
 import UserSwitcher from "@/components/UserSwitcher";
