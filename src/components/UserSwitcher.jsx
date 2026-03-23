@@ -1,0 +1,59 @@
+import { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LogOut } from "lucide-react";
+
+export default function UserSwitcher({ user }) {
+  const [users, setUsers] = useState([]);
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    base44.functions.invoke("listUsers")
+      .then(res => setUsers(res?.data?.users || []))
+      .catch(() => setUsers([]));
+  }, []);
+
+  const handleSwitchUser = async (email) => {
+    // Store the override in sessionStorage
+    sessionStorage.setItem("dev_impersonate_email", email);
+    // Reload page
+    window.location.reload();
+  };
+
+  const handleClearImpersonate = () => {
+    sessionStorage.removeItem("dev_impersonate_email");
+    window.location.reload();
+  };
+
+  const impersonatedEmail = sessionStorage.getItem("dev_impersonate_email");
+
+  return (
+    <div className="flex items-center gap-2">
+      <Select value={impersonatedEmail || ""} onValueChange={handleSwitchUser}>
+        <SelectTrigger className="w-48 text-xs bg-slate-800 border-slate-600">
+          <SelectValue placeholder="Switch user..." />
+        </SelectTrigger>
+        <SelectContent className="bg-slate-800 border-slate-600">
+          <SelectItem value={null}>
+            <span className="text-slate-300">Act as real user ({user?.email})</span>
+          </SelectItem>
+          {users.map(u => (
+            <SelectItem key={u.email} value={u.email} className="text-slate-300">
+              {u.full_name || u.email}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {impersonatedEmail && (
+        <button
+          onClick={handleClearImpersonate}
+          className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
+          title="Exit impersonate mode"
+        >
+          <LogOut className="w-3 h-3" />
+          Exit
+        </button>
+      )}
+    </div>
+  );
+}
