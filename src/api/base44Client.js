@@ -1,12 +1,14 @@
 import { createClient } from '@base44/sdk';
 import { appParams } from '@/lib/app-params';
 
-let _base44 = null;
+const { appId, token, functionsVersion, appBaseUrl } = appParams;
 
-function ensureBase44() {
-  if (!_base44) {
-    const { appId, token, functionsVersion, appBaseUrl } = appParams;
-    _base44 = createClient({
+// Lazy initialization to ensure React is ready
+let base44Instance = null;
+
+function getBase44() {
+  if (!base44Instance) {
+    base44Instance = createClient({
       appId,
       token,
       functionsVersion,
@@ -15,16 +17,23 @@ function ensureBase44() {
       appBaseUrl
     });
   }
-  return _base44;
+  return base44Instance;
 }
 
-Object.defineProperty(window, '__base44__', {
-  get: ensureBase44,
-  configurable: true
-});
+export { getBase44 };
 
+// Create a proxy to lazy-load on first access
 export const base44 = new Proxy({}, {
   get(target, prop) {
-    return ensureBase44()[prop];
+    return getBase44()[prop];
+  },
+  has(target, prop) {
+    return prop in getBase44();
+  },
+  ownKeys(target) {
+    return Reflect.ownKeys(getBase44());
+  },
+  getOwnPropertyDescriptor(target, prop) {
+    return Object.getOwnPropertyDescriptor(getBase44(), prop);
   }
 });
