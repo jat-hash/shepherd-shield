@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { Plus, Wrench, CheckCircle, Upload, QrCode, Camera, FileText, LogIn, LogOut, Calendar, Pencil, Printer, WifiOff, X } from "lucide-react";
 import useOfflineData from "@/hooks/useOfflineData";
-import { savePendingEquipmentAction, syncPendingEquipmentActions, cacheData } from "@/components/notifications/offlineStorage";
+import { cacheData, savePendingEquipmentAction, syncPendingEquipmentActions } from "@/components/notifications/offlineStorage";
 import QRScanner from "@/components/equipment/QRScanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,8 +44,11 @@ export default function EquipmentInventory() {
   useEffect(() => { 
     base44.auth.me().then(setCurrentUser).catch(() => {});
     const unsub = base44.entities.Equipment.subscribe(() => load());
-    // Sync any pending offline actions when back online
-    const handleOnline = () => syncPendingEquipmentActions(base44).then(() => load()).catch(() => {});
+
+    // Sync pending equipment actions when coming back online
+    const handleOnline = () => {
+      syncPendingEquipmentActions(base44).then(ok => { if (ok) load(); }).catch(() => {});
+    };
     window.addEventListener("online", handleOnline);
     return () => { unsub(); window.removeEventListener("online", handleOnline); };
   }, []);
