@@ -84,12 +84,17 @@ export default function EquipmentInventory() {
     if (!searchCode) return;
     const found = items.find(i => i.qr_code === searchCode || i.serial_number === searchCode);
     if (found) {
-      setDetailItem(found);
-      setScanMode(false);
+      // Close scan dialog first, then open detail after a short delay
+      // to let QRScanner unmount cleanly before showing result
       setCameraMode(false);
       setScannedCode("");
+      setTimeout(() => {
+        setScanMode(false);
+        setDetailItem(found);
+      }, 300);
     } else {
       toast.error("Equipment not found");
+      setCameraMode(false);
     }
   };
 
