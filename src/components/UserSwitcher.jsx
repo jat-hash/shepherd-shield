@@ -55,16 +55,12 @@ export default function UserSwitcher({ user }) {
           <SelectItem value="__real_user__" className="text-slate-300">
             Act as real user ({user?.email})
           </SelectItem>
-          {users.length === 0 ? (
-            <div className="p-2 text-xs text-slate-400">Loading users...</div>
-          ) : (
-           users.map(u => (
-             <SelectItem key={u.email} value={u.email}>
-               {u.display_name || u.full_name || u.email}
-             </SelectItem>
-           ))
-          )}
-          </SelectContent>
+          {users.map(u => (
+            <SelectItem key={u.email} value={u.email}>
+              {u.display_name || u.full_name || u.email}
+            </SelectItem>
+          ))}
+        </SelectContent>
       </Select>
       {impersonatedEmail && (
         <button
