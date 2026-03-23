@@ -14,14 +14,16 @@ export default function UserSwitcher({ user }) {
     // Fetch users list
     base44.functions.invoke("listUsers")
       .then(res => {
+        console.log("listUsers response:", res);
         const userList = res?.data?.users || [];
+        console.log("Users loaded:", userList.length, userList);
         setUsers(userList);
       })
       .catch(err => {
         console.error("Failed to load users:", err);
         setUsers([]);
       });
-  }, []);
+  }, [];
 
   const handleSwitchUser = async (email) => {
     // Store the override in sessionStorage
@@ -49,15 +51,19 @@ export default function UserSwitcher({ user }) {
         <SelectTrigger className="w-48 text-xs bg-slate-800 border-slate-600">
           <SelectValue placeholder="Switch user..." />
         </SelectTrigger>
-        <SelectContent className="bg-slate-800 border-slate-600">
+        <SelectContent className="bg-slate-800 border-slate-600 text-white">
           <SelectItem value="__real_user__" className="text-slate-300">
             Act as real user ({user?.email})
           </SelectItem>
-          {users.map(u => (
-            <SelectItem key={u.email} value={u.email} className="text-slate-300">
-              {u.full_name || u.email}
-            </SelectItem>
-          ))}
+          {users.length === 0 ? (
+            <div className="p-2 text-xs text-slate-400">Loading users...</div>
+          ) : (
+            users.map(u => (
+              <SelectItem key={u.email} value={u.email}>
+                {u.display_name || u.full_name || u.email}
+              </SelectItem>
+            ))
+          )}
         </SelectContent>
       </Select>
       {impersonatedEmail && (
