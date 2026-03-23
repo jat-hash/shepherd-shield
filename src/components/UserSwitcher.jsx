@@ -9,8 +9,11 @@ export default function UserSwitcher({ user }) {
 
   useEffect(() => {
     base44.functions.invoke("listUsers")
-      .then(res => setUsers(res?.data?.users || []))
-      .catch(() => setUsers([]));
+      .then(res => setUsers(res.data.users || []))
+      .catch(err => {
+        console.error("Failed to load users:", err);
+        setUsers([]);
+      });
   }, []);
 
   const handleSwitchUser = async (email) => {
