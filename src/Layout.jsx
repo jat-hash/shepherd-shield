@@ -5,12 +5,8 @@ import { base44 } from "@/api/base44Client";
 import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, MessageCircle, RotateCw } from "lucide-react";
 import { Toaster } from "sonner";
 
-import NotificationProvider from "@/components/notifications/NotificationProvider";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import UserSwitcher from "@/components/UserSwitcher";
-import PWAInstaller from "@/components/PWAInstaller";
-import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
-import OfflineIndicator from "@/components/notifications/OfflineIndicator";
 import AIAssistant from "@/components/AIAssistant";
 
 const NAV_ITEMS = [
@@ -60,13 +56,7 @@ export default function Layout({ children, currentPageName }) {
   if (noLayoutPages.includes(currentPageName)) return children;
 
   return (
-    <NotificationProvider>
-      <ServiceWorkerRegister />
-      <Toaster richColors closeButton position="top-right" />
-      <PWAInstaller />
-      <OfflineIndicator />
-      <AIAssistant />
-      <div className="min-h-screen bg-[#0a1128] text-white flex flex-col">
+    <div className="min-h-screen bg-[#0a1128] text-white flex flex-col">
       <style>{`
         :root {
           --navy: #0a1128;
@@ -393,6 +383,6 @@ export default function Layout({ children, currentPageName }) {
         </div>
       </nav>
     </div>
-    </NotificationProvider>
+    <AIAssistant />
   );
 }
