@@ -55,7 +55,8 @@ export default function Layout({ children, currentPageName }) {
   if (noLayoutPages.includes(currentPageName)) return children;
 
   return (
-    <div className="min-h-screen bg-[#0a1128] text-white flex flex-col">
+    <>
+      <div className="min-h-screen bg-[#0a1128] text-white flex flex-col">
       <style>{`
         :root {
           --navy: #0a1128;
@@ -382,8 +383,7 @@ export default function Layout({ children, currentPageName }) {
         </div>
       </nav>
     </div>
-    <>
-      <AIAssistant />
+    <AIAssistant />
     </>
   );
 }
