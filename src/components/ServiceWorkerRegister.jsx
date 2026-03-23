@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 
+// This component handles service worker and OneSignal registration
+
 export default function ServiceWorkerRegister() {
   useEffect(() => {
     // Register service worker for offline support
