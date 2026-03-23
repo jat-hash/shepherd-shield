@@ -1,6 +1,6 @@
 // IndexedDB for offline storage
 const DB_NAME = 'ShepherdShieldDB';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 export const openDB = () => {
   return new Promise((resolve, reject) => {
@@ -223,7 +223,7 @@ export const syncPendingCheckIns = async (base44) => {
 // ---- Pending Equipment Check-in/out (offline) ----
 
 export const savePendingEquipmentAction = async (action) => {
-  // action: { equipmentId, type: 'check-in'|'check-out', data: {...}, userName }
+  // action: { equipmentId, type: 'check-in'|'check-out', data: {...}, userName: string }
   try {
     const db = await openDB();
     const transaction = db.transaction(['pendingEquipmentActions'], 'readwrite');
@@ -238,16 +238,39 @@ export const savePendingEquipmentAction = async (action) => {
   }
 };
 
-export const syncPendingEquipmentActions = async (base44) => {
+export const getPendingEquipmentActions = async () => {
   try {
     const db = await openDB();
-    const tx = db.transaction(['pendingEquipmentActions'], 'readonly');
-    const store = tx.objectStore('pendingEquipmentActions');
+    const transaction = db.transaction(['pendingEquipmentActions'], 'readonly');
+    const store = transaction.objectStore('pendingEquipmentActions');
     const request = store.getAll();
-    const pending = await new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
+  } catch (error) {
+    return [];
+  }
+};
+
+export const clearPendingEquipmentActions = async () => {
+  try {
+    const db = await openDB();
+    const transaction = db.transaction(['pendingEquipmentActions'], 'readwrite');
+    const store = transaction.objectStore('pendingEquipmentActions');
+    store.clear();
+    return new Promise((resolve, reject) => {
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+  } catch (error) {
+    console.error('Clear pending equipment actions error:', error);
+  }
+};
+
+export const syncPendingEquipmentActions = async (base44) => {
+  try {
+    const pending = await getPendingEquipmentActions();
     for (const action of pending) {
       try {
         await base44.entities.Equipment.update(action.equipmentId, action.data);
@@ -255,8 +278,7 @@ export const syncPendingEquipmentActions = async (base44) => {
         console.error('Failed to sync equipment action:', error);
       }
     }
-    const tx2 = db.transaction(['pendingEquipmentActions'], 'readwrite');
-    tx2.objectStore('pendingEquipmentActions').clear();
+    await clearPendingEquipmentActions();
     return true;
   } catch (error) {
     console.error('Sync equipment actions failed:', error);
