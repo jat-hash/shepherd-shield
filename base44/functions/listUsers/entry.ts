@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 Deno.serve(async (req) => {
     try {
@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
         }
 
         const users = await base44.asServiceRole.entities.User.list(undefined, 1000);
-        return Response.json({ users });
+        return Response.json({ data: { users } });
     } catch (error) {
         return Response.json({ error: error.message }, { status: 500 });
     }
