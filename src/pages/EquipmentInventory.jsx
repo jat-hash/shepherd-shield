@@ -79,19 +79,18 @@ export default function EquipmentInventory() {
     toast.success("QR Code generated");
   };
 
+  const pendingScanResult = useRef(null);
+
   const handleScan = async (code) => {
     const searchCode = (code || scannedCode).trim();
     if (!searchCode) return;
     const found = items.find(i => i.qr_code === searchCode || i.serial_number === searchCode);
     if (found) {
-      // Close scan dialog first, then open detail after a short delay
-      // to let QRScanner unmount cleanly before showing result
+      pendingScanResult.current = found;
+      // Close scan dialog fully first, detail opens in onOpenChange callback
       setCameraMode(false);
       setScannedCode("");
-      setTimeout(() => {
-        setScanMode(false);
-        setDetailItem(found);
-      }, 300);
+      setScanMode(false);
     } else {
       toast.error("Equipment not found");
       setCameraMode(false);
