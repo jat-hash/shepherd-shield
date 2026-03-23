@@ -35,13 +35,19 @@ export default function UserSwitcher({ user }) {
 
   return (
     <div className="flex items-center gap-2">
-      <Select value={impersonatedEmail || ""} onValueChange={handleSwitchUser}>
+      <Select value={impersonatedEmail || "__real_user__"} onValueChange={(val) => {
+        if (val === "__real_user__") {
+          handleClearImpersonate();
+        } else {
+          handleSwitchUser(val);
+        }
+      }}>
         <SelectTrigger className="w-48 text-xs bg-slate-800 border-slate-600">
           <SelectValue placeholder="Switch user..." />
         </SelectTrigger>
         <SelectContent className="bg-slate-800 border-slate-600">
-          <SelectItem value={null}>
-            <span className="text-slate-300">Act as real user ({user?.email})</span>
+          <SelectItem value="__real_user__" className="text-slate-300">
+            Act as real user ({user?.email})
           </SelectItem>
           {users.map(u => (
             <SelectItem key={u.email} value={u.email} className="text-slate-300">
