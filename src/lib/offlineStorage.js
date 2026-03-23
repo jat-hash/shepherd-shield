@@ -118,3 +118,76 @@ export const syncPendingCheckIns = async (base44) => {
     }
   }
 };
+
+export const savePendingMessage = async (messageData) => {
+  const database = await getDB();
+  const transaction = database.transaction(['pending_actions'], 'readwrite');
+  const store = transaction.objectStore('pending_actions');
+  const request = store.add({
+    type: 'message',
+    data: messageData,
+    timestamp: new Date().toISOString()
+  });
+  
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export const savePendingDM = async (dmChannel, otherUser) => {
+  const database = await getDB();
+  const transaction = database.transaction(['pending_actions'], 'readwrite');
+  const store = transaction.objectStore('pending_actions');
+  const request = store.add({
+    type: 'dm_channel',
+    channel: dmChannel,
+    otherUser: otherUser,
+    timestamp: new Date().toISOString()
+  });
+  
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export const getPendingMessages = async () => {
+  const database = await getDB();
+  const transaction = database.transaction(['pending_actions'], 'readonly');
+  const store = transaction.objectStore('pending_actions');
+  const request = store.getAll();
+  
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => {
+      const messages = request.result.filter(item => item.type === 'message');
+      resolve(messages);
+    };
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export const clearPendingAction = async (id) => {
+  const database = await getDB();
+  const transaction = database.transaction(['pending_actions'], 'readwrite');
+  const store = transaction.objectStore('pending_actions');
+  const request = store.delete(id);
+  
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export const syncPendingMessages = async (base44) => {
+  const pendingMessages = await getPendingMessages();
+  
+  for (const pending of pendingMessages) {
+    try {
+      await base44.entities.TeamMessage.create(pending.data);
+      await clearPendingAction(pending.id);
+    } catch (error) {
+      console.error('Failed to sync pending message:', error);
+    }
+  }
+};
