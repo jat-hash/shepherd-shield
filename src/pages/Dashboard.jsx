@@ -67,6 +67,7 @@ export default function Dashboard() {
 
       <SpecialEventsDropdown />
 
+      <PersonalCheckIn user={user} />
       <RadioCheckInScanner user={user} />
 
       {/* This Month's Assignments */}
