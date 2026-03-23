@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { Plus, Wrench, CheckCircle, Upload, QrCode, Camera, FileText, LogIn, LogOut, Calendar, Pencil, Printer, WifiOff, X } from "lucide-react";
 import useOfflineData from "@/hooks/useOfflineData";
-import { cacheData, savePendingEquipmentAction, syncPendingEquipmentActions } from "@/components/notifications/offlineStorage";
+import { savePendingEquipmentAction, syncPendingEquipmentActions, cacheData } from "@/components/notifications/offlineStorage";
 import QRScanner from "@/components/equipment/QRScanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,11 +44,8 @@ export default function EquipmentInventory() {
   useEffect(() => { 
     base44.auth.me().then(setCurrentUser).catch(() => {});
     const unsub = base44.entities.Equipment.subscribe(() => load());
-
-    // Sync pending equipment actions when coming back online
-    const handleOnline = () => {
-      syncPendingEquipmentActions(base44).then(ok => { if (ok) load(); }).catch(() => {});
-    };
+    // Sync any pending offline actions when back online
+    const handleOnline = () => syncPendingEquipmentActions(base44).then(() => load()).catch(() => {});
     window.addEventListener("online", handleOnline);
     return () => { unsub(); window.removeEventListener("online", handleOnline); };
   }, []);
@@ -105,34 +102,56 @@ export default function EquipmentInventory() {
   };
 
   const handleCheckOut = async (item) => {
-    const user = await base44.auth.me();
-    await base44.entities.Equipment.update(item.id, {
+    const userName = currentUser?.full_name || currentUser?.email || "Unknown";
+    const updateData = {
       checked_out: true,
-      checked_out_by: user.full_name || user.email,
+      checked_out_by: userName,
       checked_out_at: new Date().toISOString(),
       usage_history: [
         ...(item.usage_history || []),
-        { action: "check-out", user: user.full_name || user.email, timestamp: new Date().toISOString() }
+        { action: "check-out", user: userName, timestamp: new Date().toISOString() }
       ]
-    });
-    toast.success("Equipment checked out");
+    };
+    const updatedItem = { ...item, ...updateData };
+    // Optimistic update
     setDetailItem(null);
+    const newItems = items.map(i => i.id === item.id ? updatedItem : i);
+    await cacheData("equipment", newItems).catch(() => {});
+    if (!navigator.onLine) {
+      await savePendingEquipmentAction({ equipmentId: item.id, type: "check-out", data: updateData });
+      toast.success("Checked out (will sync when online)");
+      load();
+      return;
+    }
+    await base44.entities.Equipment.update(item.id, updateData);
+    toast.success("Equipment checked out");
     load();
   };
 
   const handleCheckIn = async (item) => {
-    const user = await base44.auth.me();
-    await base44.entities.Equipment.update(item.id, {
+    const userName = currentUser?.full_name || currentUser?.email || "Unknown";
+    const updateData = {
       checked_out: false,
       checked_out_by: null,
       checked_out_at: null,
       usage_history: [
         ...(item.usage_history || []),
-        { action: "check-in", user: user.full_name || user.email, timestamp: new Date().toISOString() }
+        { action: "check-in", user: userName, timestamp: new Date().toISOString() }
       ]
-    });
-    toast.success("Equipment checked in");
+    };
+    const updatedItem = { ...item, ...updateData };
+    // Optimistic update
     setDetailItem(null);
+    const newItems = items.map(i => i.id === item.id ? updatedItem : i);
+    await cacheData("equipment", newItems).catch(() => {});
+    if (!navigator.onLine) {
+      await savePendingEquipmentAction({ equipmentId: item.id, type: "check-in", data: updateData });
+      toast.success("Checked in (will sync when online)");
+      load();
+      return;
+    }
+    await base44.entities.Equipment.update(item.id, updateData);
+    toast.success("Equipment checked in");
     load();
   };
 
