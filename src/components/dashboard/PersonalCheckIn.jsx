@@ -7,7 +7,7 @@ import {
   getPersonalCheckInState,
   savePendingPersonalCheckIn,
   syncPendingPersonalCheckIns,
-} from "@/components/notifications/offlineStorage";
+} from "@/components/notifications/offlineStorage.js";
 
 export default function PersonalCheckIn({ user }) {
   const [checkedIn, setCheckedIn] = useState(false);
