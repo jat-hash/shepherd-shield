@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { cacheData, getCachedData } from "@/components/notifications/offlineStorage";
+import { cacheData, getCachedData } from "@/lib/offlineStorage";
 
 /**
  * Hook that fetches data online and falls back to IndexedDB cache when offline.
