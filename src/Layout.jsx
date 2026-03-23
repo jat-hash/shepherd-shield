@@ -7,6 +7,7 @@ import { Toaster } from "sonner";
 
 import NotificationProvider from "@/components/notifications/NotificationProvider";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import UserSwitcher from "@/components/UserSwitcher";
 import PWAInstaller from "@/components/PWAInstaller";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import OfflineIndicator from "@/components/notifications/OfflineIndicator";
@@ -138,6 +139,7 @@ export default function Layout({ children, currentPageName }) {
         </div>
 
         <div className="flex items-center gap-3">
+          <UserSwitcher user={user} />
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
