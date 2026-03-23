@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { Plus, Wrench, CheckCircle, Upload, QrCode, Camera, FileText, LogIn, LogOut, Calendar, Pencil, Printer, WifiOff, X } from "lucide-react";
 import useOfflineData from "@/hooks/useOfflineData";
-import { cacheData, savePendingEquipmentAction, syncPendingEquipmentActions } from "@/components/notifications/offlineStorage";
+import { cacheData, savePendingEquipmentAction, syncPendingEquipmentActions } from "@/lib/offlineStorage";
 import QRScanner from "@/components/equipment/QRScanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
