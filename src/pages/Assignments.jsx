@@ -148,6 +148,25 @@ export default function Assignments() {
             const isToday = date.toISOString().split("T")[0] === new Date().toISOString().split("T")[0];
             const hasItems = dayAssignments.length > 0 || dayEvents.length > 0;
 
+            const isSunday = date.getDay() === 0;
+            const amAssignments = isSunday ? dayAssignments.filter(a => a.service_type === "Sunday AM") : [];
+            const pmAssignments = isSunday ? dayAssignments.filter(a => a.service_type === "Sunday PM") : [];
+            const otherAssignments = isSunday ? dayAssignments.filter(a => a.service_type !== "Sunday AM" && a.service_type !== "Sunday PM") : dayAssignments;
+
+            const renderAssignment = (a) => (
+              <button
+                key={a.id}
+                onClick={() => isAdmin && (setEditData(a), setFormOpen(true))}
+                className={`flex items-center gap-1.5 bg-[#0a1128] rounded px-2 py-1.5 border border-transparent transition-all text-left ${isAdmin ? "hover:border-[#d4a843]/30 hover:bg-[#d4a843]/10 cursor-pointer" : "cursor-default"}`}
+              >
+                {statusIcon(a.status)}
+                <div>
+                  <p className="text-xs text-white font-medium">{a.position_name}</p>
+                  <p className="text-[10px] text-slate-400">{a.assigned_to_name} · {a.start_time}</p>
+                </div>
+              </button>
+            );
+
             return (
               <div
                 key={i}
@@ -155,7 +174,7 @@ export default function Assignments() {
               >
                 {/* Date label */}
                 <div className="flex flex-col items-center justify-start w-10 shrink-0 pt-0.5">
-                  <span className={`text-xs font-semibold ${isToday ? "text-[#d4a843]" : "text-slate-500"}`}>
+                  <span className={`text-xs font-semibold ${isToday ? "text-[#d4a843]" : isSunday ? "text-[#d4a843]/70" : "text-slate-500"}`}>
                     {dayNames[date.getDay()]}
                   </span>
                   <span className={`text-lg font-bold leading-tight ${isToday ? "text-[#d4a843]" : "text-slate-300"}`}>
@@ -164,32 +183,81 @@ export default function Assignments() {
                 </div>
 
                 {/* Items */}
-                <div className="flex-1 flex flex-wrap gap-2">
-                  {!hasItems && (
-                    <span className="text-xs text-slate-600 self-center">No assignments</span>
-                  )}
-                  {dayEvents.map(evt => (
-                    <div key={evt.id} className="flex items-center gap-1.5 bg-purple-900/30 rounded px-2 py-1.5 border border-purple-500/30">
-                      <Calendar className="w-3 h-3 text-purple-400 shrink-0" />
-                      <div>
-                        <p className="text-xs text-purple-200 font-medium">{evt.event_name}</p>
-                        <p className="text-[10px] text-purple-300/70">{evt.event_type} · {evt.start_time}</p>
-                      </div>
+                <div className="flex-1 space-y-2">
+                  {/* Events */}
+                  {dayEvents.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {dayEvents.map(evt => (
+                        <div key={evt.id} className="flex items-center gap-1.5 bg-purple-900/30 rounded px-2 py-1.5 border border-purple-500/30">
+                          <Calendar className="w-3 h-3 text-purple-400 shrink-0" />
+                          <div>
+                            <p className="text-xs text-purple-200 font-medium">{evt.event_name}</p>
+                            <p className="text-[10px] text-purple-300/70">{evt.event_type} · {evt.start_time}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                  {dayAssignments.map(a => (
-                    <button
-                      key={a.id}
-                      onClick={() => isAdmin && (setEditData(a), setFormOpen(true))}
-                      className={`flex items-center gap-1.5 bg-[#0a1128] rounded px-2 py-1.5 border border-transparent transition-all text-left ${isAdmin ? "hover:border-[#d4a843]/30 hover:bg-[#d4a843]/10 cursor-pointer" : "cursor-default"}`}
-                    >
-                      {statusIcon(a.status)}
-                      <div>
-                        <p className="text-xs text-white font-medium">{a.position_name}</p>
-                        <p className="text-[10px] text-slate-400">{a.assigned_to_name} · {a.start_time}</p>
+                  )}
+
+                  {/* Sunday AM / PM sections */}
+                  {isSunday ? (
+                    <>
+                      {/* Sunday AM */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400">Sunday AM</span>
+                          {isAdmin && (
+                            <button
+                              onClick={() => { setEditData({ service_date: date.toISOString().split("T")[0], service_type: "Sunday AM" }); setFormOpen(true); }}
+                              className="text-[10px] text-[#d4a843] hover:text-[#e0bb5e] flex items-center gap-0.5"
+                            >
+                              <Plus className="w-3 h-3" /> Add
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {amAssignments.length === 0 ? (
+                            <span className="text-[10px] text-slate-600">No assignments</span>
+                          ) : amAssignments.map(renderAssignment)}
+                        </div>
                       </div>
-                    </button>
-                  ))}
+
+                      {/* Sunday PM */}
+                      <div className="space-y-1 border-t border-[rgba(212,168,67,0.07)] pt-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-sky-400">Sunday PM</span>
+                          {isAdmin && (
+                            <button
+                              onClick={() => { setEditData({ service_date: date.toISOString().split("T")[0], service_type: "Sunday PM" }); setFormOpen(true); }}
+                              className="text-[10px] text-[#d4a843] hover:text-[#e0bb5e] flex items-center gap-0.5"
+                            >
+                              <Plus className="w-3 h-3" /> Add
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {pmAssignments.length === 0 ? (
+                            <span className="text-[10px] text-slate-600">No assignments</span>
+                          ) : pmAssignments.map(renderAssignment)}
+                        </div>
+                      </div>
+
+                      {/* Other Sunday assignments (no service_type match) */}
+                      {otherAssignments.length > 0 && (
+                        <div className="flex flex-wrap gap-2 border-t border-[rgba(212,168,67,0.07)] pt-2">
+                          {otherAssignments.map(renderAssignment)}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    /* Non-Sunday days */
+                    <div className="flex flex-wrap gap-2">
+                      {dayAssignments.length === 0 && dayEvents.length === 0 && (
+                        <span className="text-xs text-slate-600 self-center">No assignments</span>
+                      )}
+                      {dayAssignments.map(renderAssignment)}
+                    </div>
+                  )}
                 </div>
               </div>
             );
