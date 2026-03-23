@@ -8,8 +8,6 @@ import {
   savePendingPersonalCheckIn,
   syncPendingPersonalCheckIns,
 } from "@/lib/offlineStorage";
-import { useEffect, useState } from "react";
-from "@/lib/offlineStorage";
 
 export default function PersonalCheckIn({ user }) {
   const [checkedIn, setCheckedIn] = useState(false);
