@@ -191,3 +191,42 @@ export const syncPendingMessages = async (base44) => {
     }
   }
 };
+
+export const savePendingEquipmentAction = async (action) => {
+  const database = await getDB();
+  const transaction = database.transaction(['pending_actions'], 'readwrite');
+  const store = transaction.objectStore('pending_actions');
+  const request = store.add({
+    type: 'equipment',
+    ...action,
+    timestamp: new Date().toISOString()
+  });
+  
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export const syncPendingEquipmentActions = async (base44) => {
+  const database = await getDB();
+  const transaction = database.transaction(['pending_actions'], 'readonly');
+  const store = transaction.objectStore('pending_actions');
+  const request = store.getAll();
+  
+  return new Promise(async (resolve) => {
+    request.onsuccess = async () => {
+      const equipmentActions = request.result.filter(item => item.type === 'equipment');
+      
+      for (const action of equipmentActions) {
+        try {
+          await base44.entities.Equipment.update(action.equipmentId, action.data);
+          await clearPendingAction(action.id);
+        } catch (error) {
+          console.error('Failed to sync equipment action:', error);
+        }
+      }
+      resolve(equipmentActions.length > 0);
+    };
+  });
+};
