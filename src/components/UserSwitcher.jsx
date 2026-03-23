@@ -14,9 +14,17 @@ export default function UserSwitcher({ user }) {
     // Fetch users list
     base44.functions.invoke("listUsers")
       .then(res => {
-        console.log("listUsers response:", res);
-        const userList = res?.data?.users || res?.users || [];
-        console.log("Users loaded:", userList.length, userList);
+        console.log("listUsers full response:", res);
+        console.log("listUsers response.data:", res?.data);
+        let userList = [];
+        if (Array.isArray(res?.data)) {
+          userList = res.data;
+        } else if (Array.isArray(res?.data?.users)) {
+          userList = res.data.users;
+        } else if (Array.isArray(res?.users)) {
+          userList = res.users;
+        }
+        console.log("Users extracted:", userList.length, userList);
         setUsers(userList);
       })
       .catch(err => {
