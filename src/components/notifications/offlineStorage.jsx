@@ -292,6 +292,69 @@ export const syncPendingEquipmentActions = async (base44) => {
   }
 };
 
+// ---- Personal Check-In offline support ----
+
+export const savePersonalCheckInState = async (state) => {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(['personalCheckInState'], 'readwrite');
+    tx.objectStore('personalCheckInState').put({ key: 'current', ...state });
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) { console.error(e); }
+};
+
+export const getPersonalCheckInState = async () => {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(['personalCheckInState'], 'readonly');
+    const req = tx.objectStore('personalCheckInState').get('current');
+    return new Promise((resolve) => {
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+  } catch (e) { return null; }
+};
+
+export const savePendingPersonalCheckIn = async (action) => {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(['pendingPersonalCheckIns'], 'readwrite');
+    tx.objectStore('pendingPersonalCheckIns').add({ ...action, timestamp: Date.now() });
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) { console.error(e); }
+};
+
+export const syncPendingPersonalCheckIns = async (base44) => {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(['pendingPersonalCheckIns'], 'readonly');
+    const req = tx.objectStore('pendingPersonalCheckIns').getAll();
+    const pending = await new Promise((resolve) => {
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve([]);
+    });
+    for (const action of pending) {
+      try {
+        if (action.type === 'check_in') {
+          const rec = await base44.entities.PersonalCheckIn.create(action.data);
+          // Update local state with real ID
+          await savePersonalCheckInState({ checkedIn: true, recordId: rec.id, checkInTime: action.data.check_in_time });
+        } else if (action.type === 'check_out' && action.recordId) {
+          await base44.entities.PersonalCheckIn.update(action.recordId, { check_out_time: action.data.check_out_time });
+        }
+      } catch (e) { console.error('Sync personal check-in failed:', e); }
+    }
+    const clearTx = db.transaction(['pendingPersonalCheckIns'], 'readwrite');
+    clearTx.objectStore('pendingPersonalCheckIns').clear();
+  } catch (e) { console.error(e); }
+};
+
 // ---- Pending DM Channels (track DMs started offline) ----
 
 export const savePendingDM = async (dmChannel, otherUser) => {
