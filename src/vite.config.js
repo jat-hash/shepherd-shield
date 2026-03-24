@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import base44Plugin from '@base44/vite-plugin';
 
+// Cache bust timestamp: 1774331500
 export default defineConfig({
   plugins: [
     react(),
@@ -15,9 +16,16 @@ export default defineConfig({
       'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
       'react-dom/client': path.resolve(__dirname, './node_modules/react-dom/client'),
     },
-    dedupe: ['react', 'react-dom'],
+    dedupe: ['react', 'react-dom', 'react-router-dom'],
   },
   optimizeDeps: {
     force: true,
+    exclude: ['@base44/sdk'],
+    include: [
+      'react',
+      'react-dom',
+      'react-dom/client',
+      'react-router-dom',
+    ],
   },
 });
