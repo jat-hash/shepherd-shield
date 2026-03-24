@@ -186,10 +186,10 @@ export default function RadioCheckInScanner({ user }) {
                   </Button>
                 </DialogFooter>
               </>
-            }
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>);
+              }
+              </div>
+              </DialogContent>
+              </Dialog>
+              </>);
 
 }
