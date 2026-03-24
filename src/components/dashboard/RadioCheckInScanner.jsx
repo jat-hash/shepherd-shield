@@ -122,7 +122,12 @@ export default function RadioCheckInScanner({ user }) {
           </DialogHeader>
 
           <div className="space-y-4">
-            {foundItem ?
+            {loading && !foundItem ?
+            <div className="flex flex-col items-center justify-center py-8 gap-3">
+              <div className="w-8 h-8 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
+              <p className="text-slate-400 text-sm">Searching...</p>
+            </div> :
+            foundItem ?
             <div className="space-y-4">
                 <div className="bg-[#0a1128] rounded-lg p-4 border border-slate-700 space-y-2">
                   <p className="text-white font-semibold">{foundItem.name}</p>
