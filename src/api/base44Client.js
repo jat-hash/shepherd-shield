@@ -3,19 +3,14 @@ import { appParams } from '@/lib/app-params';
 
 const { appId, token, functionsVersion, appBaseUrl } = appParams;
 
-// Lazy initialization to ensure React is ready
-let base44Instance = null;
-
-function getBase44() {
-  if (!base44Instance) {
-    base44Instance = createClient({
-      appId,
-      token,
-      functionsVersion,
-      serverUrl: '',
-      requiresAuth: false,
-      appBaseUrl
-    });
+export const base44 = createClient({
+  appId,
+  token,
+  functionsVersion,
+  serverUrl: '',
+  requiresAuth: false,
+  appBaseUrl
+});
   }
   return base44Instance;
 }
