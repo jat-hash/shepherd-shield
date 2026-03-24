@@ -1,51 +1,52 @@
-const CACHE_NAME = 'shepherd-shield-v1';
-const APP_SHELL = [
-  '/',
-  '/index.html',
+const CACHE_NAME = 'shepherd-shield-v3';
+
+// Only cache these specific static assets
+const STATIC_ASSETS = [
   '/manifest.json',
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
-  );
   self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
+  );
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
+  const { request } = event;
 
-  // Only handle same-origin navigation requests for app shell
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request).catch(() =>
-        caches.match('/index.html')
-      )
-    );
+  // Never intercept non-GET requests
+  if (request.method !== 'GET') return;
+
+  // Never intercept Vite dev server, HMR, or API requests
+  const url = new URL(request.url);
+  if (
+    url.pathname.startsWith('/src/') ||
+    url.pathname.startsWith('/node_modules/') ||
+    url.pathname.startsWith('/@') ||
+    url.pathname.startsWith('/api/') ||
+    url.hostname.includes('base44.com') ||
+    url.protocol === 'wss:'
+  ) {
     return;
   }
 
-  // For same-origin static assets: cache-first
-  if (url.origin === self.location.origin) {
-    event.respondWith(
-      caches.match(event.request).then((cached) =>
-        cached || fetch(event.request).then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        })
-      )
-    );
+  // For everything else: network first, no caching of JS/CSS to avoid stale chunks
+  const ext = url.pathname.split('.').pop();
+  if (['js', 'jsx', 'ts', 'tsx', 'css'].includes(ext)) {
+    return; // Let browser handle JS/CSS directly, no SW caching
   }
+
+  // Cache-first only for manifest and icons
+  event.respondWith(
+    caches.match(request).then((cached) => cached || fetch(request))
+  );
 });
