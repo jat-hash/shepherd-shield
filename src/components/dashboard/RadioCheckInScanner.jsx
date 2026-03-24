@@ -25,16 +25,16 @@ export default function RadioCheckInScanner({ user }) {
   const handleScan = async (code) => {
     const searchCode = (code || scannedCode).trim();
     if (!searchCode) return;
-    setCameraMode(false); // exit camera mode immediately to avoid blank screen
+    setCameraMode(false);
     setLoading(true);
     try {
-      const all = await base44.entities.Equipment.filter({ category: "Radio" });
+      const all = await base44.entities.Equipment.list("-created_date", 500);
       const found = all.find((i) => i.qr_code === searchCode || i.serial_number === searchCode);
       if (found) {
         setFoundItem(found);
         setScannedCode("");
       } else {
-        toast.error("Radio not found");
+        toast.error("Equipment not found for code: " + searchCode);
       }
     } catch {
       toast.error("Failed to search equipment");
