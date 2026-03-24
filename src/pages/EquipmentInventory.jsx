@@ -93,11 +93,10 @@ export default function EquipmentInventory() {
     if (!searchCode) return;
     const found = items.find(i => i.qr_code === searchCode || i.serial_number === searchCode);
     if (found) {
-      pendingScanResult.current = found;
-      // Close scan dialog fully first, detail opens in onOpenChange callback
       setCameraMode(false);
       setScannedCode("");
       setScanMode(false);
+      setDetailItem(found);
     } else {
       toast.error("Equipment not found");
       setCameraMode(false);
