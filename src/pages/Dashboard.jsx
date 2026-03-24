@@ -8,7 +8,6 @@ import SOPQuickAccess from "@/components/dashboard/SOPQuickAccess";
 import SpecialEventsDropdown from "@/components/dashboard/SpecialEventsDropdown";
 import NotifyTeamButton from "@/components/dashboard/NotifyTeamButton";
 import SafetyCheckInPanel from "@/components/dashboard/SafetyCheckInPanel";
-import useOfflineData from "@/hooks/useOfflineData";
 import { WifiOff } from "lucide-react";
 import RadioCheckInScanner from "@/components/dashboard/RadioCheckInScanner";
 import PersonalCheckIn from "@/components/dashboard/PersonalCheckIn";
@@ -20,19 +19,26 @@ export default function Dashboard() {
     base44.auth.me().then(setUser).catch(() => {});
   }, []);
 
-  const fetchAssignments = useCallback(async () => {
-    if (!user) return [];
-    const today = new Date();
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    const all = await base44.entities.Assignment.filter({ assigned_to_email: user.email }, "-service_date", 1000);
-    return all.filter(a => {
-      const d = new Date(a.service_date);
-      return d >= startOfMonth && d <= endOfMonth;
-    });
+  const [assignments, setAssignments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const reload = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const today = new Date();
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      const all = await base44.entities.Assignment.filter({ assigned_to_email: user.email }, "-service_date", 1000);
+      setAssignments(all.filter(a => {
+        const d = new Date(a.service_date);
+        return d >= startOfMonth && d <= endOfMonth;
+      }));
+    } catch {}
+    setLoading(false);
   }, [user]);
 
-  const { data: assignments, loading, isOffline, reload } = useOfflineData("assignments", fetchAssignments, [user]);
+  useEffect(() => { reload(); }, [reload]);
 
   useEffect(() => {
     if (!user) return;
