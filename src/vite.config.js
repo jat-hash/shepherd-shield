@@ -12,6 +12,10 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
-    dedupe: ['react', 'react-dom', 'react-router-dom'],
+    dedupe: ['react', 'react-dom', 'react-router-dom', '@radix-ui/react-select', '@radix-ui/react-popover'],
+  },
+  optimizeDeps: {
+    exclude: ['@base44/sdk'],
+    include: ['react', 'react-dom', 'react-router-dom'],
   },
 });
