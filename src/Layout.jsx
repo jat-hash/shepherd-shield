@@ -129,7 +129,7 @@ export default function Layout({ children, currentPageName }) {
         </div>
 
         <div className="flex items-center gap-3">
-          <UserSwitcher user={user} />
+          {user?.role === 'admin' && <UserSwitcher user={user} />}
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
