@@ -11,15 +11,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      'react': path.resolve(__dirname, './node_modules/react/index.js'),
-      'react-dom': path.resolve(__dirname, './node_modules/react-dom/index.js'),
-      'react-dom/client': path.resolve(__dirname, './node_modules/react-dom/client.js'),
-      'react/jsx-runtime': path.resolve(__dirname, './node_modules/react/jsx-runtime.js'),
     },
     dedupe: ['react', 'react-dom', 'react-router-dom', 'scheduler'],
   },
   optimizeDeps: {
-    force: true,
-    exclude: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime'],
+    include: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', '@base44/sdk'],
   },
 });
