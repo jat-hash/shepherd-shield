@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { cacheData, getCachedData } from "@/lib/offlineStorage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,16 @@ export default function Members() {
     }
   }, [currentUser]);
 
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => { setIsOffline(false); if (currentUser) { loadUsers(); loadCommandPositions(); } };
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
+  }, [currentUser]);
+
   const loadCurrentUser = async () => {
     try {
       const user = await base44.auth.me();
@@ -64,6 +75,15 @@ export default function Members() {
   };
 
   const loadUsers = async () => {
+    if (!navigator.onLine) {
+      const cached = await getCachedData('members').catch(() => []);
+      const formattedUsers = (cached || []);
+      setUsers(formattedUsers);
+      const uniqueRoles = [...new Set(formattedUsers.map(u => u.role).filter(Boolean))];
+      setRoles(uniqueRoles);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await base44.functions.invoke('listUsers');
       const data = res.data?.users || [];
@@ -74,22 +94,28 @@ export default function Members() {
         display_name: user.data?.display_name || user.display_name || user.full_name
       }));
       setUsers(formattedUsers);
-      
-      // Extract unique roles
+      cacheData('members', formattedUsers).catch(() => {});
       const uniqueRoles = [...new Set(formattedUsers.map(u => u.role).filter(Boolean))];
       setRoles(uniqueRoles);
     } catch (error) {
       console.error("Failed to load users:", error);
-      setUsers([]);
+      const cached = await getCachedData('members').catch(() => []);
+      setUsers(cached || []);
     } finally {
       setLoading(false);
     }
   };
 
   const loadCommandPositions = async () => {
+    if (!navigator.onLine) {
+      const cached = await getCachedData('commandPositions').catch(() => []);
+      setCommandPositions(cached || []);
+      return;
+    }
     try {
       const data = await base44.entities.CommandPosition.list("order");
       setCommandPositions(data);
+      cacheData('commandPositions', data).catch(() => {});
     } catch (error) {
       console.error("Failed to load command positions:", error);
     }
