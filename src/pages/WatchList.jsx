@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Eye, Upload, Trash2, Pencil } from "lucide-react";
+import { Plus, Eye, Upload, Trash2, Pencil, WifiOff } from "lucide-react";
+import useOfflineData from "@/hooks/useOfflineData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,8 +16,6 @@ const statusColors = {
 };
 
 export default function WatchList() {
-  const [persons, setPersons] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editingPerson, setEditingPerson] = useState(null);
   const [filter, setFilter] = useState("all");
@@ -25,15 +24,10 @@ export default function WatchList() {
   const [saving, setSaving] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
-  const load = async () => {
-    setLoading(true);
-    const all = await base44.entities.WatchListPerson.list("-created_date", 100);
-    setPersons(all);
-    setLoading(false);
-  };
+  const fetchFn = useCallback(() => base44.entities.WatchListPerson.list("-created_date", 100), []);
+  const { data: persons, loading, isOffline, reload: load } = useOfflineData("watchlist", fetchFn, []);
 
   useEffect(() => { 
-    load();
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
