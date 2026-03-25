@@ -9,6 +9,7 @@ export default function QRScanner({ onScan, onClose }) {
   const scannerRef = useRef(null);
   const onScanRef = useRef(onScan);
   const scannedRef = useRef(false);
+  const isRunningRef = useRef(false);
   const [error, setError] = useState(null);
   const [started, setStarted] = useState(false);
 
@@ -16,13 +17,12 @@ export default function QRScanner({ onScan, onClose }) {
 
   useEffect(() => {
     scannedRef.current = false;
+    isRunningRef.current = false;
 
-    // Clear any leftover html5-qrcode DOM from a previous mount
     const container = document.getElementById(SCANNER_ID);
     if (container) container.innerHTML = "";
 
     let scanner;
-    let stopped = false;
 
     try {
       scanner = new Html5Qrcode(SCANNER_ID);
@@ -36,28 +36,30 @@ export default function QRScanner({ onScan, onClose }) {
       { facingMode: "environment" },
       { fps: 10, qrbox: { width: 220, height: 220 } },
       (decodedText) => {
-        if (scannedRef.current || stopped) return;
+        if (scannedRef.current) return;
         scannedRef.current = true;
-        scanner.stop()
-          .catch(() => {})
-          .finally(() => {
-            onScanRef.current(decodedText);
-          });
+        isRunningRef.current = false;
+        scanner.stop().catch(() => {}).finally(() => {
+          onScanRef.current(decodedText);
+        });
       },
-      () => {} // suppress per-frame errors
+      () => {}
     )
-      .then(() => setStarted(true))
+      .then(() => {
+        isRunningRef.current = true;
+        setStarted(true);
+      })
       .catch((err) => {
         console.error("QR Scanner start error:", err);
         setError("Camera access denied or unavailable. Please enter code manually.");
       });
 
     return () => {
-      stopped = true;
-      if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => {});
-        scannerRef.current = null;
+      if (isRunningRef.current) {
+        isRunningRef.current = false;
+        scanner.stop().catch(() => {});
       }
+      scannerRef.current = null;
     };
   }, []);
 
