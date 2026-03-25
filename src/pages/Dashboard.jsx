@@ -14,9 +14,13 @@ import PersonalCheckIn from "@/components/dashboard/PersonalCheckIn";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
+  const [userLoaded, setUserLoaded] = useState(false);
 
   useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
+    base44.auth.me().then((u) => { setUser(u); setUserLoaded(true); }).catch(() => setUserLoaded(true));
+    // Failsafe: don't spin forever
+    const t = setTimeout(() => setUserLoaded(true), 5000);
+    return () => clearTimeout(t);
   }, []);
 
   const [assignments, setAssignments] = useState([]);
@@ -52,7 +56,7 @@ export default function Dashboard() {
     return () => window.removeEventListener("app:refresh", onRefresh);
   }, [reload]);
 
-  if (!user || (loading && !assignments.length)) {
+  if (!userLoaded || (loading && !assignments.length && user)) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-8 h-8 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
