@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import AssignmentCard from "@/components/dashboard/AssignmentCard";
 import EmergencyButton from "@/components/dashboard/EmergencyButton";
@@ -26,20 +26,24 @@ export default function Dashboard() {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const reload = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    try {
-      const today = new Date();
-      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      const all = await base44.entities.Assignment.filter({ assigned_to_email: user.email }, "-service_date", 1000);
-      setAssignments(all.filter(a => {
-        const d = new Date(a.service_date);
-        return d >= startOfMonth && d <= endOfMonth;
-      }));
-    } catch {}
-    setLoading(false);
+  const reloadTimeout = useRef(null);
+  const reload = useCallback(() => {
+    if (reloadTimeout.current) clearTimeout(reloadTimeout.current);
+    reloadTimeout.current = setTimeout(async () => {
+      if (!user) return;
+      setLoading(true);
+      try {
+        const today = new Date();
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        const all = await base44.entities.Assignment.filter({ assigned_to_email: user.email }, "-service_date", 1000);
+        setAssignments(all.filter(a => {
+          const d = new Date(a.service_date);
+          return d >= startOfMonth && d <= endOfMonth;
+        }));
+      } catch {}
+      setLoading(false);
+    }, 300);
   }, [user]);
 
   useEffect(() => { reload(); }, [reload]);
