@@ -118,6 +118,12 @@ Provide a helpful, accurate answer based on the SOP content above.`
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 lg:ml-60 space-y-5">
+      {isOffline && (
+        <div className="flex items-center gap-2 bg-orange-900/40 border border-orange-500/30 rounded-lg px-3 py-2 text-orange-300 text-xs">
+          <WifiOff className="w-3.5 h-3.5 shrink-0" />
+          You're offline — showing cached SOPs (read-only)
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-white">SOP Library</h1>
         <div className="flex gap-2">
