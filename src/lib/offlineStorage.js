@@ -1,7 +1,7 @@
 // IndexedDB offline storage utility for caching and pending operations
 
 const DB_NAME = 'ShepherdShield';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let db = null;
 
@@ -29,6 +29,15 @@ const getDB = async () => {
       }
       if (!database.objectStoreNames.contains('pending_actions')) {
         database.createObjectStore('pending_actions', { keyPath: 'id', autoIncrement: true });
+      }
+      if (!database.objectStoreNames.contains('messages')) {
+        database.createObjectStore('messages', { keyPath: 'id' });
+      }
+      if (!database.objectStoreNames.contains('specialEvents')) {
+        database.createObjectStore('specialEvents', { keyPath: 'id' });
+      }
+      if (!database.objectStoreNames.contains('teammap')) {
+        database.createObjectStore('teammap', { keyPath: 'id' });
       }
     };
   });
