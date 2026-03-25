@@ -17,6 +17,17 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkAppState = async () => {
+    // If offline, skip auth checks and let the app load with cached data
+    if (!navigator.onLine) {
+      if (appParams.token) {
+        await checkUserAuth();
+      } else {
+        setIsLoadingAuth(false);
+      }
+      setIsLoadingPublicSettings(false);
+      return;
+    }
+
     try {
       setIsLoadingPublicSettings(true);
       setAuthError(null);
