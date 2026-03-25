@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, AlertTriangle, Clock, CheckCircle2, FileWarning, ArrowUpDown, Image } from "lucide-react";
+import { Plus, AlertTriangle, Clock, CheckCircle2, FileWarning, ArrowUpDown, Image, WifiOff } from "lucide-react";
+import useOfflineData from "@/hooks/useOfflineData";
 import { Button } from "@/components/ui/button";
 import IncidentForm from "@/components/incidents/IncidentForm";
 import SOPReference from "@/components/incidents/SOPReference";
@@ -22,8 +23,6 @@ const statusColors = {
 };
 
 export default function Incidents() {
-  const [incidents, setIncidents] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [filter, setFilter] = useState("all");
   const [severityFilter, setSeverityFilter] = useState("all");
@@ -31,19 +30,14 @@ export default function Incidents() {
   const [viewingIncident, setViewingIncident] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
 
-  const loadIncidents = async () => {
-    setLoading(true);
-    const all = await base44.entities.Incident.list(sortBy, 100);
-    setIncidents(all);
-    setLoading(false);
-  };
+  const fetchFn = useCallback(() => base44.entities.Incident.list(sortBy, 100), [sortBy]);
+  const { data: incidents, loading, isOffline, reload: loadIncidents } = useOfflineData("incidents", fetchFn, [sortBy]);
 
   useEffect(() => { 
-    loadIncidents();
     base44.auth.me().then(setCurrentUser).catch(() => {});
     const unsub = base44.entities.Incident.subscribe(() => loadIncidents());
     return unsub;
-  }, [sortBy]);
+  }, []);
 
   const filtered = incidents.filter(i => {
     if (filter !== "all" && i.status !== filter) return false;
