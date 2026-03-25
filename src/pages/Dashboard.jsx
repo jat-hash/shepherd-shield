@@ -52,7 +52,7 @@ export default function Dashboard() {
     return () => window.removeEventListener("app:refresh", onRefresh);
   }, [reload]);
 
-  if (loading && !assignments.length) {
+  if (!user || (loading && !assignments.length)) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-8 h-8 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
@@ -70,7 +70,7 @@ export default function Dashboard() {
       )}
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-white">
-          Welcome back, <span className="text-[#d4a843]">{user?.display_name?.split(" ")[0] || user?.full_name?.split(" ")[0] || "Officer"}</span>
+          Welcome back, <span className="text-[#d4a843]">{user?.full_name?.split(" ")[0] || user?.display_name?.split(" ")[0] || "Officer"}</span>
         </h1>
         <p className="text-slate-300 text-xs sm:text-sm mt-1">
           {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
