@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { User, Search, Mail, Shield, UserPlus, Award, ChevronDown, ChevronUp, Plus, ArrowUp, ArrowDown, Phone, CalendarDays, FileText, Bell, BellOff } from "lucide-react";
+import { User, Search, Mail, Shield, UserPlus, Award, ChevronDown, ChevronUp, Plus, ArrowUp, ArrowDown, Phone, CalendarDays, FileText, Bell, BellOff, WifiOff } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -325,6 +325,12 @@ export default function Members() {
   return (
     <div className="min-h-screen bg-[#0a1128] text-white p-4 lg:pl-60">
       <div className="max-w-6xl mx-auto py-6">
+        {isOffline && (
+          <div className="flex items-center gap-2 bg-orange-900/40 border border-orange-500/30 rounded-lg px-3 py-2 text-orange-300 text-xs mb-4">
+            <WifiOff className="w-3.5 h-3.5 shrink-0" />
+            You're offline — showing cached member data
+          </div>
+        )}
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
