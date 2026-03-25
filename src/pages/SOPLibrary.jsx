@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, BookOpen, FileCheck, Upload, MessageCircle, Send, Loader2, X, Edit2 } from "lucide-react";
+import { Plus, BookOpen, FileCheck, Upload, MessageCircle, Send, Loader2, X, Edit2, WifiOff } from "lucide-react";
+import useOfflineData from "@/hooks/useOfflineData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,8 +24,6 @@ const categoryIcons = {
 };
 
 export default function SOPLibrary() {
-  const [sops, setSops] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [detailSop, setDetailSop] = useState(null);
   const [form, setForm] = useState({ title: "", category: "General Security", content: "", version: "1.0", document_file: "" });
@@ -37,15 +36,10 @@ export default function SOPLibrary() {
   const [chatLoading, setChatLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
-  const load = async () => {
-    setLoading(true);
-    const all = await base44.entities.SOP.list("-updated_date", 100);
-    setSops(all);
-    setLoading(false);
-  };
+  const fetchFn = useCallback(() => base44.entities.SOP.list("-updated_date", 100), []);
+  const { data: sops, loading, isOffline, reload: load } = useOfflineData("sops", fetchFn, []);
 
   useEffect(() => { 
-    load();
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
