@@ -23,9 +23,12 @@ export default function RadioCheckInScanner({ user }) {
   };
 
   const handleScan = async (code) => {
-    const searchCode = (code || scannedCode).trim();
+    // Extract last path segment in case QR is a URL
+    let searchCode = (code || scannedCode).trim();
+    try { searchCode = new URL(searchCode).pathname.split("/").filter(Boolean).pop() || searchCode; } catch {}
     if (!searchCode) return;
     setCameraMode(false);
+    setScannedCode(searchCode); // show what was scanned
     setLoading(true);
     try {
       const all = await base44.entities.Equipment.list("-created_date", 500);
