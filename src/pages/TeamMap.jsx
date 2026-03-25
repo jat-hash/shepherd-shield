@@ -162,6 +162,14 @@ export default function TeamMap() {
   return (
     <div className="flex flex-col lg:ml-56" style={{ height: "calc(100vh - 57px)" }}>
 
+      {/* Offline Banner */}
+      {isOffline && (
+        <div className="bg-amber-900/40 border-b border-amber-500/30 px-4 py-2 text-xs text-amber-400 flex items-center gap-2 shrink-0">
+          <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+          Offline — showing cached map data
+        </div>
+      )}
+
       {/* Top Bar */}
       <div className="bg-[#141f3d] border-b border-[rgba(212,168,67,0.15)] px-4 py-2.5 flex items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
