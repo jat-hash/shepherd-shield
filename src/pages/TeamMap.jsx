@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { cacheData, getCachedData } from "@/lib/offlineStorage";
 
 function createMemberIcon(name) {
   const initials = name ? name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "?";
@@ -78,6 +79,15 @@ export default function TeamMap() {
   const [allPositions, setAllPositions] = useState([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => { setIsOffline(false); loadData(); };
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
+  }, []);
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -90,6 +100,17 @@ export default function TeamMap() {
 
   const loadData = async () => {
     setLoading(true);
+
+    if (!navigator.onLine) {
+      const cached = await getCachedData('teammap').catch(() => []);
+      const activeMembers = (cached || []).filter(a => a._type === 'assignment');
+      const activePanics = (cached || []).filter(a => a._type === 'panic');
+      setCheckedInAssignments(activeMembers);
+      setPanicIncidents(activePanics);
+      setLoading(false);
+      return;
+    }
+
     const u = await base44.auth.me();
     setUser(u);
 
@@ -100,16 +121,20 @@ export default function TeamMap() {
     ]);
     setAllPositions(positions);
 
-    // Only members checked in with GPS and not checked out
     const activeMembers = allAssignments.filter(a =>
       a.check_in_latitude && a.check_in_longitude && !a.checked_out
     );
-
-    // Only active panic incidents with GPS
     const activePanics = allIncidents.filter(i =>
       (i.status === "Open" || i.status === "In Progress") &&
       i.latitude && i.longitude
     );
+
+    // Cache for offline use
+    const toCache = [
+      ...activeMembers.map(a => ({ ...a, _type: 'assignment' })),
+      ...activePanics.map(i => ({ ...i, _type: 'panic' })),
+    ];
+    cacheData('teammap', toCache).catch(() => {});
 
     setCheckedInAssignments(activeMembers);
     setPanicIncidents(activePanics);
