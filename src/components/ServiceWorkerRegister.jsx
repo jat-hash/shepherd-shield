@@ -7,18 +7,7 @@ import { base44 } from "@/api/base44Client";
 export default function ServiceWorkerRegister() {
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      // Unregister ALL old service workers first, then register fresh
-      navigator.serviceWorker.getRegistrations().then((registrations) => {
-        const unregisterAll = registrations.map((r) => r.unregister());
-        return Promise.all(unregisterAll);
-      }).then(() => {
-        // Clear all caches
-        return caches.keys().then((keys) =>
-          Promise.all(keys.map((k) => caches.delete(k)))
-        );
-      }).then(() => {
-        navigator.serviceWorker.register('/sw.js').catch(() => {});
-      }).catch(() => {});
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
   }, []);
 
