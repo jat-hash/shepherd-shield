@@ -71,7 +71,9 @@ function MapAutoFit({ points, userLocation }) {
 export default function TeamMap() {
   const [user, setUser] = useState(null);
   const [checkedInAssignments, setCheckedInAssignments] = useState([]);
+  const [allCheckedIn, setAllCheckedIn] = useState([]);
   const [panicIncidents, setPanicIncidents] = useState([]);
+  const [showSidebar, setShowSidebar] = useState(true);
   const [loading, setLoading] = useState(true);
   const [selectedMember, setSelectedMember] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -124,6 +126,7 @@ export default function TeamMap() {
     const activeMembers = allAssignments.filter(a =>
       a.check_in_latitude && a.check_in_longitude && !a.checked_out
     );
+    setAllCheckedIn(allAssignments);
     const activePanics = allIncidents.filter(i =>
       (i.status === "Open" || i.status === "In Progress") &&
       i.latitude && i.longitude
@@ -275,6 +278,34 @@ export default function TeamMap() {
       </div>
 
 
+
+      {/* Checked-in sidebar panel */}
+      {showSidebar && (
+        <div className="absolute top-12 right-2 z-[1000] bg-[#141f3d]/95 border border-[rgba(212,168,67,0.2)] rounded-xl w-56 max-h-72 overflow-y-auto shadow-xl">
+          <div className="px-3 py-2 border-b border-[rgba(212,168,67,0.1)] flex items-center justify-between">
+            <span className="text-[#d4a843] text-xs font-bold uppercase tracking-wider">Checked In ({allCheckedIn.length})</span>
+            <button onClick={() => setShowSidebar(false)} className="text-slate-500 hover:text-white text-xs">✕</button>
+          </div>
+          {allCheckedIn.length === 0 ? (
+            <p className="text-slate-500 text-xs p-3">No one checked in</p>
+          ) : (
+            allCheckedIn.map(a => (
+              <div key={a.id} className="px-3 py-2 border-b border-[rgba(255,255,255,0.04)] hover:bg-white/5">
+                <p className="text-white text-xs font-medium">{a.assigned_to_name}</p>
+                <p className="text-[#d4a843] text-[10px]">{a.position_name}</p>
+                <p className="text-slate-500 text-[10px]">
+                  {a.check_in_latitude ? '📍 GPS' : '⚠️ No GPS'} · {a.check_in_time ? new Date(a.check_in_time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : 'N/A'}
+                </p>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+      {!showSidebar && (
+        <button onClick={() => setShowSidebar(true)} className="absolute top-12 right-2 z-[1000] bg-[#141f3d]/95 border border-[rgba(212,168,67,0.2)] rounded-lg px-2 py-1 text-[#d4a843] text-xs font-bold shadow-xl">
+          👥 {allCheckedIn.length}
+        </button>
+      )}
 
       {/* Legend */}
       <div className="bg-[#141f3d] border-t border-[rgba(212,168,67,0.15)] px-4 py-2 flex items-center gap-5 shrink-0">

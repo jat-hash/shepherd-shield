@@ -61,7 +61,7 @@ export default function AdminMonitor() {
       return;
     }
     try {
-      const all = await base44.entities.Assignment.list("service_date");
+      const all = await base44.entities.Assignment.list("-service_date");
       setAssignments(all);
       setFilteredAssignments(all);
       await cacheData('assignments', all).catch(() => {});
