@@ -37,12 +37,17 @@ export default function AdminMonitor() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   useEffect(() => {
-    base44.auth.me().then(u => {
-      setUser(u);
-      if (u.role !== 'admin') {
-        window.location.href = '/';
-      }
-    });
+    base44.auth.me()
+      .then(u => {
+        setUser(u);
+        if (u.role !== 'admin') {
+          window.location.href = '/';
+        }
+      })
+      .catch(() => {
+        // Offline — set a placeholder admin user so the page loads with cached data
+        setUser({ role: 'admin', email: '', full_name: 'Admin (Offline)' });
+      });
     base44.functions.invoke("listUsers").then(res => setAllUsers(res?.data?.users || [])).catch(() => {});
   }, []);
 
