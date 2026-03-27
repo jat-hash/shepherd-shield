@@ -113,13 +113,13 @@ export default function TeamMap() {
       return;
     }
 
-    const u = await base44.auth.me();
-    setUser(u);
+    const u = await base44.auth.me().catch(() => null);
+    if (u) setUser(u);
 
     const [allAssignments, allIncidents, positions] = await Promise.all([
-      base44.entities.Assignment.filter({ checked_in: true, checked_out: false }, "-updated_date", 1000),
-      base44.entities.Incident.filter({ is_panic: true }, "-updated_date", 1000),
-      base44.entities.Position.list("-updated_date", 1000),
+      base44.entities.Assignment.filter({ checked_in: true, checked_out: false }, "-updated_date", 500),
+      base44.entities.Incident.filter({ is_panic: true }, "-updated_date", 100),
+      base44.entities.Position.list("-updated_date", 200),
     ]);
     setAllPositions(positions);
 
