@@ -32,7 +32,7 @@ export default function AdminMonitor() {
   const [notifySendSMS, setNotifySendSMS] = useState(false);
   const [notifyPhoneNumber, setNotifyPhoneNumber] = useState("");
   const [allUsers, setAllUsers] = useState([]);
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toLocaleDateString('en-CA'); // en-CA gives YYYY-MM-DD in local time
   const [dateFilter, setDateFilter] = useState(today);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
