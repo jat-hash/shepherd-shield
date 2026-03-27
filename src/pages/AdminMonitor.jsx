@@ -33,7 +33,7 @@ export default function AdminMonitor() {
   const [notifyPhoneNumber, setNotifyPhoneNumber] = useState("");
   const [allUsers, setAllUsers] = useState([]);
   const today = new Date().toISOString().split("T")[0];
-  const [dateFilter, setDateFilter] = useState(today);
+  const [dateFilter, setDateFilter] = useState("");
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   useEffect(() => {
