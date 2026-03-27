@@ -116,17 +116,36 @@ export default function TeamMap() {
     const u = await base44.auth.me().catch(() => null);
     if (u) setUser(u);
 
-    const [allAssignments, allIncidents, positions] = await Promise.all([
+    const today = new Date().toLocaleDateString('en-CA');
+    const [allAssignments, allIncidents, positions, personalCheckIns] = await Promise.all([
       base44.entities.Assignment.filter({ checked_in: true, checked_out: false }, "-updated_date", 500),
       base44.entities.Incident.filter({ is_panic: true }, "-updated_date", 100),
       base44.entities.Position.list("-updated_date", 200),
+      base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 200),
     ]);
     setAllPositions(positions);
 
-    const activeMembers = allAssignments.filter(a =>
-      a.check_in_latitude && a.check_in_longitude && !a.checked_out
+    // Normalize personal check-ins and merge
+    const normalizedPersonal = personalCheckIns
+      .filter(p => !p.check_out_time)
+      .map(p => ({
+        id: p.id,
+        assigned_to_name: p.user_name,
+        position_name: "Personal Check-in",
+        service_date: p.check_in_date,
+        check_in_time: p.check_in_time,
+        check_in_latitude: p.latitude,
+        check_in_longitude: p.longitude,
+        checked_in: true,
+        checked_out: false,
+        _isPersonal: true,
+      }));
+
+    const allCheckedInMerged = [...allAssignments, ...normalizedPersonal];
+    const activeMembers = allCheckedInMerged.filter(a =>
+      a.check_in_latitude && a.check_in_longitude
     );
-    setAllCheckedIn(allAssignments);
+    setAllCheckedIn(allCheckedInMerged);
     const activePanics = allIncidents.filter(i =>
       (i.status === "Open" || i.status === "In Progress") &&
       i.latitude && i.longitude

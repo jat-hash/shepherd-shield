@@ -61,10 +61,34 @@ export default function AdminMonitor() {
       return;
     }
     try {
-      const all = await base44.entities.Assignment.list("-service_date", 500);
-      setAssignments(all);
-      setFilteredAssignments(all);
-      await cacheData('assignments', all).catch(() => {});
+      const [all, personalCheckIns] = await Promise.all([
+        base44.entities.Assignment.list("-service_date", 500),
+        base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 200),
+      ]);
+      // Normalize personal check-ins to assignment shape
+      const normalizedPersonal = personalCheckIns
+        .filter(p => !p.check_out_time)
+        .map(p => ({
+          id: p.id,
+          assigned_to_name: p.user_name,
+          assigned_to_email: p.user_email,
+          position_name: "Personal Check-in",
+          service_date: p.check_in_date,
+          start_time: "",
+          end_time: "",
+          status: "Confirmed",
+          checked_in: true,
+          check_in_time: p.check_in_time,
+          checked_out: !!p.check_out_time,
+          check_out_time: p.check_out_time,
+          check_in_latitude: p.latitude,
+          check_in_longitude: p.longitude,
+          _isPersonal: true,
+        }));
+      const merged = [...all, ...normalizedPersonal];
+      setAssignments(merged);
+      setFilteredAssignments(merged);
+      await cacheData('assignments', merged).catch(() => {});
     } catch (error) {
       // fallback to cache on network error
       const cached = await getCachedData('assignments');
