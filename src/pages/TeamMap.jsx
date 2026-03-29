@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { base44 } from "@/api/base44Client";
-import { MapPin, RefreshCw, Users, Trash2, Edit2 } from "lucide-react";
+import { MapPin, RefreshCw, Users, Trash2, Edit2, Crosshair } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -115,7 +115,7 @@ export default function TeamMap() {
     const watchId = navigator.geolocation.watchPosition(
       (pos) => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
       () => {},
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
     );
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
@@ -247,14 +247,16 @@ export default function TeamMap() {
                   setFlyToMeTrigger(t => t + 1);
                 },
                 () => {},
-                { enableHighAccuracy: true, timeout: 10000 }
+                { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
               );
+            } else if (userLocation) {
+              setFlyToMeTrigger(t => t + 1);
             }
-            if (userLocation) setFlyToMeTrigger(t => t + 1);
           }}
-          className="absolute bottom-4 left-4 z-[1000] bg-blue-600 border border-blue-400/50 rounded-lg px-3 py-2 text-white text-xs font-bold shadow-xl flex items-center gap-1.5 hover:bg-blue-500 transition-colors"
+          title="My Location"
+          className="absolute top-3 right-3 z-[1000] bg-blue-600 border border-blue-400/50 rounded-lg w-9 h-9 flex items-center justify-center shadow-xl hover:bg-blue-500 transition-colors"
         >
-          📍 My Location
+          <Crosshair className="w-5 h-5 text-white" />
         </button>
         {allPoints.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
