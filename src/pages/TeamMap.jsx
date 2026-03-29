@@ -92,12 +92,13 @@ export default function TeamMap() {
   }, []);
 
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
-        () => {}
-      );
-    }
+    if (!navigator.geolocation) return;
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
   const loadData = async () => {
@@ -238,7 +239,8 @@ export default function TeamMap() {
                 <div style={{ background: "#1a2744", color: "white", padding: "10px", borderRadius: "8px", minWidth: "160px", border: "1px solid rgba(212,168,67,0.2)" }}>
                   <p style={{ fontWeight: "bold", fontSize: "13px", margin: "0 0 4px" }}>{a.assigned_to_name}</p>
                   <p style={{ color: "#d4a843", fontSize: "11px", margin: "0 0 2px" }}>{a.position_name}</p>
-                  <p style={{ color: "#10b981", fontSize: "11px", margin: "0 0 2px" }}>✓ Checked in at {a.check_in_time}</p>
+                  <p style={{ color: "#10b981", fontSize: "11px", margin: "0 0 2px" }}>✓ Checked in at {a.check_in_time ? new Date(a.check_in_time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : 'N/A'}</p>
+                  {a.check_in_latitude && <p style={{ color: "#94a3b8", fontSize: "10px", margin: "0" }}>📍 {a.check_in_latitude.toFixed(5)}, {a.check_in_longitude.toFixed(5)}</p>}
                   {user?.role === "admin" && (
                     <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
                       <button 
