@@ -196,7 +196,17 @@ export default function AdminMonitor() {
     }
 
     try {
-      await base44.entities.Assignment.update(assignment.id, updates);
+      if (assignment._isPersonal) {
+        // Personal check-ins use check_out_time on the PersonalCheckIn entity
+        const personalUpdates = {};
+        if (updates.check_out_time !== undefined) personalUpdates.check_out_time = updates.check_out_time;
+        if (updates.check_in_time !== undefined) personalUpdates.check_in_time = updates.check_in_time;
+        // Reset: clear check_out_time
+        if (updates.checked_in === false) personalUpdates.check_out_time = null;
+        await base44.entities.PersonalCheckIn.update(assignment.id, personalUpdates);
+      } else {
+        await base44.entities.Assignment.update(assignment.id, updates);
+      }
       toast.success(msg);
     } catch (error) {
       toast.error(`Failed to update: ${error.message || 'Unknown error'}`);
