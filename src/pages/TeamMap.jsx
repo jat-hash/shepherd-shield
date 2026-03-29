@@ -138,7 +138,7 @@ export default function TeamMap() {
 
     const today = new Date().toLocaleDateString('en-CA');
     const [allAssignments, allIncidents, positions, personalCheckIns] = await Promise.all([
-      base44.entities.Assignment.filter({ checked_in: true, checked_out: false }, "-updated_date", 500),
+      base44.entities.Assignment.filter({ checked_in: true, checked_out: false, service_date: today }, "-updated_date", 500),
       base44.entities.Incident.filter({ is_panic: true }, "-updated_date", 100),
       base44.entities.Position.list("-updated_date", 200),
       base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 200),
