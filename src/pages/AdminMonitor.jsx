@@ -426,7 +426,7 @@ export default function AdminMonitor() {
                     <div>
                       <span className="text-slate-500">Date: </span>
                       <span className="text-white">
-                        {new Date(assignment.service_date).toLocaleDateString()}
+                        {assignment.service_date ? new Date(assignment.service_date + 'T00:00:00').toLocaleDateString() : 'N/A'}
                       </span>
                     </div>
                     <div>
@@ -464,6 +464,13 @@ export default function AdminMonitor() {
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4 text-slate-500" />
                           <span className="text-slate-400">Not checked in</span>
+                        </div>
+                      )}
+                      {assignment.checked_in && assignment.check_in_latitude && (
+                        <div className="flex items-center gap-1 text-xs text-slate-500">
+                          <span>📍</span>
+                          <span>{assignment.check_in_latitude.toFixed(5)}, {assignment.check_in_longitude.toFixed(5)}</span>
+                          <a href={`https://maps.google.com/?q=${assignment.check_in_latitude},${assignment.check_in_longitude}`} target="_blank" rel="noreferrer" className="text-[#d4a843] underline ml-1">Map</a>
                         </div>
                       )}
                     </div>
