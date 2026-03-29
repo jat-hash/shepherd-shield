@@ -305,9 +305,9 @@ export default function AdminMonitor() {
     );
   }
 
-  const checkedInCount = assignments.filter(a => a.checked_in && !a.checked_out).length;
-  const checkedOutCount = assignments.filter(a => a.checked_out).length;
-  const notCheckedInCount = assignments.filter(a => !a.checked_in).length;
+  const checkedInCount = filteredAssignments.filter(a => a.checked_in && !a.checked_out).length;
+  const checkedOutCount = filteredAssignments.filter(a => a.checked_out).length;
+  const notCheckedInCount = filteredAssignments.filter(a => !a.checked_in).length;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 lg:ml-60 space-y-6">
