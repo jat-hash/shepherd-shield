@@ -55,11 +55,20 @@ function createPanicIcon() {
   });
 }
 
+function FlyToMe({ trigger, userLocation }) {
+  const map = useMap();
+  useEffect(() => {
+    if (trigger && userLocation) {
+      map.setView(userLocation, 20);
+    }
+  }, [trigger]);
+  return null;
+}
+
 function MapAutoFit({ points, userLocation }) {
   const map = useMap();
   const initialZoomed = useRef(false);
 
-  // On first user location acquired, zoom to it
   useEffect(() => {
     if (userLocation && !initialZoomed.current) {
       initialZoomed.current = true;
@@ -67,7 +76,6 @@ function MapAutoFit({ points, userLocation }) {
     }
   }, [userLocation]);
 
-  // If we never got user location but have points, fit those
   useEffect(() => {
     if (!initialZoomed.current && points.length > 0) {
       if (points.length === 1) { map.setView(points[0], 17); }
@@ -92,6 +100,7 @@ export default function TeamMap() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [flyToMeTrigger, setFlyToMeTrigger] = useState(0);
 
   useEffect(() => {
     const handleOnline = () => { setIsOffline(false); loadData(); };
@@ -228,6 +237,14 @@ export default function TeamMap() {
 
       {/* Map */}
       <div className="flex-1 relative" style={{ zIndex: 0 }}>
+        {userLocation && (
+          <button
+            onClick={() => setFlyToMeTrigger(t => t + 1)}
+            className="absolute bottom-4 left-4 z-[1000] bg-[#141f3d]/95 border border-blue-500/40 rounded-lg px-3 py-2 text-blue-400 text-xs font-bold shadow-xl flex items-center gap-1.5 hover:bg-blue-900/40 transition-colors"
+          >
+            📍 My Location
+          </button>
+        )}
         {allPoints.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
             <div className="bg-[#1a2744]/95 rounded-2xl p-6 text-center border border-[rgba(212,168,67,0.1)] max-w-xs backdrop-blur">
@@ -241,6 +258,7 @@ export default function TeamMap() {
         <MapContainer center={[34.052235, -118.243683]} zoom={14} style={{ height: "100%", width: "100%" }} zoomControl={true} maxZoom={20}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap" maxZoom={20} maxNativeZoom={19} />
           <MapAutoFit points={allPoints} userLocation={userLocation} />
+          <FlyToMe trigger={flyToMeTrigger} userLocation={userLocation} />
 
           {/* Checked-in members */}
           {checkedInAssignments.map(a => (
