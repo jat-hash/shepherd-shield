@@ -199,8 +199,7 @@ export default function AdminMonitor() {
       await base44.entities.Assignment.update(assignment.id, updates);
       toast.success(msg);
     } catch (error) {
-      await savePendingCheckIn({ assignmentId: assignment.id, data: updates });
-      toast.info(`${msg} (saved offline, will sync later)`);
+      toast.error(`Failed to update: ${error.message || 'Unknown error'}`);
     }
   };
 
