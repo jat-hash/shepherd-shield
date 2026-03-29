@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -57,14 +57,24 @@ function createPanicIcon() {
 
 function MapAutoFit({ points, userLocation }) {
   const map = useMap();
+  const initialZoomed = useRef(false);
+
+  // On first user location acquired, zoom to it
   useEffect(() => {
-    if (points.length > 0) {
-      if (points.length === 1) { map.setView(points[0], 17); return; }
-      map.fitBounds(points, { padding: [60, 60], maxZoom: 18 });
-    } else if (userLocation) {
+    if (userLocation && !initialZoomed.current) {
+      initialZoomed.current = true;
       map.setView(userLocation, 17);
     }
-  }, [points.length, userLocation]);
+  }, [userLocation]);
+
+  // If we never got user location but have points, fit those
+  useEffect(() => {
+    if (!initialZoomed.current && points.length > 0) {
+      if (points.length === 1) { map.setView(points[0], 17); }
+      else { map.fitBounds(points, { padding: [60, 60], maxZoom: 18 }); }
+    }
+  }, [points.length]);
+
   return null;
 }
 
@@ -311,7 +321,14 @@ export default function TeamMap() {
           {allCheckedIn.length === 0 ? (
             <p className="text-slate-500 text-xs p-3">No one checked in</p>
           ) : (
-            allCheckedIn.map(a => (
+            [...allCheckedIn]
+              .sort((a, b) => {
+                if (!userLocation) return 0;
+                const distA = a.check_in_latitude ? Math.hypot(a.check_in_latitude - userLocation[0], a.check_in_longitude - userLocation[1]) : Infinity;
+                const distB = b.check_in_latitude ? Math.hypot(b.check_in_latitude - userLocation[0], b.check_in_longitude - userLocation[1]) : Infinity;
+                return distA - distB;
+              })
+              .map((a) => (
               <div key={a.id} className="px-3 py-2 border-b border-[rgba(255,255,255,0.04)] hover:bg-white/5">
                 <p className="text-white text-xs font-medium">{a.assigned_to_name}</p>
                 <p className="text-[#d4a843] text-[10px]">{a.position_name}</p>
@@ -321,8 +338,6 @@ export default function TeamMap() {
               </div>
             ))
           )}
-        </div>
-      )}
       {!showSidebar && (
         <button onClick={() => setShowSidebar(true)} className="absolute top-12 right-2 z-[1000] bg-[#141f3d]/95 border border-[rgba(212,168,67,0.2)] rounded-lg px-2 py-1 text-[#d4a843] text-xs font-bold shadow-xl">
           👥 {allCheckedIn.length}
