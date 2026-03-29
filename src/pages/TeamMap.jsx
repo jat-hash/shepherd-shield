@@ -255,8 +255,8 @@ export default function TeamMap() {
           </div>
         )}
 
-        <MapContainer center={[34.052235, -118.243683]} zoom={14} style={{ height: "100%", width: "100%" }} zoomControl={true} maxZoom={20}>
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap" maxZoom={20} maxNativeZoom={19} />
+        <MapContainer center={[34.052235, -118.243683]} zoom={14} style={{ height: "100%", width: "100%" }} zoomControl={true} maxZoom={22}>
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap" maxZoom={22} maxNativeZoom={19} />
           <MapAutoFit points={allPoints} userLocation={userLocation} />
           <FlyToMe trigger={flyToMeTrigger} userLocation={userLocation} />
 
