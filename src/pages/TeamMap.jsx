@@ -167,7 +167,8 @@ export default function TeamMap() {
     loadData();
     const unsub = base44.entities.Assignment.subscribe(() => loadData());
     const unsub2 = base44.entities.Incident.subscribe(() => loadData());
-    return () => { unsub(); unsub2(); };
+    const unsub3 = base44.entities.PersonalCheckIn.subscribe(() => loadData());
+    return () => { unsub(); unsub2(); unsub3(); };
   }, []);
 
   const allPoints = [
