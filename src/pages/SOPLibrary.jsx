@@ -117,7 +117,7 @@ Provide a helpful, accurate answer based on the SOP content above.`
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 lg:ml-60 space-y-5">
+    <div className="max-w-2xl mx-auto px-3 py-4 lg:px-4 lg:py-6 lg:ml-60 space-y-5">
       {isOffline && (
         <div className="flex items-center gap-2 bg-orange-900/40 border border-orange-500/30 rounded-lg px-3 py-2 text-orange-300 text-xs">
           <WifiOff className="w-3.5 h-3.5 shrink-0" />
@@ -127,11 +127,11 @@ Provide a helpful, accurate answer based on the SOP content above.`
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-white">SOP Library</h1>
         <div className="flex gap-2">
-          <Button onClick={() => setChatOpen(true)} variant="outline" className="border-[#d4a843] text-[#d4a843] hover:bg-[#d4a843]/10 text-sm gap-1">
-            <MessageCircle className="w-4 h-4" /> AI Assistant
+          <Button onClick={() => setChatOpen(true)} variant="outline" className="border-[#d4a843] text-[#d4a843] hover:bg-[#d4a843]/10 text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-4">
+            <MessageCircle className="w-4 h-4" /> <span className="hidden sm:inline">AI</span> Assistant
           </Button>
           {currentUser?.role === 'admin' && (
-            <Button onClick={() => setFormOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-sm gap-1">
+            <Button onClick={() => setFormOpen(true)} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-4">
               <Plus className="w-4 h-4" /> Upload
             </Button>
           )}
@@ -272,7 +272,7 @@ Provide a helpful, accurate answer based on the SOP content above.`
 
       {/* AI Chat Assistant */}
       <Dialog open={chatOpen} onOpenChange={setChatOpen}>
-        <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-lg h-[600px] flex flex-col p-0">
+        <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-lg h-[70vh] max-h-[600px] flex flex-col p-0">
           <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-700">
             <DialogTitle className="text-[#d4a843] flex items-center gap-2">
               <MessageCircle className="w-5 h-5" />

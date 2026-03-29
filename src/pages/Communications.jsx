@@ -293,7 +293,7 @@ export default function Communications() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto lg:ml-60 flex flex-col h-[calc(100vh-130px)] lg:h-[calc(100vh-70px)]">
+    <div className="max-w-2xl mx-auto lg:ml-60 flex flex-col" style={{ height: 'calc(100dvh - 57px)' }}>
       {isOffline && (
         <div className="bg-amber-900/40 border-b border-amber-500/30 px-4 py-2 text-xs text-amber-400 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />

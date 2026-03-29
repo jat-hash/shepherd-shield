@@ -323,8 +323,8 @@ export default function Members() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a1128] text-white p-4 lg:pl-60">
-      <div className="max-w-6xl mx-auto py-6">
+    <div className="min-h-screen bg-[#0a1128] text-white px-3 py-4 lg:px-4 lg:py-6 lg:pl-60">
+      <div className="max-w-6xl mx-auto">
         {isOffline && (
           <div className="flex items-center gap-2 bg-orange-900/40 border border-orange-500/30 rounded-lg px-3 py-2 text-orange-300 text-xs mb-4">
             <WifiOff className="w-3.5 h-3.5 shrink-0" />
@@ -334,8 +334,8 @@ export default function Members() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-[#d4a843] flex items-center gap-2">
-              <User className="w-8 h-8" />
+            <h1 className="text-xl sm:text-2xl font-bold text-[#d4a843] flex items-center gap-2">
+              <User className="w-6 h-6 sm:w-8 sm:h-8" />
               Team Members
             </h1>
             <p className="text-slate-400 mt-1">{users.length} active members</p>
@@ -626,7 +626,7 @@ export default function Members() {
                     </p>
                     )}
                     {currentUser?.role === 'admin' && currentUser.id !== user.id && (
-                    <div className="mt-3 flex gap-2" onClick={e => e.stopPropagation()}>
+                    <div className="mt-3 flex flex-col sm:flex-row gap-2" onClick={e => e.stopPropagation()}>
                      <Button
                        size="sm"
                        onClick={() => {
