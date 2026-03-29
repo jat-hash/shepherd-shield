@@ -8,13 +8,45 @@ import SOPQuickAccess from "@/components/dashboard/SOPQuickAccess";
 import SpecialEventsDropdown from "@/components/dashboard/SpecialEventsDropdown";
 import NotifyTeamButton from "@/components/dashboard/NotifyTeamButton";
 import SafetyCheckInPanel from "@/components/dashboard/SafetyCheckInPanel";
-import { WifiOff } from "lucide-react";
+import { WifiOff, MapPin, X } from "lucide-react";
 import RadioCheckInScanner from "@/components/dashboard/RadioCheckInScanner";
 import PersonalCheckIn from "@/components/dashboard/PersonalCheckIn";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [userLoaded, setUserLoaded] = useState(false);
+  const [locationDismissed, setLocationDismissed] = useState(() => sessionStorage.getItem('locationPromptDismissed') === 'true');
+  const [locationGranted, setLocationGranted] = useState(true);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+        if (result.state !== 'granted') setLocationGranted(false);
+        result.onchange = () => { if (result.state === 'granted') setLocationGranted(true); };
+      });
+    } else {
+      // Fallback: try to get location silently
+      navigator.geolocation.getCurrentPosition(
+        () => setLocationGranted(true),
+        () => setLocationGranted(false),
+        { timeout: 3000 }
+      );
+    }
+  }, []);
+
+  const requestLocation = () => {
+    navigator.geolocation.getCurrentPosition(
+      () => { setLocationGranted(true); },
+      () => {},
+      { enableHighAccuracy: true }
+    );
+  };
+
+  const dismissLocation = () => {
+    sessionStorage.setItem('locationPromptDismissed', 'true');
+    setLocationDismissed(true);
+  };
 
   useEffect(() => {
     base44.auth.me().then((u) => { setUser(u); setUserLoaded(true); }).catch(() => setUserLoaded(true));
@@ -74,6 +106,24 @@ export default function Dashboard() {
         <div className="flex items-center gap-2 bg-orange-900/40 border border-orange-500/30 rounded-lg px-3 py-2 text-orange-300 text-xs">
           <WifiOff className="w-3.5 h-3.5 shrink-0" />
           You're offline — showing cached data
+        </div>
+      )}
+      {!locationGranted && !locationDismissed && (
+        <div className="flex items-start gap-3 bg-blue-900/50 border border-blue-400/40 rounded-lg px-4 py-3 text-blue-200 text-sm shadow-lg">
+          <MapPin className="w-5 h-5 shrink-0 mt-0.5 text-blue-400" />
+          <div className="flex-1">
+            <p className="font-bold text-white">📍 Location Access Required</p>
+            <p className="text-xs text-blue-300 mt-0.5">Enable GPS so your team can see your location on the Team Map during services.</p>
+            <button
+              onClick={requestLocation}
+              className="mt-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-md transition-colors"
+            >
+              Allow Location
+            </button>
+          </div>
+          <button onClick={dismissLocation} className="text-blue-400 hover:text-white mt-0.5">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
       <div>
