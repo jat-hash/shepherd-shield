@@ -83,7 +83,7 @@ export default function TeamMap() {
   const [checkedInAssignments, setCheckedInAssignments] = useState([]);
   const [allCheckedIn, setAllCheckedIn] = useState([]);
   const [panicIncidents, setPanicIncidents] = useState([]);
-  const [showSidebar, setShowSidebar] = useState(true);
+  const [showSidebar, setShowSidebar] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedMember, setSelectedMember] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -338,6 +338,8 @@ export default function TeamMap() {
               </div>
             ))
           )}
+        </div>
+      )}
       {!showSidebar && (
         <button onClick={() => setShowSidebar(true)} className="absolute top-12 right-2 z-[1000] bg-[#141f3d]/95 border border-[rgba(212,168,67,0.2)] rounded-lg px-2 py-1 text-[#d4a843] text-xs font-bold shadow-xl">
           👥 {allCheckedIn.length}
