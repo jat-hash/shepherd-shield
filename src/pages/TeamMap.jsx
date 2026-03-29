@@ -59,7 +59,7 @@ function FlyToMe({ trigger, userLocation }) {
   const map = useMap();
   useEffect(() => {
     if (trigger && userLocation) {
-      map.setView(userLocation, 20);
+      map.setView(userLocation, 22);
     }
   }, [trigger]);
   return null;
@@ -237,14 +237,25 @@ export default function TeamMap() {
 
       {/* Map */}
       <div className="flex-1 relative" style={{ zIndex: 0 }}>
-        {userLocation && (
-          <button
-            onClick={() => setFlyToMeTrigger(t => t + 1)}
-            className="absolute bottom-4 left-4 z-[1000] bg-[#141f3d]/95 border border-blue-500/40 rounded-lg px-3 py-2 text-blue-400 text-xs font-bold shadow-xl flex items-center gap-1.5 hover:bg-blue-900/40 transition-colors"
-          >
-            📍 My Location
-          </button>
-        )}
+        <button
+          onClick={() => {
+            if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                  const loc = [pos.coords.latitude, pos.coords.longitude];
+                  setUserLocation(loc);
+                  setFlyToMeTrigger(t => t + 1);
+                },
+                () => {},
+                { enableHighAccuracy: true, timeout: 10000 }
+              );
+            }
+            if (userLocation) setFlyToMeTrigger(t => t + 1);
+          }}
+          className="absolute bottom-4 left-4 z-[1000] bg-blue-600 border border-blue-400/50 rounded-lg px-3 py-2 text-white text-xs font-bold shadow-xl flex items-center gap-1.5 hover:bg-blue-500 transition-colors"
+        >
+          📍 My Location
+        </button>
         {allPoints.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
             <div className="bg-[#1a2744]/95 rounded-2xl p-6 text-center border border-[rgba(212,168,67,0.1)] max-w-xs backdrop-blur">
