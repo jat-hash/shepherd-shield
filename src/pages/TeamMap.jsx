@@ -325,7 +325,7 @@ export default function TeamMap() {
                 <div style={{ background: "#1a2744", color: "white", padding: "10px", borderRadius: "8px", minWidth: "160px", border: "1px solid rgba(220,38,38,0.4)" }}>
                   <p style={{ fontWeight: "bold", fontSize: "13px", margin: "0 0 4px" }}>🚨 Panic Alert</p>
                   <p style={{ color: "#f87171", fontSize: "11px", margin: "0 0 2px" }}>{i.reported_by}</p>
-                  <p style={{ color: "#94a3b8", fontSize: "10px", margin: "0 0 6px" }}>{new Date(i.created_date).toLocaleTimeString()}</p>
+                  <p style={{ color: "#94a3b8", fontSize: "10px", margin: "0 0 6px" }}>{formatTime(i.created_date)}</p>
                   {user?.role === "admin" && (
                     <button 
                       onClick={async () => {

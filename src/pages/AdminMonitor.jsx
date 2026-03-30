@@ -16,7 +16,14 @@ function formatTime(val) {
   if (!val) return 'N/A';
   const d = new Date(val);
   if (!isNaN(d.getTime())) return d.toLocaleTimeString();
-  // fallback: raw string (e.g. "07:30")
+  return val;
+}
+
+function formatDate(val) {
+  if (!val) return 'N/A';
+  // val is YYYY-MM-DD
+  const d = new Date(val + 'T00:00:00');
+  if (!isNaN(d.getTime())) return d.toLocaleDateString();
   return val;
 }
 
@@ -442,7 +449,7 @@ export default function AdminMonitor() {
                     <div>
                       <span className="text-slate-500">Date: </span>
                       <span className="text-white">
-                        {assignment.service_date ? new Date(assignment.service_date + 'T00:00:00').toLocaleDateString() : 'N/A'}
+                        {formatDate(assignment.service_date)}
                       </span>
                     </div>
                     <div>
