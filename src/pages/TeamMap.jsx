@@ -55,6 +55,13 @@ function createPanicIcon() {
   });
 }
 
+function formatTime(val) {
+  if (!val) return 'N/A';
+  const d = new Date(val);
+  if (!isNaN(d.getTime())) return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  return val;
+}
+
 function FlyToMe({ trigger, userLocation }) {
   const map = useMap();
   useEffect(() => {
@@ -280,7 +287,7 @@ export default function TeamMap() {
                 <div style={{ background: "#1a2744", color: "white", padding: "10px", borderRadius: "8px", minWidth: "160px", border: "1px solid rgba(212,168,67,0.2)" }}>
                   <p style={{ fontWeight: "bold", fontSize: "13px", margin: "0 0 4px" }}>{a.assigned_to_name}</p>
                   <p style={{ color: "#d4a843", fontSize: "11px", margin: "0 0 2px" }}>{a.position_name}</p>
-                  <p style={{ color: "#10b981", fontSize: "11px", margin: "0 0 2px" }}>✓ Checked in at {a.check_in_time ? new Date(a.check_in_time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : 'N/A'}</p>
+                  <p style={{ color: "#10b981", fontSize: "11px", margin: "0 0 2px" }}>✓ Checked in at {formatTime(a.check_in_time)}</p>
                   {a.check_in_latitude && <p style={{ color: "#94a3b8", fontSize: "10px", margin: "0" }}>📍 {a.check_in_latitude.toFixed(5)}, {a.check_in_longitude.toFixed(5)}</p>}
                   {user?.role === "admin" && (
                     <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
@@ -364,7 +371,7 @@ export default function TeamMap() {
                 <p className="text-white text-xs font-medium">{a.assigned_to_name}</p>
                 <p className="text-[#d4a843] text-[10px]">{a.position_name}</p>
                 <p className="text-slate-500 text-[10px]">
-                  {a.check_in_latitude ? '📍 GPS' : '⚠️ No GPS'} · {a.check_in_time ? new Date(a.check_in_time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : 'N/A'}
+                  {a.check_in_latitude ? '📍 GPS' : '⚠️ No GPS'} · {formatTime(a.check_in_time)}
                 </p>
               </div>
             ))

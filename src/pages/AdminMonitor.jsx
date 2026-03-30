@@ -12,8 +12,15 @@ import { Label } from "@/components/ui/label";
 import AssignmentForm from "@/components/assignments/AssignmentForm";
 import { toast } from "sonner";
 
+function formatTime(val) {
+  if (!val) return 'N/A';
+  const d = new Date(val);
+  if (!isNaN(d.getTime())) return d.toLocaleTimeString();
+  // fallback: raw string (e.g. "07:30")
+  return val;
+}
+
 export default function AdminMonitor() {
-  const [user, setUser] = useState(null);
   const [assignments, setAssignments] = useState([]);
   const [filteredAssignments, setFilteredAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -457,7 +464,7 @@ export default function AdminMonitor() {
                         <div className="flex items-center gap-2">
                           <CheckCircle className="w-4 h-4 text-emerald-500" />
                           <span className="text-emerald-400">
-                            In: {assignment.check_in_time ? new Date(assignment.check_in_time).toLocaleTimeString() : "N/A"}
+                            In: {formatTime(assignment.check_in_time)}
                           </span>
                         </div>
                       )}
@@ -465,7 +472,7 @@ export default function AdminMonitor() {
                         <div className="flex items-center gap-2">
                           <XCircle className="w-4 h-4 text-blue-500" />
                           <span className="text-blue-400">
-                            Out: {assignment.check_out_time ? new Date(assignment.check_out_time).toLocaleTimeString() : "N/A"}
+                            Out: {formatTime(assignment.check_out_time)}
                           </span>
                         </div>
                       )}
