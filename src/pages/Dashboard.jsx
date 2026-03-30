@@ -126,13 +126,19 @@ export default function Dashboard() {
           </button>
         </div>
       )}
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-white">
-          Welcome back, <span className="text-[#d4a843]">{user?.full_name?.split(" ")[0] || user?.display_name?.split(" ")[0] || "Officer"}</span>
-        </h1>
-        <p className="text-slate-300 text-xs sm:text-sm mt-1">
-          {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-white">
+            Welcome back, <span className="text-[#d4a843]">{user?.full_name?.split(" ")[0] || user?.display_name?.split(" ")[0] || "Officer"}</span>
+          </h1>
+          <p className="text-slate-300 text-xs sm:text-sm mt-1">
+            {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 shrink-0">
+          <NotifyTeamButton user={user} />
+          <EmergencyButton />
+        </div>
       </div>
 
       <SpecialEventsDropdown />
@@ -154,8 +160,6 @@ export default function Dashboard() {
       </div>
 
       <SafetyCheckInPanel />
-      <NotifyTeamButton user={user} />
-      <EmergencyButton />
       <StatusBar />
       <SOPQuickAccess />
       <QuickActionGrid />
