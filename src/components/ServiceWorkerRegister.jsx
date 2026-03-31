@@ -7,7 +7,16 @@ import { base44 } from "@/api/base44Client";
 export default function ServiceWorkerRegister() {
   useEffect(() => {
     if ('serviceWorker' in navigator) {
+      // Register sw.js which will unregister itself and clear all caches
       navigator.serviceWorker.register('/sw.js').catch(() => {});
+      // Also unregister any existing service workers
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((reg) => reg.unregister());
+      });
+      // Clear all caches
+      if ('caches' in window) {
+        caches.keys().then((keys) => keys.forEach((key) => caches.delete(key)));
+      }
     }
   }, []);
 
