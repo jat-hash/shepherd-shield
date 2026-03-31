@@ -1,0 +1,96 @@
+{
+  "name": "Incident",
+  "type": "object",
+  "title": "Incident",
+  "description": "Security incident reports",
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Panic Alert",
+        "Suspicious Activity",
+        "Medical Emergency",
+        "Disruptive Behavior",
+        "Theft",
+        "Trespassing",
+        "Unsecured Property",
+        "Weather Emergency",
+        "Facility Issue",
+        "Other"
+      ]
+    },
+    "location": {
+      "type": "string"
+    },
+    "latitude": {
+      "type": "number",
+      "description": "GPS latitude"
+    },
+    "longitude": {
+      "type": "number",
+      "description": "GPS longitude"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "Low",
+        "Medium",
+        "High",
+        "Critical"
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "people_involved": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Open",
+        "In Progress",
+        "Resolved",
+        "Closed"
+      ],
+      "default": "Open"
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "incident_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "reported_by": {
+      "type": "string"
+    },
+    "responders": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "List of responders (name or email)"
+    },
+    "is_panic": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if triggered by panic button"
+    }
+  },
+  "required": [
+    "title",
+    "category",
+    "location",
+    "severity",
+    "description"
+  ]
+}
