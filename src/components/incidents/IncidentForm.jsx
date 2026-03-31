@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
-const CATEGORIES = ["Suspicious Activity", "Medical Emergency", "Disruptive Behavior", "Theft", "Trespassing", "Weather Emergency", "Facility Issue", "Other"];
+const CATEGORIES = ["Suspicious Activity", "Medical Emergency", "Disruptive Behavior", "Theft", "Trespassing", "Unsecured Property", "Weather Emergency", "Facility Issue", "Other"];
 const SEVERITIES = ["Low", "Medium", "High", "Critical"];
 const STATUSES = ["Open", "In Progress", "Resolved", "Closed"];
 
