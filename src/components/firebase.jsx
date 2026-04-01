@@ -38,6 +38,7 @@ export const getFCMToken = async () => {
 
     // Get token with service worker registration
     const token = await getToken(msg, {
+      vapidKey: 'BJgZNfraPzhyAX_lG6OEaKVQjphyqFt8rAZw6wH05EnDY94vxC7tJSI9NOcMYSWdH84Gd4aalYnv-8cOmCGJQsE',
       serviceWorkerRegistration: registration
     });
 
