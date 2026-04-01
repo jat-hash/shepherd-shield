@@ -118,7 +118,8 @@ export default function ServiceWorkerRegister() {
           }
         });
       } catch (error) {
-        addLog('ERROR: ' + error.message);
+        addLog('ERROR: ' + (error.code ? error.code + ' - ' : '') + error.message);
+        addLog('STACK: ' + (error.stack || '').split('\n')[1]);
       }
     };
 

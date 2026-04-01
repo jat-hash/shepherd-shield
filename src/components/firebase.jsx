@@ -25,21 +25,30 @@ export const initFirebase = () => {
 export const getFCMToken = async (swRegistration) => {
   const { messaging: msg } = initFirebase();
 
-  console.log('[FCM] Permission:', Notification.permission);
+  console.log('[FCM] Permission before request:', Notification.permission);
   const permission = await Notification.requestPermission();
+  console.log('[FCM] Permission after request:', permission);
   if (permission !== 'granted') {
     throw new Error('Permission not granted: ' + permission);
   }
 
-  console.log('[FCM] SW scope:', swRegistration?.scope, 'state:', swRegistration?.active?.state);
+  console.log('[FCM] SW scope:', swRegistration?.scope, 'active state:', swRegistration?.active?.state);
+  console.log('[FCM] SW installing:', swRegistration?.installing, 'waiting:', swRegistration?.waiting);
 
-  const token = await getToken(msg, {
-    vapidKey: 'BJgZNfraPzhyAX_lG6OEaKVQjphyqFt8rAZw6wH05EnDY94vxC7tJSI9NOcMYSWdH84Gd4aalYnv-8cOmCGJQsE',
-    serviceWorkerRegistration: swRegistration
-  });
+  let token;
+  try {
+    token = await getToken(msg, {
+      vapidKey: 'BJgZNfraPzhyAX_lG6OEaKVQjphyqFt8rAZw6wH05EnDY94vxC7tJSI9NOcMYSWdH84Gd4aalYnv-8cOmCGJQsE',
+      serviceWorkerRegistration: swRegistration
+    });
+    console.log('[FCM] getToken result:', token ? token.substring(0, 20) + '...' : 'EMPTY/NULL');
+  } catch (err) {
+    console.error('[FCM] getToken threw:', err.code, err.message);
+    throw new Error('getToken error: ' + (err.code || '') + ' ' + err.message);
+  }
 
   if (!token) {
-    throw new Error('getToken returned empty/null');
+    throw new Error('getToken returned empty/null - SW may not be valid or domain not authorized');
   }
 
   return token;
