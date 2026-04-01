@@ -22,7 +22,7 @@ export const initFirebase = () => {
   return { app, messaging };
 };
 
-export const getFCMToken = async () => {
+export const getFCMToken = async (swRegistration) => {
   try {
     const { messaging: msg } = initFirebase();
     
@@ -33,8 +33,8 @@ export const getFCMToken = async () => {
       return null;
     }
 
-    // Wait for service worker to be ready
-    const registration = await navigator.serviceWorker.ready;
+    // Use provided registration or wait for any ready SW
+    const registration = swRegistration || await navigator.serviceWorker.ready;
 
     // Get token with service worker registration
     const token = await getToken(msg, {

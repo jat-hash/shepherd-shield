@@ -34,33 +34,31 @@ async function playAlarmSound() {
 
 export default function ServiceWorkerRegister() {
   useEffect(() => {
-    // Clear old non-firebase service workers, register firebase messaging SW
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then((registrations) => {
-        registrations.forEach((reg) => {
-          // Only unregister old non-firebase SWs
-          if (!reg.scope.includes('firebase-messaging') && !reg.active?.scriptURL?.includes('firebase-messaging-sw')) {
-            reg.unregister();
-          }
-        });
-      });
-
-      // Register the Firebase messaging service worker
-      navigator.serviceWorker.register('/firebase-messaging-sw.js').catch((err) => {
-        console.error('SW registration failed:', err);
-      });
-    }
-  }, []);
-
-  useEffect(() => {
     const initPushNotifications = async () => {
       try {
         const user = await base44.auth.me();
         if (!user) return;
 
-        // Get FCM token (also requests notification permission)
-        const token = await getFCMToken();
-        if (!token) return;
+        if (!('serviceWorker' in navigator)) return;
+
+        // Unregister any old non-firebase SWs
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          if (!reg.active?.scriptURL?.includes('firebase-messaging-sw')) {
+            await reg.unregister();
+          }
+        }
+
+        // Register (or reuse) the Firebase messaging SW
+        const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        console.log('Firebase SW registered:', swRegistration.scope);
+
+        // Get FCM token using the specific SW registration
+        const token = await getFCMToken(swRegistration);
+        if (!token) {
+          console.log('No FCM token obtained');
+          return;
+        }
 
         // Save token to backend
         await base44.functions.invoke('saveFCMToken', {
@@ -78,16 +76,13 @@ export default function ServiceWorkerRegister() {
           const title = payload.notification?.title || 'Shepherd Shield Alert';
           const body = payload.notification?.body || 'New notification';
 
-          // Play alarm sound
           playAlarmSound();
 
-          // Show toast notification
           toast.error(`🚨 ${title}: ${body}`, {
             duration: 10000,
             position: 'top-center',
           });
 
-          // Also show native browser notification if possible
           if (Notification.permission === 'granted') {
             new Notification(title, {
               body,
