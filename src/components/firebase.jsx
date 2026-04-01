@@ -26,28 +26,35 @@ export const getFCMToken = async (swRegistration) => {
   try {
     const { messaging: msg } = initFirebase();
     
+    // Log current permission state before requesting
+    console.log('[FCM] Current Notification.permission:', Notification.permission);
+    
     // Request permission first
     const permission = await Notification.requestPermission();
+    console.log('[FCM] requestPermission() result:', permission);
+    
     if (permission !== 'granted') {
-      console.log('Notification permission denied');
+      console.log('[FCM] Permission not granted, aborting');
       return null;
     }
 
-    const registration = swRegistration;
+    console.log('[FCM] SW registration:', swRegistration?.scope, 'active:', swRegistration?.active?.state);
 
     // Get token with service worker registration
     const token = await getToken(msg, {
       vapidKey: 'BJgZNfraPzhyAX_lG6OEaKVQjphyqFt8rAZw6wH05EnDY94vxC7tJSI9NOcMYSWdH84Gd4aalYnv-8cOmCGJQsE',
-      serviceWorkerRegistration: registration
+      serviceWorkerRegistration: swRegistration
     });
 
+    console.log('[FCM] Token obtained:', token ? token.substring(0, 20) + '...' : 'NULL');
+
     if (!token) {
-      throw new Error('Failed to get FCM token');
+      throw new Error('getToken returned empty token');
     }
 
     return token;
   } catch (error) {
-    console.error('Error getting FCM token:', error);
+    console.error('[FCM] Error getting FCM token:', error.message, error.code);
     return null;
   }
 };
