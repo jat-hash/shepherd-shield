@@ -38,7 +38,7 @@ export const getFCMToken = async (swRegistration) => {
   let token;
   try {
     token = await getToken(msg, {
-      vapidKey: 'BAxRHyGzTmKXXJiC9XAH8Aa_o9XaojKy0wvo9KaXJBKw1q91eWUrBTleHI06csPY8fexF00P2qNlQ5-lYu_xGFw',
+      vapidKey: 'BDXxLp5-kEn--p9rd4nRgyapdT_sTe7IhthMn5Sm4AUxzAcYB_Ka_KxVVTLnxta6OLq08YR-C3ujPJoXFiEYLS8',
       serviceWorkerRegistration: swRegistration
     });
     console.log('[FCM] getToken result:', token ? token.substring(0, 20) + '...' : 'EMPTY/NULL');
