@@ -33,8 +33,7 @@ export const getFCMToken = async (swRegistration) => {
       return null;
     }
 
-    // Use provided registration or wait for any ready SW
-    const registration = swRegistration || await navigator.serviceWorker.ready;
+    const registration = swRegistration;
 
     // Get token with service worker registration
     const token = await getToken(msg, {

@@ -49,11 +49,14 @@ export default function ServiceWorkerRegister() {
           }
         }
 
-        // Register (or reuse) the Firebase messaging SW
-        const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-        console.log('Firebase SW registered:', swRegistration.scope);
+        // Register the Firebase messaging SW
+        await navigator.serviceWorker.register('/firebase-messaging-sw.js');
 
-        // Get FCM token using the specific SW registration
+        // Wait for SW to be fully active before getting token
+        const swRegistration = await navigator.serviceWorker.ready;
+        console.log('Firebase SW active:', swRegistration.scope);
+
+        // Get FCM token using the active SW registration
         const token = await getFCMToken(swRegistration);
         if (!token) {
           console.log('No FCM token obtained');
