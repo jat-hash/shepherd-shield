@@ -5,9 +5,13 @@ import { initFirebase, getFCMToken } from "@/components/firebase";
 import { getMessaging, onMessage } from "firebase/messaging";
 
 // Play an alarm beep sound for foreground alerts
-function playAlarmSound() {
+async function playAlarmSound() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Resume context - required after user gesture policy
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
     const playBeep = (startTime, freq = 880) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -15,16 +19,16 @@ function playAlarmSound() {
       gain.connect(ctx.destination);
       osc.frequency.value = freq;
       osc.type = 'square';
-      gain.gain.setValueAtTime(0.3, startTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.4);
+      gain.gain.setValueAtTime(0.5, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.5);
       osc.start(startTime);
-      osc.stop(startTime + 0.4);
+      osc.stop(startTime + 0.5);
     };
     playBeep(ctx.currentTime);
-    playBeep(ctx.currentTime + 0.5);
-    playBeep(ctx.currentTime + 1.0);
+    playBeep(ctx.currentTime + 0.6);
+    playBeep(ctx.currentTime + 1.2);
   } catch (e) {
-    console.log('Audio context not available');
+    console.log('Audio context error:', e);
   }
 }
 
