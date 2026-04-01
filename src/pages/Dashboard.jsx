@@ -8,7 +8,7 @@ import SOPQuickAccess from "@/components/dashboard/SOPQuickAccess";
 import SpecialEventsDropdown from "@/components/dashboard/SpecialEventsDropdown";
 import NotifyTeamButton from "@/components/dashboard/NotifyTeamButton";
 import SafetyCheckInPanel from "@/components/dashboard/SafetyCheckInPanel";
-import { WifiOff, MapPin, X } from "lucide-react";
+import { WifiOff, MapPin, X, Bell } from "lucide-react";
 import RadioCheckInScanner from "@/components/dashboard/RadioCheckInScanner";
 import PersonalCheckIn from "@/components/dashboard/PersonalCheckIn";
 
@@ -17,6 +17,8 @@ export default function Dashboard() {
   const [userLoaded, setUserLoaded] = useState(false);
   const [locationDismissed, setLocationDismissed] = useState(() => sessionStorage.getItem('locationPromptDismissed') === 'true');
   const [locationGranted, setLocationGranted] = useState(true);
+  const [notifDismissed, setNotifDismissed] = useState(() => sessionStorage.getItem('notifPromptDismissed') === 'true');
+  const [notifGranted, setNotifGranted] = useState(() => Notification?.permission === 'granted');
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -46,6 +48,16 @@ export default function Dashboard() {
   const dismissLocation = () => {
     sessionStorage.setItem('locationPromptDismissed', 'true');
     setLocationDismissed(true);
+  };
+
+  const requestNotifications = async () => {
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') setNotifGranted(true);
+  };
+
+  const dismissNotif = () => {
+    sessionStorage.setItem('notifPromptDismissed', 'true');
+    setNotifDismissed(true);
   };
 
   useEffect(() => {
@@ -106,6 +118,24 @@ export default function Dashboard() {
         <div className="flex items-center gap-2 bg-orange-900/40 border border-orange-500/30 rounded-lg px-3 py-2 text-orange-300 text-xs">
           <WifiOff className="w-3.5 h-3.5 shrink-0" />
           You're offline — showing cached data
+        </div>
+      )}
+      {'Notification' in window && !notifGranted && !notifDismissed && (
+        <div className="flex items-start gap-3 bg-yellow-900/50 border border-yellow-400/40 rounded-lg px-4 py-3 text-yellow-200 text-sm shadow-lg">
+          <Bell className="w-5 h-5 shrink-0 mt-0.5 text-yellow-400" />
+          <div className="flex-1">
+            <p className="font-bold text-white">🔔 Enable Push Notifications</p>
+            <p className="text-xs text-yellow-300 mt-0.5">Get instant alerts for emergencies, assignments, and team messages directly on your device.</p>
+            <button
+              onClick={requestNotifications}
+              className="mt-2 bg-yellow-600 hover:bg-yellow-500 text-white text-xs font-bold px-3 py-1.5 rounded-md transition-colors"
+            >
+              Enable Notifications
+            </button>
+          </div>
+          <button onClick={dismissNotif} className="text-yellow-400 hover:text-white mt-0.5">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
       {!locationGranted && !locationDismissed && (
