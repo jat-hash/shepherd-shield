@@ -29,11 +29,17 @@ export const getFCMToken = async () => {
     // Request permission first
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
-      throw new Error('Notification permission denied');
+      console.log('Notification permission denied');
+      return null;
     }
 
-    // Get the real FCM token
-    const token = await getToken(msg);
+    // Wait for service worker to be ready
+    const registration = await navigator.serviceWorker.ready;
+
+    // Get token with service worker registration
+    const token = await getToken(msg, {
+      serviceWorkerRegistration: registration
+    });
 
     if (!token) {
       throw new Error('Failed to get FCM token');

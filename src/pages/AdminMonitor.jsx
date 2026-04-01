@@ -28,6 +28,7 @@ function formatDate(val) {
 }
 
 export default function AdminMonitor() {
+  const [user, setUser] = useState(null);
   const [assignments, setAssignments] = useState([]);
   const [filteredAssignments, setFilteredAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
