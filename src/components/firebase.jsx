@@ -32,22 +32,26 @@ export const getFCMToken = async (swRegistration) => {
 
   console.log('[FCM] SW scope:', swRegistration?.scope, 'active state:', swRegistration?.active?.state);
   console.log('[FCM] SW installing:', swRegistration?.installing, 'waiting:', swRegistration?.waiting);
+  console.log('[FCM] messaging object exists:', !!msg);
 
   let token;
   try {
+    console.log('[FCM] Calling getToken with VAPID key and SW registration...');
     token = await getToken(msg, {
       vapidKey: 'BDXxLp5-kEn--p9rd4nRgyapdT_sTe7IhthMn5Sm4AUxzAcYB_Ka_KxVVTLnxta6OLq08YR-C3ujPJoXFiEYLS8',
       serviceWorkerRegistration: swRegistration
     });
-    console.log('[FCM] getToken result:', token ? token.substring(0, 20) + '...' : 'EMPTY/NULL');
+    console.log('[FCM] getToken success, result:', token ? token.substring(0, 20) + '...' : 'EMPTY/NULL');
   } catch (err) {
-    console.error('[FCM] getToken threw:', err.code, err.message);
-    throw new Error('getToken error: ' + (err.code || '') + ' ' + err.message);
+    console.error('[FCM] getToken error - code:', err.code, 'message:', err.message);
+    console.error('[FCM] Full error:', err);
+    throw new Error('getToken failed: ' + (err.code || 'unknown') + ' - ' + err.message);
   }
 
   if (!token) {
     throw new Error('getToken returned empty/null - SW may not be valid or domain not authorized');
   }
 
+  console.log('[FCM] Returning token successfully');
   return token;
 };

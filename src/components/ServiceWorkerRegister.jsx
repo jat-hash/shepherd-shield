@@ -88,12 +88,18 @@ export default function ServiceWorkerRegister() {
         addLog('SW ready, scope: ' + swRegistration.scope);
 
         // Get FCM token using the active SW registration
-        const token = await getFCMToken(swRegistration);
-        if (!token) {
-          addLog('ERROR: No FCM token obtained');
+        let token;
+        try {
+          token = await getFCMToken(swRegistration);
+          if (!token) {
+            addLog('ERROR: No FCM token obtained from Firebase');
+            return;
+          }
+          addLog('Token: ' + token.substring(0, 20) + '...');
+        } catch (tokenErr) {
+          addLog('ERROR getting token: ' + tokenErr.message);
           return;
         }
-        addLog('Token: ' + token.substring(0, 20) + '...');
 
         // Save token to backend
         await base44.functions.invoke('saveFCMToken', {
