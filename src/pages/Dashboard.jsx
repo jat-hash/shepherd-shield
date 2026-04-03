@@ -82,7 +82,7 @@ export default function Dashboard() {
       setLoading(true);
       try {
         const today = new Date();
-        const todayStr = today.toISOString().split('T')[0];
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
         const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
         const all = await base44.entities.Assignment.filter({ assigned_to_email: user.email }, "-service_date", 1000);
