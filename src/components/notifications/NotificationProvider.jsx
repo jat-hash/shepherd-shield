@@ -304,14 +304,18 @@ export default function NotificationProvider({ children }) {
     return unsubscribe;
   }, [user]);
 
-  // Request notification permission on mount (critical for background alerts)
+  // Request notification permission on mount (non-blocking)
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
-      // Auto-request permission for emergency alert system
+      // Try to request permission, but don't block the app if user denies
       Notification.requestPermission().then(permission => {
         if (permission === 'granted') {
           console.log('Background notifications enabled - alerts will work when app is closed');
+        } else if (permission === 'denied') {
+          console.warn('Notifications are blocked - some features may not work');
         }
+      }).catch(() => {
+        // Request failed - continue anyway
       });
     }
 

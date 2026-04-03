@@ -56,27 +56,27 @@ export default function ServiceWorkerRegister() {
 
         addLog('Permission: ' + Notification.permission);
         if (Notification.permission === 'denied') {
-          addLog('Permission denied - user must reset in browser settings');
-          return;
-        }
-        if (Notification.permission !== 'granted') {
+          addLog('⚠️ Notifications blocked in browser settings - alerts may not work');
+          // Continue anyway - don't block the app
+        } else if (Notification.permission !== 'granted') {
           addLog('Requesting permission...');
-          const result = await Notification.requestPermission();
-          addLog('Permission result: ' + result);
-          if (result !== 'granted') {
-            addLog('Permission not granted, cannot register');
-            return;
+          try {
+            const result = await Notification.requestPermission();
+            addLog('Permission result: ' + result);
+            if (result !== 'granted') {
+              addLog('⚠️ User denied notifications - alerts may not work');
+              // Continue anyway - don't block the app
+            }
+          } catch (e) {
+            addLog('⚠️ Permission request failed: ' + e.message);
+            // Continue anyway
           }
         }
 
-        // Unregister any old non-firebase SWs
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        addLog('Existing SWs: ' + registrations.length);
-        for (const reg of registrations) {
-          if (!reg.active?.scriptURL?.includes('firebase-messaging-sw')) {
-            await reg.unregister();
-            addLog('Unregistered old SW');
-          }
+        // If permission is denied, skip SW registration but let user use the app
+        if (Notification.permission === 'denied') {
+          addLog('Cannot register SW - notifications permanently denied');
+          return;
         }
 
         // Register the Firebase messaging SW
