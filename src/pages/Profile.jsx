@@ -92,7 +92,7 @@ export default function Profile() {
     toast.success("Notification preferences updated");
   };
 
-  if (isLoadingAuth || !user) {
+  if (!user) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-8 h-8 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
