@@ -109,7 +109,7 @@ export default function Profile() {
       {/* Profile Header */}
       <div className="bg-[#1a2744] rounded-2xl border border-[rgba(212,168,67,0.1)] p-4 sm:p-6 text-center">
         <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#d4a843] to-[#b8902a] flex items-center justify-center text-[#0a1128] text-2xl sm:text-3xl font-bold mx-auto mb-3 sm:mb-4">
-          {displayUser?.display_name?.charAt(0) || displayUser?.full_name?.charAt(0) || displayUser?.email?.charAt(0).toUpperCase() || "U"}
+          {(displayUser?.display_name || displayUser?.full_name || displayUser?.email || 'U').charAt(0).toUpperCase()}
         </div>
         
         {/* Display Name */}
@@ -124,30 +124,6 @@ export default function Profile() {
             />
             <Button onClick={handleUpdateDisplayName} size="sm" className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]">Save</Button>
             <Button onClick={() => setEditingDisplayName(false)} size="sm" variant="ghost" className="text-slate-400">Cancel</Button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <h2 className="text-xl font-bold text-white">{displayUser?.display_name || displayUser?.full_name || "User"}</h2>
-            <button onClick={() => { setNewDisplayName(displayUser?.display_name || ""); setEditingDisplayName(true); }} className="text-slate-400 hover:text-[#d4a843] transition-colors">
-              <Edit2 className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-        
-        <p className="text-sm text-slate-400 mt-1">{displayUser?.email || "No email"}</p>
-
-        {/* Phone Number */}
-        {editingPhone ? (
-          <div className="flex items-center gap-2 max-w-xs mx-auto mt-2">
-            <Input
-              value={newPhone}
-              onChange={e => setNewPhone(e.target.value)}
-              placeholder="+1 (555) 000-0000"
-              className="bg-[#0a1128] border-slate-700 text-white text-center text-sm"
-              autoFocus
-            />
-            <Button onClick={handleUpdatePhone} size="sm" className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]">Save</Button>
-            <Button onClick={() => setEditingPhone(false)} size="sm" variant="ghost" className="text-slate-400">Cancel</Button>
           </div>
         ) : (
           <div className="flex items-center justify-center gap-2 mt-2">
