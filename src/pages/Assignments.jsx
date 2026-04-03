@@ -40,8 +40,10 @@ export default function Assignments() {
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
-  const startDate = new Date(year, month, 1).toISOString().split("T")[0];
-  const endDate = new Date(year, month + 1, 0).toISOString().split("T")[0];
+  const d1 = new Date(year, month, 1);
+  const d2 = new Date(year, month + 1, 0);
+  const startDate = `${d1.getFullYear()}-${String(d1.getMonth() + 1).padStart(2, '0')}-${String(d1.getDate()).padStart(2, '0')}`;
+  const endDate = `${d2.getFullYear()}-${String(d2.getMonth() + 1).padStart(2, '0')}-${String(d2.getDate()).padStart(2, '0')}`;
 
   const filteredAssignments = assignments.filter(a => a.service_date >= startDate && a.service_date <= endDate);
   const filteredEvents = specialEvents.filter(e => e.event_date >= startDate && e.event_date <= endDate);
@@ -210,7 +212,7 @@ export default function Assignments() {
                           <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400">Sunday AM</span>
                           {isAdmin && (
                             <button
-                              onClick={() => { setEditData({ service_date: date.toISOString().split("T")[0], service_type: "Sunday AM" }); setFormOpen(true); }}
+                              onClick={() => { setEditData({ service_date: dateStr, service_type: "Sunday AM" }); setFormOpen(true); }}
                               className="text-[10px] text-[#d4a843] hover:text-[#e0bb5e] flex items-center gap-0.5"
                             >
                               <Plus className="w-3 h-3" /> Add
@@ -230,7 +232,7 @@ export default function Assignments() {
                           <span className="text-[10px] font-bold uppercase tracking-widest text-sky-400">Sunday PM</span>
                           {isAdmin && (
                             <button
-                              onClick={() => { setEditData({ service_date: date.toISOString().split("T")[0], service_type: "Sunday PM" }); setFormOpen(true); }}
+                              onClick={() => { setEditData({ service_date: dateStr, service_type: "Sunday PM" }); setFormOpen(true); }}
                               className="text-[10px] text-[#d4a843] hover:text-[#e0bb5e] flex items-center gap-0.5"
                             >
                               <Plus className="w-3 h-3" /> Add
