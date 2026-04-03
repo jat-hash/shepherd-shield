@@ -82,13 +82,22 @@ export default function Dashboard() {
       setLoading(true);
       try {
         const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
         const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
         const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
         const all = await base44.entities.Assignment.filter({ assigned_to_email: user.email }, "-service_date", 1000);
-        setAssignments(all.filter(a => {
+        const monthAssignments = all.filter(a => {
           const d = new Date(a.service_date);
           return d >= startOfMonth && d <= endOfMonth;
-        }));
+        });
+        // Sort: today first, then by date descending
+        const sorted = monthAssignments.sort((a, b) => {
+          const isAToday = a.service_date === todayStr ? 1 : 0;
+          const isBToday = b.service_date === todayStr ? 1 : 0;
+          if (isAToday !== isBToday) return isBToday - isAToday;
+          return new Date(b.service_date) - new Date(a.service_date);
+        });
+        setAssignments(sorted);
       } catch {}
       setLoading(false);
     }, 300);
