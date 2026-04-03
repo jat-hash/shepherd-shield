@@ -12,7 +12,7 @@ import { toast } from "sonner";
 
 export default function Profile() {
   const authContext = useAuth();
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(authContext?.user || null);
   const [stats, setStats] = useState({ assignments: 0, incidents: 0, equipment: 0 });
   const [editingDisplayName, setEditingDisplayName] = useState(false);
   const [newDisplayName, setNewDisplayName] = useState("");
@@ -20,23 +20,10 @@ export default function Profile() {
   const [newPhone, setNewPhone] = useState("");
 
   useEffect(() => {
-    const loadUser = async () => {
-      setUser({ full_name: 'Loading...', email: 'user@example.com', role: 'user' });
-      try {
-        const userData = await base44.auth.me();
-        if (userData?.email) {
-          setUser(userData);
-        } else {
-          throw new Error('No user data');
-        }
-      } catch (error) {
-        console.error('Failed to load user:', error);
-        setUser({ full_name: 'Team Member', email: 'user@example.com', role: 'user' });
-      }
-    };
-
-    loadUser();
-  }, []);
+    if (authContext?.user) {
+      setUser(authContext.user);
+    }
+  }, [authContext?.user]);
 
   const handleUpdateDisplayName = async () => {
     await base44.auth.updateMe({ display_name: newDisplayName.trim() });
@@ -84,7 +71,7 @@ export default function Profile() {
           </div>
         ) : (
           <div className="flex items-center justify-center gap-2 mb-3">
-            <h2 className="text-xl font-bold text-white">{displayUser?.display_name || displayUser?.full_name || "User"}</h2>
+            <h2 className="text-xl font-bold text-white">{displayUser?.full_name || displayUser?.display_name || "User"}</h2>
             <button onClick={() => { setNewDisplayName(displayUser?.display_name || ""); setEditingDisplayName(true); }} className="text-slate-400 hover:text-[#d4a843] transition-colors">
               <Edit2 className="w-4 h-4" />
             </button>
