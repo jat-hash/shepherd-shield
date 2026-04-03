@@ -21,19 +21,17 @@ export default function Profile() {
 
   useEffect(() => {
     const loadUser = async () => {
+      setUser({ full_name: 'Loading...', email: 'user@example.com', role: 'user' });
       try {
-        const userData = await Promise.race([
-          base44.auth.me(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
-        ]);
-        if (userData) {
+        const userData = await base44.auth.me();
+        if (userData?.email) {
           setUser(userData);
         } else {
-          setUser({ email: 'user@example.com', full_name: 'Team Member', role: 'user' });
+          throw new Error('No user data');
         }
       } catch (error) {
         console.error('Failed to load user:', error);
-        setUser({ email: 'user@example.com', full_name: 'Team Member', role: 'user' });
+        setUser({ full_name: 'Team Member', email: 'user@example.com', role: 'user' });
       }
     };
 
@@ -59,16 +57,7 @@ export default function Profile() {
     toast.success("Notification preferences updated");
   };
 
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-400 text-sm">Loading profile...</p>
-        </div>
-      </div>
-    );
-  }
+
 
   const displayUser = user;
 
