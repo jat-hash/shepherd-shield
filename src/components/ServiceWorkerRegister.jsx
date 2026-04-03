@@ -59,9 +59,18 @@ export default function ServiceWorkerRegister() {
         addLog('SW supported');
 
         addLog('Permission: ' + Notification.permission);
-        if (Notification.permission !== 'granted') {
-          addLog('Permission not granted, skipping registration');
+        if (Notification.permission === 'denied') {
+          addLog('Permission denied - user must reset in browser settings');
           return;
+        }
+        if (Notification.permission !== 'granted') {
+          addLog('Requesting permission...');
+          const result = await Notification.requestPermission();
+          addLog('Permission result: ' + result);
+          if (result !== 'granted') {
+            addLog('Permission not granted, cannot register');
+            return;
+          }
         }
 
         // Unregister any old non-firebase SWs
