@@ -22,50 +22,57 @@ export default function Profile() {
   const [newPhone, setNewPhone] = useState("");
 
   useEffect(() => {
-    if (authUser) {
-      setUser(authUser);
-      let isMounted = true;
+    const loadUser = async () => {
+      try {
+        const userData = authUser || await base44.auth.me();
+        setUser(userData);
+        let isMounted = true;
 
-      // Load assignments first
-      setTimeout(async () => {
-        if (!isMounted) return;
-        try {
-          const assignments = await base44.entities.Assignment.filter({ 
-            assigned_to_email: authUser.email 
-          }).catch(() => []);
-          if (isMounted) {
-            setStats(prev => ({
-              ...prev,
-              assignments: assignments.length,
-            }));
+        // Load assignments first
+        setTimeout(async () => {
+          if (!isMounted) return;
+          try {
+            const assignments = await base44.entities.Assignment.filter({ 
+              assigned_to_email: userData.email 
+            }).catch(() => []);
+            if (isMounted) {
+              setStats(prev => ({
+                ...prev,
+                assignments: assignments.length,
+              }));
+            }
+          } catch (error) {
+            console.error('Failed to load assignments:', error);
           }
-        } catch (error) {
-          console.error('Failed to load assignments:', error);
-        }
-      }, 100);
+        }, 100);
 
-      // Load incidents after a delay to avoid rate limiting
-      setTimeout(async () => {
-        if (!isMounted) return;
-        try {
-          const incidents = await base44.entities.Incident.filter({ 
-            reported_by: authUser.full_name || authUser.email 
-          }).catch(() => []);
-          if (isMounted) {
-            setStats(prev => ({
-              ...prev,
-              incidents: incidents.length,
-            }));
+        // Load incidents after a delay to avoid rate limiting
+        setTimeout(async () => {
+          if (!isMounted) return;
+          try {
+            const incidents = await base44.entities.Incident.filter({ 
+              reported_by: userData.full_name || userData.email 
+            }).catch(() => []);
+            if (isMounted) {
+              setStats(prev => ({
+                ...prev,
+                incidents: incidents.length,
+              }));
+            }
+          } catch (error) {
+            console.error('Failed to load incidents:', error);
           }
-        } catch (error) {
-          console.error('Failed to load incidents:', error);
-        }
-      }, 300);
+        }, 300);
 
-      return () => {
-        isMounted = false;
-      };
-    }
+        return () => {
+          isMounted = false;
+        };
+      } catch (error) {
+        console.error('Failed to load user:', error);
+      }
+    };
+
+    loadUser();
   }, [authUser]);
 
   const handleUpdateName = async () => {
