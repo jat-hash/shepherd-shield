@@ -11,6 +11,23 @@ export default function NotificationBell({ userEmail }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
   const debounceTimer = useRef(null);
+  const prevUnreadCount = useRef(0);
+
+  const playNotificationSound = () => {
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.frequency.value = 660;
+      oscillator.type = 'sine';
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (e) {}
+  };
 
   useEffect(() => {
     if (!userEmail) return;
@@ -40,7 +57,12 @@ export default function NotificationBell({ userEmail }) {
       20
     );
     setNotifications(allNotifications);
-    setUnreadCount(allNotifications.filter(n => !n.read).length);
+    const newUnread = allNotifications.filter(n => !n.read).length;
+    if (newUnread > prevUnreadCount.current) {
+      playNotificationSound();
+    }
+    prevUnreadCount.current = newUnread;
+    setUnreadCount(newUnread);
   };
 
   const markAsRead = async (notificationId) => {
