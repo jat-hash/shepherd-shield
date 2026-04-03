@@ -14,20 +14,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     checkAppState();
-    
-    // Re-check auth on focus and visibility changes
-    const handleFocus = () => checkAppState();
-    const handleVisibilityChange = () => {
-      if (!document.hidden) checkAppState();
-    };
-    
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
+    // Note: Removed focus/visibility listeners to prevent mobile login loops during OAuth redirect
   }, []);
 
   const checkAppState = async () => {
