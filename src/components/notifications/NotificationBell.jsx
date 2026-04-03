@@ -34,36 +34,46 @@ export default function NotificationBell({ userEmail }) {
     if (!userEmail) return;
     loadNotifications();
 
-    const unsub = base44.entities.Notification.subscribe((event) => {
-      if (event.data?.user_email === userEmail || event.old_data?.user_email === userEmail) {
-        // Debounce to avoid rate limiting
-        clearTimeout(debounceTimer.current);
-        debounceTimer.current = setTimeout(() => {
-          loadNotifications();
-        }, 500);
-      }
-    });
+    let unsub;
+    try {
+      unsub = base44.entities.Notification.subscribe((event) => {
+        if (event.data?.user_email === userEmail || event.old_data?.user_email === userEmail) {
+          // Debounce to avoid rate limiting
+          clearTimeout(debounceTimer.current);
+          debounceTimer.current = setTimeout(() => {
+            loadNotifications();
+          }, 500);
+        }
+      });
+    } catch (error) {
+      console.warn('Failed to subscribe to notifications:', error);
+    }
 
     return () => {
-      unsub();
+      if (unsub) unsub();
       clearTimeout(debounceTimer.current);
     };
   }, [userEmail]);
 
   const loadNotifications = async () => {
     if (!userEmail) return;
-    const allNotifications = await base44.entities.Notification.filter(
-      { user_email: userEmail },
-      '-created_date',
-      20
-    );
-    setNotifications(allNotifications);
-    const newUnread = allNotifications.filter(n => !n.read).length;
-    if (newUnread > prevUnreadCount.current) {
-      playNotificationSound();
+    try {
+      const allNotifications = await base44.entities.Notification.filter(
+        { user_email: userEmail },
+        '-created_date',
+        20
+      );
+      setNotifications(allNotifications);
+      const newUnread = allNotifications.filter(n => !n.read).length;
+      if (newUnread > prevUnreadCount.current) {
+        playNotificationSound();
+      }
+      prevUnreadCount.current = newUnread;
+      setUnreadCount(newUnread);
+    } catch (error) {
+      console.warn('Failed to load notifications:', error);
+      setNotifications([]);
     }
-    prevUnreadCount.current = newUnread;
-    setUnreadCount(newUnread);
   };
 
   const markAsRead = async (notificationId) => {
