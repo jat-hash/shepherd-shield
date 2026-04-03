@@ -158,8 +158,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const navigateToLogin = () => {
-    // Use the SDK's redirectToLogin method
-    base44.auth.redirectToLogin(window.location.href);
+    // Use hardcoded URL to avoid mobile OAuth redirect losing nextUrl
+    base44.auth.redirectToLogin('https://shepherd-shield.base44.app');
   };
 
   return (
