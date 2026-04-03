@@ -26,7 +26,7 @@ export default function Assignments() {
 
   const { data: assignments, loading: loadingA, reload: reloadA } = useOfflineData(
     "assignments",
-    useCallback(async () => base44.entities.Assignment.filter({}, "service_date", 1000), []),
+    useCallback(async () => base44.entities.Assignment.filter({}, "-service_date", 1000), []),
     [currentMonth]
   );
 
