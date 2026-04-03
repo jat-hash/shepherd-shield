@@ -85,7 +85,7 @@ export default function Profile() {
     );
   }
 
-  if (!user) {
+  if (!user && !authUser) {
     return (
       <div className="max-w-2xl mx-auto px-3 py-4 lg:px-4 lg:py-6 lg:ml-60">
         <div className="bg-red-900/30 border border-red-500/30 rounded-lg px-4 py-3 text-red-200 text-sm">
@@ -95,12 +95,14 @@ export default function Profile() {
     );
   }
 
+  const displayUser = user || authUser;
+
   return (
     <div className="min-h-screen px-3 py-4 lg:px-4 lg:py-6 lg:ml-60 space-y-4 sm:space-y-6">
       {/* Profile Header */}
       <div className="bg-[#1a2744] rounded-2xl border border-[rgba(212,168,67,0.1)] p-4 sm:p-6 text-center">
         <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#d4a843] to-[#b8902a] flex items-center justify-center text-[#0a1128] text-2xl sm:text-3xl font-bold mx-auto mb-3 sm:mb-4">
-          {user?.display_name?.charAt(0) || user?.full_name?.charAt(0) || user?.email?.charAt(0).toUpperCase() || "U"}
+          {displayUser?.display_name?.charAt(0) || displayUser?.full_name?.charAt(0) || displayUser?.email?.charAt(0).toUpperCase() || "U"}
         </div>
         
         {/* Display Name */}
@@ -118,14 +120,14 @@ export default function Profile() {
           </div>
         ) : (
           <div className="flex items-center justify-center gap-2 mb-3">
-            <h2 className="text-xl font-bold text-white">{user?.display_name || user?.full_name || "User"}</h2>
-            <button onClick={() => { setNewDisplayName(user?.display_name || ""); setEditingDisplayName(true); }} className="text-slate-400 hover:text-[#d4a843] transition-colors">
+            <h2 className="text-xl font-bold text-white">{displayUser?.display_name || displayUser?.full_name || "User"}</h2>
+            <button onClick={() => { setNewDisplayName(displayUser?.display_name || ""); setEditingDisplayName(true); }} className="text-slate-400 hover:text-[#d4a843] transition-colors">
               <Edit2 className="w-4 h-4" />
             </button>
           </div>
         )}
         
-        <p className="text-sm text-slate-400 mt-1">{user?.email || "No email"}</p>
+        <p className="text-sm text-slate-400 mt-1">{displayUser?.email || "No email"}</p>
 
         {/* Phone Number */}
         {editingPhone ? (
@@ -142,14 +144,14 @@ export default function Profile() {
           </div>
         ) : (
           <div className="flex items-center justify-center gap-2 mt-2">
-            <p className="text-xs text-slate-400">📱 {user?.phone_number || "No phone number"}</p>
-            <button onClick={() => { setNewPhone(user?.phone_number || ""); setEditingPhone(true); }} className="text-slate-400 hover:text-[#d4a843] transition-colors">
+            <p className="text-xs text-slate-400">📱 {displayUser?.phone_number || "No phone number"}</p>
+            <button onClick={() => { setNewPhone(displayUser?.phone_number || ""); setEditingPhone(true); }} className="text-slate-400 hover:text-[#d4a843] transition-colors">
               <Edit2 className="w-3 h-3" />
             </button>
           </div>
         )}
         <span className="inline-block mt-2 px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-[#d4a843]/20 text-[#d4a843] border border-[#d4a843]/30">
-          {user?.role || "Team Member"}
+          {displayUser?.role || "Team Member"}
         </span>
       </div>
 
@@ -231,7 +233,7 @@ export default function Profile() {
 
       {/* Menu Items */}
       <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] divide-y divide-[rgba(212,168,67,0.08)]">
-        {user?.role === "admin" && (
+        {displayUser?.role === "admin" && (
           <div className="p-4 flex items-center gap-3 text-slate-300">
             <Users className="w-4 h-4 text-[#d4a843]" />
             <span className="text-sm">Manage Users</span>
