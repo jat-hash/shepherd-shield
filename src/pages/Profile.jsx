@@ -12,7 +12,7 @@ import { toast } from "sonner";
 
 export default function Profile() {
   const authContext = useAuth();
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(authContext?.user || null);
   const [stats, setStats] = useState({ assignments: 0, incidents: 0, equipment: 0 });
   const [editingDisplayName, setEditingDisplayName] = useState(false);
   const [newDisplayName, setNewDisplayName] = useState("");
@@ -20,23 +20,25 @@ export default function Profile() {
   const [newPhone, setNewPhone] = useState("");
 
   useEffect(() => {
+    // If user is already in auth context, use it
+    if (authContext?.user) {
+      setUser(authContext.user);
+      return;
+    }
+
+    // Otherwise, load user data
     const loadUser = async () => {
       try {
         const userData = await base44.auth.me();
-        console.log('Profile loaded user:', userData);
         if (userData) {
           setUser(userData);
-        } else {
-          console.warn('No user data returned from auth.me()');
-          setUser({ full_name: 'User', email: 'Loading...', role: 'user' });
         }
       } catch (error) {
         console.error('Failed to load user:', error);
-        setUser({ full_name: 'User', email: 'Error loading', role: 'user' });
       }
     };
     loadUser();
-  }, []);
+  }, [authContext?.user]);
 
   const handleUpdateDisplayName = async () => {
     await base44.auth.updateMe({ display_name: newDisplayName.trim() });
@@ -59,7 +61,7 @@ export default function Profile() {
 
 
 
-  const displayUser = user || { full_name: 'User', email: '', role: 'user' };
+  const displayUser = user || authContext?.user || { full_name: 'User', email: '', role: 'user' };
 
   return (
     <div className="w-full px-3 py-4 lg:px-4 lg:py-6 space-y-4 sm:space-y-6">
