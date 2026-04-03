@@ -160,7 +160,7 @@ export default function Communications() {
             setMessages(prev => [...prev, event.data]);
           }
           
-          // Send notification for new messages
+          // Send browser notification for new messages (when tab is open)
           if (user?.email && event.data.sender_email !== user.email) {
             const senderName = event.data.sender_name || event.data.sender_email;
             sendNotification(`New message from ${senderName}`, {
@@ -215,16 +215,20 @@ export default function Communications() {
       read_by: [user.email],
     };
 
-    // Add to UI optimistically
-    setMessages(prev => [...prev, {
-      ...messageData,
-      id: 'pending-' + Date.now(),
-      created_date: new Date().toISOString(),
-      isPending: true
-    }]);
-
     try {
       await base44.entities.TeamMessage.create(messageData);
+      
+      // Send FCM notification to receiver if DM
+      if (activeChannel.type === 'dm' && messageData.content) {
+        const recipientEmail = activeChannel.name.replace('DM: ', '').split('-').find(e => e !== user.email);
+        if (recipientEmail) {
+          base44.functions.invoke('sendFCMNotification', {
+            recipient_email: recipientEmail,
+            title: `Message from ${messageData.sender_name}`,
+            body: messageData.content.substring(0, 100)
+          }).catch(() => {});
+        }
+      }
     } catch (error) {
       // If send fails (offline or network error), save as pending
       await savePendingMessage(messageData);
