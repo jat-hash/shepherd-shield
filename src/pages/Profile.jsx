@@ -23,32 +23,19 @@ export default function Profile() {
   const [newPhone, setNewPhone] = useState("");
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const u = authUser || await base44.auth.me();
-        if (!u) {
-          setLoading(false);
-          return;
-        }
-        setUser(u);
-
-        const [assignments, incidents, equipment] = await Promise.all([
-          base44.entities.Assignment.filter({ assigned_to_email: u.email }),
-          base44.entities.Incident.filter({ reported_by: u.full_name || u.email }),
-          base44.entities.Equipment.list("-created_date", 500),
-        ]);
-
+    if (authUser) {
+      setUser(authUser);
+      Promise.all([
+        base44.entities.Assignment.filter({ assigned_to_email: authUser.email }).catch(() => []),
+        base44.entities.Incident.filter({ reported_by: authUser.full_name || authUser.email }).catch(() => []),
+      ]).then(([assignments, incidents]) => {
         setStats({
           assignments: assignments.length,
           incidents: incidents.length,
-          equipment: equipment.length,
+          equipment: 0,
         });
-      } catch (error) {
-        console.error('Failed to load profile:', error);
-      }
-      setLoading(false);
-    };
-    load();
+      }).catch(() => {});
+    }
   }, [authUser]);
 
   const handleUpdateName = async () => {
@@ -77,7 +64,7 @@ export default function Profile() {
     toast.success("Notification preferences updated");
   };
 
-  if (loading || isLoadingAuth) {
+  if (isLoadingAuth || !authUser) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-8 h-8 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
@@ -85,17 +72,7 @@ export default function Profile() {
     );
   }
 
-  if (!user && !authUser) {
-    return (
-      <div className="max-w-2xl mx-auto px-3 py-4 lg:px-4 lg:py-6 lg:ml-60">
-        <div className="bg-red-900/30 border border-red-500/30 rounded-lg px-4 py-3 text-red-200 text-sm">
-          Unable to load user profile. Please try refreshing the page.
-        </div>
-      </div>
-    );
-  }
-
-  const displayUser = user || authUser;
+  const displayUser = authUser;
 
   return (
     <div className="min-h-screen px-3 py-4 lg:px-4 lg:py-6 lg:ml-60 space-y-4 sm:space-y-6">
