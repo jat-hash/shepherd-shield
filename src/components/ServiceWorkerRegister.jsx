@@ -59,6 +59,10 @@ export default function ServiceWorkerRegister() {
         addLog('SW supported');
 
         addLog('Permission: ' + Notification.permission);
+        if (Notification.permission !== 'granted') {
+          addLog('Permission not granted, skipping registration');
+          return;
+        }
 
         // Unregister any old non-firebase SWs
         const registrations = await navigator.serviceWorker.getRegistrations();
@@ -124,6 +128,16 @@ export default function ServiceWorkerRegister() {
     };
 
     initPushNotifications();
+
+    // Re-run when user returns to the app (e.g. after enabling permissions in settings)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && Notification.permission === 'granted') {
+        addLog('Page visible, retrying registration...');
+        initPushNotifications();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   if (!showDebug) return null;
@@ -137,7 +151,24 @@ export default function ServiceWorkerRegister() {
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
         <strong style={{ color: '#ff0' }}>FCM Debug Log</strong>
-        <button onClick={() => setShowDebug(false)} style={{ color: '#f00', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>✕</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => {
+            addLog('Manual retry...');
+            if (Notification.permission === 'granted') {
+              navigator.serviceWorker.register('/firebase-messaging-sw.js').then(async () => {
+                const swReg = await navigator.serviceWorker.ready;
+                const token = await getFCMToken(swReg);
+                if (token) {
+                  await base44.functions.invoke('saveFCMToken', { fcm_token: token, device_id: navigator.userAgent.slice(0, 50) });
+                  addLog('Token saved! ✅');
+                } else { addLog('No token returned'); }
+              }).catch(e => addLog('Retry error: ' + e.message));
+            } else {
+              addLog('Permission still: ' + Notification.permission);
+            }
+          }} style={{ color: '#0ff', background: 'none', border: '1px solid #0ff', borderRadius: 3, padding: '0 6px', cursor: 'pointer', fontSize: 11 }}>Retry</button>
+          <button onClick={() => setShowDebug(false)} style={{ color: '#f00', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>✕</button>
+        </div>
       </div>
       {debugLogs.length === 0 ? <div>Waiting for logs...</div> : debugLogs.map((l, i) => <div key={i}>{l}</div>)}
     </div>
