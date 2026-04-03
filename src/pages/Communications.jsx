@@ -50,8 +50,7 @@ export default function Communications() {
     }
   };
 
-
-  useEffect(() {
+  useEffect(() => {
     base44.auth.me().then(u => {
       setUser(u);
       requestNotificationPermission();
