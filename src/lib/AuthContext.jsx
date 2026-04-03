@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     checkAppState();
     
-    // Re-check auth on focus and visibility changes (for mobile PWA tab switching)
+    // Re-check auth on focus and visibility changes
     const handleFocus = () => checkAppState();
     const handleVisibilityChange = () => {
       if (!document.hidden) checkAppState();
@@ -23,11 +23,19 @@ export const AuthProvider = ({ children }) => {
     
     window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Poll for auth restoration when SessionExpiredScreen is shown (mobile Chrome fix)
+    let pollInterval;
+    if (authError?.type === 'auth_required') {
+      pollInterval = setInterval(() => checkAppState(), 2000);
+    }
+    
     return () => {
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (pollInterval) clearInterval(pollInterval);
     };
-  }, []);
+  }, [authError?.type]);
 
   const checkAppState = async () => {
     // If offline, skip auth checks and let the app load with cached data
