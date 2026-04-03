@@ -23,11 +23,16 @@ export default function Profile() {
     const loadUser = async () => {
       try {
         const userData = await base44.auth.me();
+        console.log('Profile loaded user:', userData);
         if (userData) {
           setUser(userData);
+        } else {
+          console.warn('No user data returned from auth.me()');
+          setUser({ full_name: 'User', email: 'Loading...', role: 'user' });
         }
       } catch (error) {
         console.error('Failed to load user:', error);
+        setUser({ full_name: 'User', email: 'Error loading', role: 'user' });
       }
     };
     loadUser();
@@ -55,14 +60,6 @@ export default function Profile() {
 
 
   const displayUser = user || { full_name: 'User', email: '', role: 'user' };
-
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-8 h-8 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <div className="w-full px-3 py-4 lg:px-4 lg:py-6 space-y-4 sm:space-y-6">
