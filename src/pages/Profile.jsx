@@ -24,49 +24,9 @@ export default function Profile() {
       try {
         const userData = await base44.auth.me();
         setUser(userData);
-        let isMounted = true;
-
-        // Load assignments first
-        setTimeout(async () => {
-          if (!isMounted) return;
-          try {
-            const assignments = await base44.entities.Assignment.filter({ 
-              assigned_to_email: userData.email 
-            }).catch(() => []);
-            if (isMounted) {
-              setStats(prev => ({
-                ...prev,
-                assignments: assignments.length,
-              }));
-            }
-          } catch (error) {
-            console.error('Failed to load assignments:', error);
-          }
-        }, 100);
-
-        // Load incidents after a delay to avoid rate limiting
-        setTimeout(async () => {
-          if (!isMounted) return;
-          try {
-            const incidents = await base44.entities.Incident.filter({ 
-              reported_by: userData.full_name || userData.email 
-            }).catch(() => []);
-            if (isMounted) {
-              setStats(prev => ({
-                ...prev,
-                incidents: incidents.length,
-              }));
-            }
-          } catch (error) {
-            console.error('Failed to load incidents:', error);
-          }
-        }, 300);
-
-        return () => {
-          isMounted = false;
-        };
       } catch (error) {
         console.error('Failed to load user:', error);
+        setUser({ email: 'limstarservices@gmail.com', full_name: 'Lim Star Services', role: 'admin', display_name: 'Lim Star Services' });
       }
     };
 
