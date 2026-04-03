@@ -42,11 +42,7 @@ export default function ServiceWorkerRegister() {
     setDebugLogs(prev => [...prev.slice(-30), line]);
   };
 
-  useEffect(() => {
-    // Show debug panel on mobile
-    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-    if (isMobile) setShowDebug(true);
-  }, []);
+  // Debug panel is hidden by default on mobile — no longer auto-showing
 
   useEffect(() => {
     const initPushNotifications = async () => {
