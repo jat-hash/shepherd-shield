@@ -158,7 +158,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const navigateToLogin = () => {
-    base44.auth.redirectToLogin(window.location.href);
+    // Don't pass a redirect URL — let user manually return to PWA after login
+    base44.auth.redirectToLogin();
   };
 
   return (
