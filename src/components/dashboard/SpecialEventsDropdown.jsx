@@ -12,19 +12,24 @@ export default function SpecialEventsDropdown() {
     let debounceTimer = null;
 
     const loadEvents = async () => {
-      setLoading(true);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const allEvents = await base44.entities.SpecialEvent.list("-event_date");
-      const upcomingEvents = allEvents.filter(e => {
-        const eventDate = new Date(e.event_date);
-        eventDate.setHours(0, 0, 0, 0);
-        return eventDate >= today;
-      }).slice(0, 5);
-      
-      setEvents(upcomingEvents);
-      setLoading(false);
+      try {
+        setLoading(true);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const allEvents = await base44.entities.SpecialEvent.list("-event_date");
+        const upcomingEvents = allEvents.filter(e => {
+          const eventDate = new Date(e.event_date);
+          eventDate.setHours(0, 0, 0, 0);
+          return eventDate >= today;
+        }).slice(0, 5);
+        
+        setEvents(upcomingEvents);
+      } catch (e) {
+        // silently ignore access errors
+      } finally {
+        setLoading(false);
+      }
     };
     
     loadEvents();
