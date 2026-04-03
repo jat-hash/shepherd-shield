@@ -179,8 +179,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const navigateToLogin = () => {
-    // Open login in same window for PWA continuity
-    base44.auth.redirectToLogin();
+    // Redirect to Base44 login, then back to PWA root with a check flag
+    const authCheckUrl = `${window.location.origin}/?auth_check=true`;
+    base44.auth.redirectToLogin(authCheckUrl);
   };
 
   return (
