@@ -9,62 +9,98 @@ export default function SafetyCheckInPanel() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+
     const load = async () => {
-      const u = await base44.auth.me().catch(() => null);
-      if (!u) return;
-      setUser(u);
-      const alerts = await base44.entities.EmergencyAlert.filter({ is_active: true });
-      if (alerts.length > 0) {
-        setActiveAlert(alerts[0]);
-        const existing = await base44.entities.SafetyCheckIn.filter({
-          alert_id: alerts[0].id,
-          user_email: u.email
-        });
-        if (existing.length > 0) setMyCheckIn(existing[0]);
+      try {
+        const u = await base44.auth.me().catch(() => null);
+        if (!u || !mounted) return;
+        
+        setUser(u);
+        
+        const alerts = await base44.entities.EmergencyAlert.filter({ is_active: true });
+        if (!mounted) return;
+        
+        if (alerts.length > 0) {
+          setActiveAlert(alerts[0]);
+          const existing = await base44.entities.SafetyCheckIn.filter({
+            alert_id: alerts[0].id,
+            user_email: u.email
+          });
+          if (mounted && existing.length > 0) {
+            setMyCheckIn(existing[0]);
+          }
+        } else {
+          setActiveAlert(null);
+        }
+      } catch (error) {
+        console.error('Failed to load safety check-in:', error);
       }
     };
+
     load();
 
     const unsub = base44.entities.EmergencyAlert.subscribe((event) => {
+      if (!mounted) return;
+      
       if (event.type === "create" && event.data?.is_active) {
         setActiveAlert(event.data);
         setMyCheckIn(null);
       } else if (event.type === "update") {
-        if (!event.data?.is_active) { setActiveAlert(null); setMyCheckIn(null); }
-        else setActiveAlert(event.data);
+        if (!event.data?.is_active) {
+          setActiveAlert(null);
+          setMyCheckIn(null);
+        } else {
+          setActiveAlert(event.data);
+        }
       } else if (event.type === "delete") {
-        setActiveAlert(null); setMyCheckIn(null);
+        setActiveAlert(null);
+        setMyCheckIn(null);
       }
     });
-    return unsub;
+
+    return () => {
+      mounted = false;
+      unsub();
+    };
   }, []);
 
   if (!activeAlert || !user) return null;
 
   const checkIn = async (status) => {
     setSubmitting(true);
-    let latitude = null, longitude = null;
     try {
-      const pos = await new Promise((res, rej) =>
-        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 })
-      );
-      latitude = pos.coords.latitude;
-      longitude = pos.coords.longitude;
-    } catch (e) {}
+      let latitude = null, longitude = null;
+      
+      try {
+        const pos = await new Promise((res, rej) =>
+          navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 })
+        );
+        latitude = pos.coords.latitude;
+        longitude = pos.coords.longitude;
+      } catch (e) {
+        // Geolocation failed, continue without location
+      }
 
-    if (myCheckIn) {
-      await base44.entities.SafetyCheckIn.update(myCheckIn.id, { status, latitude, longitude });
-      setMyCheckIn({ ...myCheckIn, status });
-    } else {
-      const newCI = await base44.entities.SafetyCheckIn.create({
-        alert_id: activeAlert.id,
-        user_email: user.email,
-        user_name: user.full_name || user.email,
-        status, latitude, longitude
-      });
-      setMyCheckIn(newCI);
+      if (myCheckIn) {
+        await base44.entities.SafetyCheckIn.update(myCheckIn.id, { status, latitude, longitude });
+        setMyCheckIn({ ...myCheckIn, status });
+      } else {
+        const newCI = await base44.entities.SafetyCheckIn.create({
+          alert_id: activeAlert.id,
+          user_email: user.email,
+          user_name: user.full_name || user.email,
+          status,
+          latitude,
+          longitude
+        });
+        setMyCheckIn(newCI);
+      }
+    } catch (error) {
+      console.error('Failed to check in:', error);
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   return (
