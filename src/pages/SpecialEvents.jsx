@@ -88,7 +88,7 @@ export default function SpecialEvents() {
         event_id: eventId,
         event_name: formData.event_name,
         event_type: formData.event_type,
-        message: `${editingEvent ? 'Updated' : 'New'} event: ${formData.event_name} on ${new Date(formData.event_date).toLocaleDateString()} at ${formData.start_time}`
+        message: `${editingEvent ? 'Updated' : 'New'} event: ${formData.event_name} on ${formData.event_date} at ${formData.start_time}`
       });
     } catch (error) {
       console.log('Broadcast notification sent');
