@@ -67,12 +67,8 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
   const handleSave = async () => {
     setSaving(true);
     const reminderMinutes = reminders[0]?.minutes || 0;
-    // Normalize date to local midnight (browser handles timezone)
-    const dateObj = new Date(form.service_date + 'T00:00:00');
-    const normalizedDate = dateObj.toISOString().split('T')[0];
     const dataToSave = {
       ...form,
-      service_date: normalizedDate,
       area_responsibilities: selectedResponsibilities.join(", "),
       reminder_minutes: reminderMinutes
     };
