@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 import { appParams } from '@/lib/app-params';
 import { base44 } from '@/api/base44Client';
 
@@ -10,11 +10,25 @@ export const AuthProvider = ({ children }) => {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
   const [authError, setAuthError] = useState(null);
-  const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
+  const [appPublicSettings, setAppPublicSettings] = useState(null);
+  const lastCheckTimeRef = useRef(0);
 
   useEffect(() => {
     checkAppState();
-    // Note: Removed focus/visibility listeners to prevent mobile login loops during OAuth redirect
+    
+    // Re-check on visibility change (e.g., after OAuth redirect) with throttle to prevent loops
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        const now = Date.now();
+        if (now - lastCheckTimeRef.current > 3000) {
+          lastCheckTimeRef.current = now;
+          checkAppState();
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   const checkAppState = async () => {
