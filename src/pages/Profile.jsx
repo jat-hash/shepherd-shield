@@ -11,7 +11,7 @@ import { createPageUrl } from "../utils";
 import { toast } from "sonner";
 
 export default function Profile() {
-  const { user: authUser, isLoadingAuth } = useAuth();
+  const { isLoadingAuth } = useAuth();
   const [user, setUser] = useState(null);
   const [stats, setStats] = useState({ assignments: 0, incidents: 0, equipment: 0 });
   const [editingDisplayName, setEditingDisplayName] = useState(false);
@@ -22,7 +22,7 @@ export default function Profile() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const userData = authUser || await base44.auth.me();
+        const userData = await base44.auth.me();
         setUser(userData);
         let isMounted = true;
 
@@ -71,7 +71,7 @@ export default function Profile() {
     };
 
     loadUser();
-  }, [authUser]);
+  }, []);
 
   const handleUpdateDisplayName = async () => {
     await base44.auth.updateMe({ display_name: newDisplayName.trim() });
@@ -92,7 +92,7 @@ export default function Profile() {
     toast.success("Notification preferences updated");
   };
 
-  if (isLoadingAuth || !authUser) {
+  if (isLoadingAuth || !user) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-8 h-8 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
@@ -100,7 +100,7 @@ export default function Profile() {
     );
   }
 
-  const displayUser = authUser;
+  const displayUser = user;
 
   return (
     <div className="min-h-screen px-3 py-4 lg:px-4 lg:py-6 lg:ml-60 space-y-4 sm:space-y-6">
