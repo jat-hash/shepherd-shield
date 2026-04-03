@@ -179,9 +179,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const navigateToLogin = () => {
-    // Redirect to Base44 login, then back to PWA root with a check flag
-    const authCheckUrl = `${window.location.origin}/?auth_check=true`;
-    base44.auth.redirectToLogin(authCheckUrl);
+    // No-op: SessionExpiredScreen only uses manual retry, not auto-redirect
   };
 
   return (
