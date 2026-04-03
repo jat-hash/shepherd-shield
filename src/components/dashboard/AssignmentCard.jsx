@@ -70,11 +70,10 @@ export default function AssignmentCard({ assignment, onUpdate }) {
     }
   };
 
-  const assignmentDate = new Date(assignment.service_date);
+  const [year, month, day] = assignment.service_date.split('-').map(Number);
+  const assignmentDate = new Date(year, month - 1, day);
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  assignmentDate.setHours(0, 0, 0, 0);
-  const isToday = assignmentDate.getTime() === today.getTime();
+  const isToday = assignmentDate.getFullYear() === today.getFullYear() && assignmentDate.getMonth() === today.getMonth() && assignmentDate.getDate() === today.getDate();
 
   return (
     <>
