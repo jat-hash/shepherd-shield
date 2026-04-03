@@ -11,7 +11,7 @@ import { createPageUrl } from "../utils";
 import { toast } from "sonner";
 
 export default function Profile() {
-  const { isLoadingAuth } = useAuth();
+  const authContext = useAuth();
   const [user, setUser] = useState(null);
   const [stats, setStats] = useState({ assignments: 0, incidents: 0, equipment: 0 });
   const [editingDisplayName, setEditingDisplayName] = useState(false);
@@ -23,10 +23,15 @@ export default function Profile() {
     const loadUser = async () => {
       try {
         const userData = await base44.auth.me();
-        setUser(userData);
+        if (userData) {
+          setUser(userData);
+        } else {
+          console.error('No user data returned from auth.me()');
+          setUser(null);
+        }
       } catch (error) {
         console.error('Failed to load user:', error);
-        setUser({ email: 'limstarservices@gmail.com', full_name: 'Lim Star Services', role: 'admin', display_name: 'Lim Star Services' });
+        setUser(null);
       }
     };
 
@@ -54,8 +59,11 @@ export default function Profile() {
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-400 text-sm">Loading profile...</p>
+        </div>
       </div>
     );
   }
