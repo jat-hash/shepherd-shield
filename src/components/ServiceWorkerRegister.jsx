@@ -146,7 +146,18 @@ export default function ServiceWorkerRegister() {
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+
+    // Re-run when the dashboard "Enable" button grants permission
+    const handlePushRegister = () => {
+      addLog('push:register event received, registering...');
+      initPushNotifications();
+    };
+    window.addEventListener('push:register', handlePushRegister);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('push:register', handlePushRegister);
+    };
   }, []);
 
   if (!showDebug) return null;

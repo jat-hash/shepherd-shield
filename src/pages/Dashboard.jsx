@@ -52,7 +52,11 @@ export default function Dashboard() {
 
   const requestNotifications = async () => {
     const permission = await Notification.requestPermission();
-    if (permission === 'granted') setNotifGranted(true);
+    if (permission === 'granted') {
+      setNotifGranted(true);
+      // Trigger FCM token registration now that permission is granted
+      window.dispatchEvent(new CustomEvent('push:register'));
+    }
   };
 
   const dismissNotif = () => {
