@@ -78,13 +78,13 @@ export default function Assignments() {
 
   const getAssignmentsForDate = (date) => {
     if (!date) return [];
-    const dateStr = date.toISOString().split("T")[0];
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     return filteredAssignments.filter(a => a.service_date === dateStr);
   };
 
   const getEventsForDate = (date) => {
     if (!date) return [];
-    const dateStr = date.toISOString().split("T")[0];
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     return filteredEvents.filter(e => e.event_date === dateStr);
   };
 
@@ -145,7 +145,9 @@ export default function Assignments() {
           {days.filter(Boolean).map((date, i) => {
             const dayAssignments = getAssignmentsForDate(date);
             const dayEvents = getEventsForDate(date);
-            const isToday = date.toISOString().split("T")[0] === new Date().toISOString().split("T")[0];
+            const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+            const todayStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+            const isToday = dateStr === todayStr;
             const hasItems = dayAssignments.length > 0 || dayEvents.length > 0;
 
             const isSunday = date.getDay() === 0;
