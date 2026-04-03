@@ -94,11 +94,11 @@ export default function Profile() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-3 py-4 lg:px-4 lg:py-6 lg:ml-60 space-y-4 sm:space-y-6">
+    <div className="min-h-screen px-3 py-4 lg:px-4 lg:py-6 lg:ml-60 space-y-4 sm:space-y-6">
       {/* Profile Header */}
       <div className="bg-[#1a2744] rounded-2xl border border-[rgba(212,168,67,0.1)] p-4 sm:p-6 text-center">
         <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#d4a843] to-[#b8902a] flex items-center justify-center text-[#0a1128] text-2xl sm:text-3xl font-bold mx-auto mb-3 sm:mb-4">
-          {user?.display_name?.charAt(0) || "U"}
+          {user?.display_name?.charAt(0) || user?.full_name?.charAt(0) || user?.email?.charAt(0).toUpperCase() || "U"}
         </div>
         
         {/* Display Name */}
@@ -116,14 +116,14 @@ export default function Profile() {
           </div>
         ) : (
           <div className="flex items-center justify-center gap-2 mb-3">
-            <h2 className="text-xl font-bold text-white">{user?.display_name || "User"}</h2>
+            <h2 className="text-xl font-bold text-white">{user?.display_name || user?.full_name || "User"}</h2>
             <button onClick={() => { setNewDisplayName(user?.display_name || ""); setEditingDisplayName(true); }} className="text-slate-400 hover:text-[#d4a843] transition-colors">
               <Edit2 className="w-4 h-4" />
             </button>
           </div>
         )}
         
-        <p className="text-sm text-slate-400 mt-1">{user?.email}</p>
+        <p className="text-sm text-slate-400 mt-1">{user?.email || "No email"}</p>
 
         {/* Phone Number */}
         {editingPhone ? (
