@@ -15,15 +15,18 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     checkAppState();
     
-    // Re-check auth when page regains focus (after login redirect)
+    // Re-check auth on focus and visibility changes (for mobile PWA tab switching)
+    const handleFocus = () => checkAppState();
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        checkAppState();
-      }
+      if (!document.hidden) checkAppState();
     };
     
+    window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const checkAppState = async () => {
@@ -168,7 +171,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const navigateToLogin = () => {
-    // Don't pass nextUrl — user will manually return to PWA after login completes
+    // Open login in same window for PWA continuity
     base44.auth.redirectToLogin();
   };
 
