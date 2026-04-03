@@ -14,6 +14,16 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     checkAppState();
+    
+    // Re-check auth when page regains focus (after login redirect)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        checkAppState();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   const checkAppState = async () => {
