@@ -29,9 +29,32 @@ export default function Communications() {
   const typingTimeout = useRef(null);
   const fileInputRef = useRef(null);
 
-  useEffect(() => {
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'granted') return;
+    if (Notification.permission === 'denied') return;
+    try {
+      await Notification.requestPermission();
+    } catch (error) {
+      console.warn('Notification permission request failed:', error);
+    }
+  };
+
+  const sendNotification = (title, options = {}) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification(title, { icon: '/shield-icon.png', ...options });
+      } catch (error) {
+        console.warn('Failed to send notification:', error);
+      }
+    }
+  };
+
+
+  useEffect(() {
     base44.auth.me().then(u => {
       setUser(u);
+      requestNotificationPermission();
       if (navigator.onLine) {
         // Load DM channels and cache users
         base44.entities.TeamMessage.list("-created_date", 500).then(all => {
@@ -136,6 +159,16 @@ export default function Communications() {
             setPinnedMessages(prev => [...prev, event.data]);
           } else {
             setMessages(prev => [...prev, event.data]);
+          }
+          
+          // Send notification for new messages
+          if (user?.email && event.data.sender_email !== user.email) {
+            const senderName = event.data.sender_name || event.data.sender_email;
+            sendNotification(`New message from ${senderName}`, {
+              body: event.data.content?.substring(0, 100) || 'Sent a file',
+              tag: 'message-' + currentChannel,
+              requireInteraction: false
+            });
           }
           
           // Auto mark as read
