@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { LogOut, Shield, Users, RefreshCw, FileText, Edit2, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import { createPageUrl } from "../utils";
 import { toast } from "sonner";
 
 export default function Profile() {
+  const { user: authUser, isLoadingAuth } = useAuth();
   const [user, setUser] = useState(null);
   const [stats, setStats] = useState({ assignments: 0, incidents: 0, equipment: 0 });
   const [loading, setLoading] = useState(true);
@@ -23,7 +25,7 @@ export default function Profile() {
   useEffect(() => {
     const load = async () => {
       try {
-        const u = await base44.auth.me();
+        const u = authUser || await base44.auth.me();
         if (!u) {
           setLoading(false);
           return;
@@ -47,7 +49,7 @@ export default function Profile() {
       setLoading(false);
     };
     load();
-  }, []);
+  }, [authUser]);
 
   const handleUpdateName = async () => {
     if (!newName.trim()) return;
@@ -75,7 +77,7 @@ export default function Profile() {
     toast.success("Notification preferences updated");
   };
 
-  if (loading) {
+  if (loading || isLoadingAuth) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-8 h-8 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
