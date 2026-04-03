@@ -27,6 +27,7 @@ export default function NotificationBell({ userEmail }) {
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.3);
     } catch (e) {}
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
   };
 
   useEffect(() => {
