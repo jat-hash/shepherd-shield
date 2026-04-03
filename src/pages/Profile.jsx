@@ -14,7 +14,6 @@ export default function Profile() {
   const { user: authUser, isLoadingAuth } = useAuth();
   const [user, setUser] = useState(null);
   const [stats, setStats] = useState({ assignments: 0, incidents: 0, equipment: 0 });
-  const [loading, setLoading] = useState(true);
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState("");
   const [editingDisplayName, setEditingDisplayName] = useState(false);
@@ -25,16 +24,47 @@ export default function Profile() {
   useEffect(() => {
     if (authUser) {
       setUser(authUser);
-      Promise.all([
-        base44.entities.Assignment.filter({ assigned_to_email: authUser.email }).catch(() => []),
-        base44.entities.Incident.filter({ reported_by: authUser.full_name || authUser.email }).catch(() => []),
-      ]).then(([assignments, incidents]) => {
-        setStats({
-          assignments: assignments.length,
-          incidents: incidents.length,
-          equipment: 0,
-        });
-      }).catch(() => {});
+      let isMounted = true;
+
+      // Load assignments first
+      setTimeout(async () => {
+        if (!isMounted) return;
+        try {
+          const assignments = await base44.entities.Assignment.filter({ 
+            assigned_to_email: authUser.email 
+          }).catch(() => []);
+          if (isMounted) {
+            setStats(prev => ({
+              ...prev,
+              assignments: assignments.length,
+            }));
+          }
+        } catch (error) {
+          console.error('Failed to load assignments:', error);
+        }
+      }, 100);
+
+      // Load incidents after a delay to avoid rate limiting
+      setTimeout(async () => {
+        if (!isMounted) return;
+        try {
+          const incidents = await base44.entities.Incident.filter({ 
+            reported_by: authUser.full_name || authUser.email 
+          }).catch(() => []);
+          if (isMounted) {
+            setStats(prev => ({
+              ...prev,
+              incidents: incidents.length,
+            }));
+          }
+        } catch (error) {
+          console.error('Failed to load incidents:', error);
+        }
+      }, 300);
+
+      return () => {
+        isMounted = false;
+      };
     }
   }, [authUser]);
 
