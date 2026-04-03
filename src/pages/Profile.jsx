@@ -20,25 +20,23 @@ export default function Profile() {
   const [newPhone, setNewPhone] = useState("");
 
   useEffect(() => {
-    // If user is already in auth context, use it
-    if (authContext?.user) {
-      setUser(authContext.user);
-      return;
-    }
-
-    // Otherwise, load user data
     const loadUser = async () => {
       try {
-        const userData = await base44.auth.me();
-        if (userData) {
-          setUser(userData);
+        // Priority: use authContext user if available, otherwise fetch
+        if (authContext?.user) {
+          setUser(authContext.user);
+        } else {
+          const userData = await base44.auth.me();
+          if (userData) {
+            setUser(userData);
+          }
         }
       } catch (error) {
         console.error('Failed to load user:', error);
       }
     };
     loadUser();
-  }, [authContext?.user]);
+  }, []);
 
   const handleUpdateDisplayName = async () => {
     await base44.auth.updateMe({ display_name: newDisplayName.trim() });
