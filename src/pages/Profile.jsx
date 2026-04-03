@@ -12,7 +12,7 @@ import { toast } from "sonner";
 
 export default function Profile() {
   const authContext = useAuth();
-  const [user, setUser] = useState(authContext?.user || null);
+  const [user, setUser] = useState(null);
   const [stats, setStats] = useState({ assignments: 0, incidents: 0, equipment: 0 });
   const [editingDisplayName, setEditingDisplayName] = useState(false);
   const [newDisplayName, setNewDisplayName] = useState("");
@@ -20,10 +20,18 @@ export default function Profile() {
   const [newPhone, setNewPhone] = useState("");
 
   useEffect(() => {
-    if (authContext?.user) {
-      setUser(authContext.user);
-    }
-  }, [authContext?.user]);
+    const loadUser = async () => {
+      try {
+        const userData = await base44.auth.me();
+        if (userData) {
+          setUser(userData);
+        }
+      } catch (error) {
+        console.error('Failed to load user:', error);
+      }
+    };
+    loadUser();
+  }, []);
 
   const handleUpdateDisplayName = async () => {
     await base44.auth.updateMe({ display_name: newDisplayName.trim() });
@@ -46,7 +54,15 @@ export default function Profile() {
 
 
 
-  const displayUser = user;
+  const displayUser = user || { full_name: 'User', email: '', role: 'user' };
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full px-3 py-4 lg:px-4 lg:py-6 space-y-4 sm:space-y-6">
