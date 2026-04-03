@@ -267,7 +267,7 @@ export default function Layout({ children, currentPageName }) {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 pb-6 overflow-auto">
+      <main className="flex-1 pb-6 overflow-auto lg:ml-56">
         {children}
       </main>
 
