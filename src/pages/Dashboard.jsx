@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import AssignmentCard from "@/components/dashboard/AssignmentCard";
 import EmergencyButton from "@/components/dashboard/EmergencyButton";
 import StatusBar from "@/components/dashboard/StatusBar";
@@ -13,6 +14,7 @@ import RadioCheckInScanner from "@/components/dashboard/RadioCheckInScanner";
 import PersonalCheckIn from "@/components/dashboard/PersonalCheckIn";
 
 export default function Dashboard() {
+  const { user: authUser } = useAuth();
   const [user, setUser] = useState(null);
   const [userLoaded, setUserLoaded] = useState(false);
   const [locationDismissed, setLocationDismissed] = useState(() => sessionStorage.getItem('locationPromptDismissed') === 'true');
@@ -172,7 +174,7 @@ export default function Dashboard() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-white">
-            Welcome back, <span className="text-[#d4a843]">{user?.full_name?.split(" ")[0] || user?.display_name?.split(" ")[0] || "Officer"}</span>
+            Welcome back, <span className="text-[#d4a843]">{(authUser?.full_name || user?.full_name)?.split(" ")[0] || (authUser?.display_name || user?.display_name)?.split(" ")[0] || "Officer"}</span>
           </h1>
           <p className="text-slate-300 text-xs sm:text-sm mt-1">
             {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
