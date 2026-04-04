@@ -36,6 +36,9 @@ export default function Layout({ children, currentPageName }) {
 
   useEffect(() => {
     if (authUser) setUser(authUser);
+  }, [authUser]);
+
+  useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
     base44.entities.EmergencyAlert.filter({ is_active: true }).then(setAlerts).catch(() => {});
 
