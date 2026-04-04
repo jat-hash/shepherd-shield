@@ -146,8 +146,8 @@ export default function Layout({ children, currentPageName }) {
           </button>
           <NotificationBell userEmail={user?.email} />
           <Link to={createPageUrl("Profile")}>
-            <div className="w-8 h-8 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-xs cursor-pointer hover:bg-[#e0bb5e] transition-colors" title={authUser?.full_name || user?.full_name || authUser?.display_name || user?.display_name || "User"}>
-              {(authUser?.full_name || user?.full_name || authUser?.display_name || user?.display_name || authUser?.email || user?.email)?.charAt(0)?.toUpperCase() || "U"}
+            <div className="w-8 h-8 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-xs cursor-pointer hover:bg-[#e0bb5e] transition-colors" title={user?.display_name || authUser?.display_name || user?.full_name || authUser?.full_name || "User"}>
+              {(user?.display_name || authUser?.display_name || user?.full_name || authUser?.full_name || user?.email || authUser?.email || "").charAt(0).toUpperCase() || "?"}
             </div>
           </Link>
         </div>
