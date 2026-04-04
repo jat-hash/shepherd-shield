@@ -69,13 +69,8 @@ export const AuthProvider = ({ children }) => {
         }
         setAppPublicSettings(publicSettings);
         
-        // If we got the app public settings successfully, check if user is authenticated
-        if (appParams.token) {
-          await checkUserAuth();
-        } else {
-          setIsLoadingAuth(false);
-          setIsAuthenticated(false);
-        }
+        // Always check if user is authenticated
+        await checkUserAuth();
         setIsLoadingPublicSettings(false);
       } catch (appError) {
         console.error('App state check failed:', appError);
@@ -84,11 +79,7 @@ export const AuthProvider = ({ children }) => {
         const isNetworkError = !appError.status || appError.message === 'Network Error' || appError.code === 'ERR_NETWORK';
         if (isNetworkError) {
           // Still try to load user from token if available, then show app offline
-          if (appParams.token) {
             await checkUserAuth();
-          } else {
-            setIsLoadingAuth(false);
-          }
           setIsLoadingPublicSettings(false);
           return;
         }
