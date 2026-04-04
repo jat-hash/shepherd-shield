@@ -11,8 +11,8 @@ import { createPageUrl } from "../utils";
 import { toast } from "sonner";
 
 export default function Profile() {
-  const authContext = useAuth();
-  const [user, setUser] = useState(authContext?.user || null);
+  const { user: authUser } = useAuth();
+  const [user, setUser] = useState(null);
   const [stats, setStats] = useState({ assignments: 0, incidents: 0, equipment: 0 });
   const [editingDisplayName, setEditingDisplayName] = useState(false);
   const [newDisplayName, setNewDisplayName] = useState("");
@@ -20,23 +20,12 @@ export default function Profile() {
   const [newPhone, setNewPhone] = useState("");
 
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        // Priority: use authContext user if available, otherwise fetch
-        if (authContext?.user) {
-          setUser(authContext.user);
-        } else {
-          const userData = await base44.auth.me();
-          if (userData) {
-            setUser(userData);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load user:', error);
-      }
-    };
-    loadUser();
-  }, []);
+    if (authUser) {
+      setUser(authUser);
+    } else {
+      base44.auth.me().then(setUser).catch(() => {});
+    }
+  }, [authUser]);
 
   const handleUpdateDisplayName = async () => {
     await base44.auth.updateMe({ display_name: newDisplayName.trim() });
@@ -59,7 +48,7 @@ export default function Profile() {
 
 
 
-  const displayUser = user || authContext?.user || { full_name: 'User', email: '', role: 'user' };
+  const displayUser = user || { full_name: 'User', email: '', role: 'user' };
 
   return (
     <div className="w-full px-3 py-4 lg:px-4 lg:py-6 space-y-4 sm:space-y-6">
