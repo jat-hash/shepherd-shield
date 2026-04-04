@@ -20,15 +20,12 @@ const NAV_ITEMS = [
 ];
 
 export default function Layout({ children, currentPageName }) {
-  const { user: authUser } = useAuth();
-  const [localUser, setLocalUser] = useState(null);
+  const { user } = useAuth();
   const [alerts, setAlerts] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const user = authUser || localUser;
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -37,7 +34,6 @@ export default function Layout({ children, currentPageName }) {
   };
 
   useEffect(() => {
-    base44.auth.me().then(setLocalUser).catch(() => {});
     base44.entities.EmergencyAlert.filter({ is_active: true }).then(setAlerts).catch(() => {});
 
     const unsub = base44.entities.EmergencyAlert.subscribe((event) => {
