@@ -20,12 +20,8 @@ const NAV_ITEMS = [
 ];
 
 export default function Layout({ children, currentPageName }) {
-  const { user: authUser } = useAuth();
-  const [localUser, setLocalUser] = useState(null);
+  const { user } = useAuth();
   const [alerts, setAlerts] = useState([]);
-
-  // Use authUser from context, but also fetch directly as fallback for mobile
-  const user = localUser || authUser;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
@@ -38,7 +34,6 @@ export default function Layout({ children, currentPageName }) {
   };
 
   useEffect(() => {
-    base44.auth.me().then(setLocalUser).catch(() => {});
     base44.entities.EmergencyAlert.filter({ is_active: true }).then(setAlerts).catch(() => {});
 
     const unsub = base44.entities.EmergencyAlert.subscribe((event) => {
@@ -145,8 +140,8 @@ export default function Layout({ children, currentPageName }) {
           </button>
           <NotificationBell userEmail={user?.email} />
           <Link to={createPageUrl("Profile")}>
-            <div className="w-8 h-8 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-xs cursor-pointer hover:bg-[#e0bb5e] transition-colors" title={user?.data?.display_name || user?.display_name || user?.full_name || user?.email || "User"}>
-              {(user?.data?.display_name || user?.display_name || user?.full_name || user?.email || "").charAt(0).toUpperCase() || "?"}
+            <div className="w-8 h-8 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-xs cursor-pointer hover:bg-[#e0bb5e] transition-colors" title={user?.display_name || user?.full_name || user?.email || "User"}>
+              {(user?.display_name || user?.full_name || user?.email || "").charAt(0).toUpperCase() || "?"}
             </div>
           </Link>
         </div>
