@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, MessageCircle, RotateCw } from "lucide-react";
 
 import NotificationBell from "@/components/notifications/NotificationBell";
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
 ];
 
 export default function Layout({ children, currentPageName }) {
+  const { user: authUser } = useAuth();
   const [user, setUser] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -33,6 +35,7 @@ export default function Layout({ children, currentPageName }) {
   };
 
   useEffect(() => {
+    if (authUser) setUser(authUser);
     base44.auth.me().then(setUser).catch(() => {});
     base44.entities.EmergencyAlert.filter({ is_active: true }).then(setAlerts).catch(() => {});
 
