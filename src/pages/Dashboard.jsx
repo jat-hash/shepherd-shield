@@ -92,12 +92,17 @@ export default function Dashboard() {
           const d = new Date(a.service_date);
           return d >= startOfMonth && d <= endOfMonth;
         });
-        // Sort: today first, then by date descending
+        // Sort: upcoming (today & future) first in ascending order, then past in descending order
         const sorted = monthAssignments.sort((a, b) => {
-          const isAToday = a.service_date === todayStr ? 1 : 0;
-          const isBToday = b.service_date === todayStr ? 1 : 0;
-          if (isAToday !== isBToday) return isBToday - isAToday;
-          return new Date(b.service_date) - new Date(a.service_date);
+          const aDate = new Date(a.service_date);
+          const bDate = new Date(b.service_date);
+          const today = new Date(todayStr);
+          const aUpcoming = aDate >= today;
+          const bUpcoming = bDate >= today;
+          if (aUpcoming && !bUpcoming) return -1;
+          if (!aUpcoming && bUpcoming) return 1;
+          if (aUpcoming && bUpcoming) return aDate - bDate; // nearest first
+          return bDate - aDate; // past: most recent first
         });
         setAssignments(sorted);
       } catch {}
