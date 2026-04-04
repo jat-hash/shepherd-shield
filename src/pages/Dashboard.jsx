@@ -92,19 +92,11 @@ export default function Dashboard() {
           const d = new Date(a.service_date);
           return d >= startOfMonth && d <= endOfMonth;
         });
-        // Sort: upcoming (today & future) first in ascending order, then past in descending order
-        const sorted = monthAssignments.sort((a, b) => {
-          const aDate = new Date(a.service_date);
-          const bDate = new Date(b.service_date);
-          const today = new Date(todayStr);
-          const aUpcoming = aDate >= today;
-          const bUpcoming = bDate >= today;
-          if (aUpcoming && !bUpcoming) return -1;
-          if (!aUpcoming && bUpcoming) return 1;
-          if (aUpcoming && bUpcoming) return aDate - bDate; // nearest first
-          return bDate - aDate; // past: most recent first
-        });
-        setAssignments(sorted);
+        // Only show upcoming assignments (today and future), nearest first
+        const upcoming = all.filter(a => new Date(a.service_date) >= new Date(todayStr))
+          .sort((a, b) => new Date(a.service_date) - new Date(b.service_date));
+        const nextAssignment = upcoming.slice(0, 1);
+        setAssignments(nextAssignment);
       } catch {}
       setLoading(false);
     }, 300);
@@ -197,7 +189,7 @@ export default function Dashboard() {
       <RadioCheckInScanner user={user} />
 
       <div className="space-y-3">
-        <h2 className="text-sm uppercase tracking-widest text-[#d4a843] font-semibold">This Month's Assignments</h2>
+        <h2 className="text-sm uppercase tracking-widest text-[#d4a843] font-semibold">Next Assignment</h2>
         {assignments.length === 0 ? (
           <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-6 text-center">
             <p className="text-slate-200 text-sm">No assignments this month</p>
