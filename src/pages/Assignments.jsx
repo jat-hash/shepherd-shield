@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, CheckCircle, Clock, XCircle, ChevronLeft, ChevronRight, Calendar, WifiOff } from "lucide-react";
+import { Plus, CheckCircle, Clock, XCircle, ChevronLeft, ChevronRight, Calendar, WifiOff, LayoutGrid } from "lucide-react";
+import ShiftScheduler from "@/components/assignments/ShiftScheduler";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import AssignmentForm from "@/components/assignments/AssignmentForm";
@@ -10,6 +11,7 @@ export default function Assignments() {
   const [formOpen, setFormOpen] = useState(false);
   const [editData, setEditData] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [schedulerView, setSchedulerView] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
@@ -119,13 +121,31 @@ export default function Assignments() {
       )}
       <div className="flex items-center justify-between">
         <h1 className="text-lg sm:text-xl font-bold text-white">Assignments & Events</h1>
-        {isAdmin && (
-          <Button onClick={() => { setEditData(null); setFormOpen(true); }} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-4">
-            <Plus className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Create</span>
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button
+              onClick={() => setSchedulerView(!schedulerView)}
+              variant="outline"
+              className={`text-xs gap-1 h-8 px-3 border-[rgba(212,168,67,0.3)] ${schedulerView ? "bg-[#d4a843]/20 text-[#d4a843]" : "text-slate-400 hover:text-[#d4a843]"}`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{schedulerView ? "Calendar" : "Scheduler"}</span>
+            </Button>
+          )}
+          {isAdmin && !schedulerView && (
+            <Button onClick={() => { setEditData(null); setFormOpen(true); }} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-4">
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Create</span>
+            </Button>
+          )}
+        </div>
       </div>
 
+      {isAdmin && schedulerView && (
+        <ShiftScheduler onSaved={loadData} />
+      )}
+
+      {!schedulerView && (
+      <>
       {/* Month Navigation */}
       <div className="flex items-center justify-between bg-[#1a2744] rounded-xl p-3 border border-[rgba(212,168,67,0.1)]">
         <Button onClick={goToPreviousMonth} variant="ghost" size="icon" className="text-slate-400 hover:text-[#d4a843]">
@@ -267,6 +287,8 @@ export default function Assignments() {
             );
           })}
         </div>
+      )}
+      </>
       )}
 
       <AssignmentForm
