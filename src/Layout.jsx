@@ -20,8 +20,12 @@ const NAV_ITEMS = [
 ];
 
 export default function Layout({ children, currentPageName }) {
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
+  const [localUser, setLocalUser] = useState(null);
   const [alerts, setAlerts] = useState([]);
+
+  // Use authUser from context, but also fetch directly as fallback for mobile
+  const user = localUser || authUser;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
@@ -34,6 +38,7 @@ export default function Layout({ children, currentPageName }) {
   };
 
   useEffect(() => {
+    base44.auth.me().then(setLocalUser).catch(() => {});
     base44.entities.EmergencyAlert.filter({ is_active: true }).then(setAlerts).catch(() => {});
 
     const unsub = base44.entities.EmergencyAlert.subscribe((event) => {
