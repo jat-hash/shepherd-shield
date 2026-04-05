@@ -70,7 +70,7 @@ export default function AssignmentCard({ assignment, onUpdate }) {
     }
   };
 
-  const [year, month, day] = assignment.service_date.split('-').map(Number);
+  const [year, month, day] = assignment.service_date.slice(0, 10).split('-').map(Number);
   const assignmentDate = new Date(year, month - 1, day);
   const today = new Date();
   const isToday = assignmentDate.getFullYear() === today.getFullYear() && assignmentDate.getMonth() === today.getMonth() && assignmentDate.getDate() === today.getDate();

@@ -93,10 +93,10 @@ export default function Dashboard() {
           return d >= startOfMonth && d <= endOfMonth;
         });
         // Only show upcoming assignments (today and future), nearest first
-        const upcoming = all.filter(a => new Date(a.service_date) >= new Date(todayStr))
-          .sort((a, b) => new Date(a.service_date) - new Date(b.service_date));
-        const nextAssignment = upcoming.slice(0, 1);
-        setAssignments(nextAssignment);
+        const upcoming = all
+          .filter(a => a.service_date.slice(0, 10) >= todayStr)
+          .sort((a, b) => a.service_date.slice(0, 10).localeCompare(b.service_date.slice(0, 10)));
+        setAssignments(upcoming.slice(0, 3));
       } catch {}
       setLoading(false);
     }, 300);
