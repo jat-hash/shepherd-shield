@@ -68,15 +68,16 @@ export const AuthProvider = ({ children }) => {
         if (!resp.ok) {
           const errorData = publicSettings;
           const reason = errorData?.extra_data?.reason;
-          if (reason === 'auth_required') {
-            setAuthError({ type: 'auth_required', message: 'Authentication required' });
-          } else if (reason === 'user_not_registered') {
+          if (reason === 'user_not_registered') {
             setAuthError({ type: 'user_not_registered', message: 'User not registered for this app' });
-          } else {
-            setAuthError({ type: reason || 'unknown', message: 'Failed to load app' });
+            setIsLoadingPublicSettings(false);
+            setIsLoadingAuth(false);
+            return;
           }
+          // For auth_required or other errors, still try checkUserAuth — the SDK
+          // may have a valid token even if appParams.token wasn't ready yet (mobile timing)
+          await checkUserAuth();
           setIsLoadingPublicSettings(false);
-          setIsLoadingAuth(false);
           return;
         }
         setAppPublicSettings(publicSettings);
