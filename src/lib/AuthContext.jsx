@@ -101,18 +101,27 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
 
-      // Always retry once after a delay (handles mobile token hydration timing)
-      setTimeout(async () => {
+      // Retry with increasing delays for mobile token hydration (iOS Safari is slow)
+      let retryCount = 0;
+      const maxRetries = 3;
+      const delays = [1000, 2000, 3000];
+      const retryAuth = async () => {
         try {
           const retryUser = await base44.auth.me();
           setUser(retryUser);
           setIsAuthenticated(true);
           setAuthError(null);
         } catch {
-          // Still failing — redirect to login
-          base44.auth.redirectToLogin(window.location.href);
+          retryCount++;
+          if (retryCount < maxRetries) {
+            setTimeout(retryAuth, delays[retryCount]);
+          } else {
+            // Still failing after all retries — show login screen
+            setAuthError({ type: 'auth_required', message: 'Authentication required' });
+          }
         }
-      }, 2000);
+      };
+      setTimeout(retryAuth, delays[0]);
     }
   };
 
