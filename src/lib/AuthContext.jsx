@@ -166,10 +166,8 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (error.status === 401 || error.status === 403) {
-        setAuthError({
-          type: 'auth_required',
-          message: 'Authentication required'
-        });
+        // Auto-redirect to login instead of showing a dead-end screen
+        base44.auth.redirectToLogin(window.location.href);
       }
     }
   };
