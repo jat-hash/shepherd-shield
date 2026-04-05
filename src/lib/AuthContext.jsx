@@ -14,7 +14,8 @@ export const AuthProvider = ({ children }) => {
   const lastCheckTimeRef = useRef(0);
 
   useEffect(() => {
-    checkAppState();
+    // Small delay on initial load so the SDK can hydrate its stored token
+    setTimeout(checkAppState, 300);
     
     const handleVisibilityChange = () => {
       if (!document.hidden) {
@@ -166,8 +167,18 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (error.status === 401 || error.status === 403) {
-        // Auto-redirect to login instead of showing a dead-end screen
-        base44.auth.redirectToLogin(window.location.href);
+        // On mobile the SDK token may not be hydrated yet — retry once before redirecting
+        setTimeout(async () => {
+          try {
+            const retryUser = await base44.auth.me();
+            setUser(retryUser);
+            setIsAuthenticated(true);
+            setAuthError(null);
+          } catch {
+            // Still failing after retry — redirect to login
+            base44.auth.redirectToLogin(window.location.href);
+          }
+        }, 1500);
       }
     }
   };
