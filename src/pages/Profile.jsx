@@ -48,14 +48,22 @@ export default function Profile() {
 
 
 
-  const displayUser = user || { full_name: 'User', email: '', role: 'user' };
+  const displayUser = user;
+
+  if (!displayUser) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 border-4 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full px-3 py-4 lg:px-4 lg:py-6 space-y-4 sm:space-y-6">
       {/* Profile Header */}
       <div className="bg-[#1a2744] rounded-2xl border border-[rgba(212,168,67,0.1)] p-4 sm:p-6 text-center">
         <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#d4a843] to-[#b8902a] flex items-center justify-center text-[#0a1128] text-2xl sm:text-3xl font-bold mx-auto mb-3 sm:mb-4">
-         {(displayUser?.full_name || displayUser?.display_name || displayUser?.email || 'U').charAt(0).toUpperCase()}
+         {(displayUser?.full_name || displayUser?.display_name || displayUser?.email || '?').charAt(0).toUpperCase()}
         </div>
         
         {/* Display Name */}
