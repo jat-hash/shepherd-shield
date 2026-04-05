@@ -16,7 +16,6 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     checkAppState();
     
-    // Re-check on visibility change (e.g., after OAuth redirect) with throttle to prevent loops
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         const now = Date.now();
@@ -26,9 +25,22 @@ export const AuthProvider = ({ children }) => {
         }
       }
     };
+
+    // On mobile, retry auth when coming back online
+    const handleOnline = () => {
+      const now = Date.now();
+      if (now - lastCheckTimeRef.current > 3000) {
+        lastCheckTimeRef.current = now;
+        checkAppState();
+      }
+    };
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('online', handleOnline);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('online', handleOnline);
+    };
   }, []);
 
   const checkAppState = async () => {
@@ -125,7 +137,6 @@ export const AuthProvider = ({ children }) => {
 
   const checkUserAuth = async () => {
     try {
-      // Now check if the user is authenticated
       setIsLoadingAuth(true);
       const currentUser = await base44.auth.me();
       setUser(currentUser);
@@ -137,11 +148,22 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
       
-      // If it's a network error (offline), don't block the app
       const isNetworkError = !error.status || error.message === 'Network Error' || error.code === 'ERR_NETWORK';
-      if (isNetworkError) return;
+      if (isNetworkError) {
+        // On mobile, network may not be ready yet — retry after 2s
+        setTimeout(async () => {
+          try {
+            const retryUser = await base44.auth.me();
+            setUser(retryUser);
+            setIsAuthenticated(true);
+            setAuthError(null);
+          } catch {
+            // silent fail on retry
+          }
+        }, 2000);
+        return;
+      }
 
-      // If user auth fails with a real server error, it might be an expired token
       if (error.status === 401 || error.status === 403) {
         setAuthError({
           type: 'auth_required',
