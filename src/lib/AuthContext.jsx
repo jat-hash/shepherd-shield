@@ -59,81 +59,32 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoadingPublicSettings(true);
       setAuthError(null);
-      
-      // First, check app public settings
-      try {
-        const headers = { 'X-App-Id': appParams.appId };
-        if (appParams.token) headers['Authorization'] = `Bearer ${appParams.token}`;
-        const resp = await fetch(`/api/apps/public/prod/public-settings/by-id/${appParams.appId}`, { headers });
-        const publicSettings = resp.ok ? await resp.json() : null;
-        if (!resp.ok) {
-          const errorData = publicSettings;
-          const reason = errorData?.extra_data?.reason;
-          if (reason === 'user_not_registered') {
-            setAuthError({ type: 'user_not_registered', message: 'User not registered for this app' });
-            setIsLoadingPublicSettings(false);
-            setIsLoadingAuth(false);
-            return;
-          }
-          // For auth_required or other errors, still try checkUserAuth — the SDK
-          // may have a valid token even if appParams.token wasn't ready yet (mobile timing)
-          await checkUserAuth();
-          setIsLoadingPublicSettings(false);
-          return;
-        }
-        setAppPublicSettings(publicSettings);
-        
-        // Always check if user is authenticated
-        await checkUserAuth();
-        setIsLoadingPublicSettings(false);
-      } catch (appError) {
-        console.error('App state check failed:', appError);
 
-        // If it's a network error (offline), don't block the app — let it load with cached data
-        const isNetworkError = !appError.status || appError.message === 'Network Error' || appError.code === 'ERR_NETWORK';
-        if (isNetworkError) {
-          // Still try to load user from token if available, then show app offline
-            await checkUserAuth();
+      const headers = { 'X-App-Id': appParams.appId };
+      if (appParams.token) headers['Authorization'] = `Bearer ${appParams.token}`;
+      const resp = await fetch(`/api/apps/public/prod/public-settings/by-id/${appParams.appId}`, { headers });
+      const publicSettings = resp.ok ? await resp.json() : null;
+
+      if (resp.ok) {
+        setAppPublicSettings(publicSettings);
+      } else {
+        const reason = publicSettings?.extra_data?.reason;
+        if (reason === 'user_not_registered') {
+          setAuthError({ type: 'user_not_registered', message: 'User not registered for this app' });
           setIsLoadingPublicSettings(false);
+          setIsLoadingAuth(false);
           return;
         }
-        
-        // Handle app-level errors (only for real server responses)
-        if (appError.status === 403 && appError.data?.extra_data?.reason) {
-          const reason = appError.data.extra_data.reason;
-          if (reason === 'auth_required') {
-            setAuthError({
-              type: 'auth_required',
-              message: 'Authentication required'
-            });
-          } else if (reason === 'user_not_registered') {
-            setAuthError({
-              type: 'user_not_registered',
-              message: 'User not registered for this app'
-            });
-          } else {
-            setAuthError({
-              type: reason,
-              message: appError.message
-            });
-          }
-        } else {
-          setAuthError({
-            type: 'unknown',
-            message: appError.message || 'Failed to load app'
-          });
-        }
-        setIsLoadingPublicSettings(false);
-        setIsLoadingAuth(false);
+        // For auth errors or unknown, fall through to checkUserAuth
       }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      setAuthError({
-        type: 'unknown',
-        message: error.message || 'An unexpected error occurred'
-      });
+
+      await checkUserAuth();
       setIsLoadingPublicSettings(false);
-      setIsLoadingAuth(false);
+    } catch (error) {
+      console.error('App state check failed:', error);
+      // Network error - try auth anyway
+      await checkUserAuth();
+      setIsLoadingPublicSettings(false);
     }
   };
 
@@ -149,37 +100,19 @@ export const AuthProvider = ({ children }) => {
       console.error('User auth check failed:', error);
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
-      
-      const isNetworkError = !error.status || error.message === 'Network Error' || error.code === 'ERR_NETWORK';
-      if (isNetworkError) {
-        // On mobile, network may not be ready yet — retry after 2s
-        setTimeout(async () => {
-          try {
-            const retryUser = await base44.auth.me();
-            setUser(retryUser);
-            setIsAuthenticated(true);
-            setAuthError(null);
-          } catch {
-            // silent fail on retry
-          }
-        }, 2000);
-        return;
-      }
 
-      if (error.status === 401 || error.status === 403) {
-        // On mobile the SDK token may not be hydrated yet — retry once before redirecting
-        setTimeout(async () => {
-          try {
-            const retryUser = await base44.auth.me();
-            setUser(retryUser);
-            setIsAuthenticated(true);
-            setAuthError(null);
-          } catch {
-            // Still failing after retry — redirect to login
-            base44.auth.redirectToLogin(window.location.href);
-          }
-        }, 1500);
-      }
+      // Always retry once after a delay (handles mobile token hydration timing)
+      setTimeout(async () => {
+        try {
+          const retryUser = await base44.auth.me();
+          setUser(retryUser);
+          setIsAuthenticated(true);
+          setAuthError(null);
+        } catch {
+          // Still failing — redirect to login
+          base44.auth.redirectToLogin(window.location.href);
+        }
+      }, 2000);
     }
   };
 
