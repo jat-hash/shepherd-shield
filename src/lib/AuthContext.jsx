@@ -187,7 +187,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const navigateToLogin = () => {
-    // No-op: SessionExpiredScreen only uses manual retry, not auto-redirect
+    base44.auth.redirectToLogin(window.location.href);
   };
 
   return (
