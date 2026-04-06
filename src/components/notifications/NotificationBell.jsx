@@ -142,7 +142,7 @@ export default function NotificationBell({ userEmail }) {
                     <p className="text-sm font-medium text-white mb-1">{notification.title}</p>
                     <p className="text-xs text-slate-400 line-clamp-2">{notification.message}</p>
                     <p className="text-[10px] text-slate-500 mt-1">
-                      {new Date(notification.created_date).toLocaleString()}
+                      {new Date(notification.created_date + (notification.created_date.endsWith('Z') ? '' : 'Z')).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                     </p>
                   </div>
                   <button
