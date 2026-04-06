@@ -98,25 +98,26 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(false);
     } catch (error) {
       console.error('User auth check failed:', error);
-      setIsLoadingAuth(false);
+      // Keep isLoadingAuth=true during retries so Safari users don't see a broken state
       setIsAuthenticated(false);
 
-      // Retry with increasing delays for mobile token hydration (iOS Safari is slow)
       let retryCount = 0;
-      const maxRetries = 3;
-      const delays = [1000, 2000, 3000];
+      const maxRetries = 4;
+      const delays = [1000, 2000, 3000, 4000];
       const retryAuth = async () => {
         try {
           const retryUser = await base44.auth.me();
           setUser(retryUser);
           setIsAuthenticated(true);
           setAuthError(null);
+          setIsLoadingAuth(false);
         } catch {
           retryCount++;
           if (retryCount < maxRetries) {
             setTimeout(retryAuth, delays[retryCount]);
           } else {
             // Still failing after all retries — show login screen
+            setIsLoadingAuth(false);
             setAuthError({ type: 'auth_required', message: 'Authentication required' });
           }
         }
