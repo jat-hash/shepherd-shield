@@ -108,6 +108,21 @@ export default function ServiceWorkerRegister() {
         });
         addLog('Token saved! ✅');
 
+        // Register periodic background sync (poll every 5 min when app is closed)
+        if ('periodicSync' in swRegistration) {
+          try {
+            const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
+            if (status.state === 'granted') {
+              await swRegistration.periodicSync.register('shepherd-poll', { minInterval: 5 * 60 * 1000 });
+              addLog('Periodic background sync registered ✅');
+            } else {
+              addLog('Periodic sync permission: ' + status.state);
+            }
+          } catch (e) {
+            addLog('Periodic sync not supported: ' + e.message);
+          }
+        }
+
         // Listen for foreground messages and play alarm
         const { app } = initFirebase();
         const messaging = getMessaging(app);
