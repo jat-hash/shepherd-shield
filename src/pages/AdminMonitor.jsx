@@ -81,25 +81,23 @@ export default function AdminMonitor() {
         base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 200),
       ]);
       // Normalize personal check-ins to assignment shape
-      const normalizedPersonal = personalCheckIns
-        .filter(p => !p.check_out_time)
-        .map(p => ({
-          id: p.id,
-          assigned_to_name: p.user_name,
-          assigned_to_email: p.user_email,
-          position_name: "Personal Check-in",
-          service_date: p.check_in_date,
-          start_time: "",
-          end_time: "",
-          status: "Confirmed",
-          checked_in: true,
-          check_in_time: p.check_in_time,
-          checked_out: !!p.check_out_time,
-          check_out_time: p.check_out_time,
-          check_in_latitude: p.latitude,
-          check_in_longitude: p.longitude,
-          _isPersonal: true,
-        }));
+      const normalizedPersonal = personalCheckIns.map(p => ({
+        id: p.id,
+        assigned_to_name: p.user_name,
+        assigned_to_email: p.user_email,
+        position_name: "Personal Check-in",
+        service_date: p.check_in_date,
+        start_time: "",
+        end_time: "",
+        status: "Confirmed",
+        checked_in: true,
+        check_in_time: p.check_in_time,
+        checked_out: !!p.check_out_time,
+        check_out_time: p.check_out_time,
+        check_in_latitude: p.latitude,
+        check_in_longitude: p.longitude,
+        _isPersonal: true,
+      }));
       const merged = [...all, ...normalizedPersonal];
       setAssignments(merged);
       setFilteredAssignments(merged);
@@ -137,10 +135,9 @@ export default function AdminMonitor() {
 
   useEffect(() => {
     if (!user) return;
-    const unsub = base44.entities.Assignment.subscribe(() => {
-      loadAssignments();
-    });
-    return unsub;
+    const unsubA = base44.entities.Assignment.subscribe(() => loadAssignments());
+    const unsubP = base44.entities.PersonalCheckIn.subscribe(() => loadAssignments());
+    return () => { unsubA(); unsubP(); };
   }, [user]);
 
   useEffect(() => {
