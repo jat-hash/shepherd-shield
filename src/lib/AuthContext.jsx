@@ -17,26 +17,25 @@ export const AuthProvider = ({ children }) => {
     // iOS Safari needs more time after login redirect to hydrate the stored token
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     setTimeout(checkAppState, isIOS ? 1500 : 300);
-    
+
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         const now = Date.now();
-        if (now - lastCheckTimeRef.current > 3000) {
+        if (now - lastCheckTimeRef.current > 30000) {
           lastCheckTimeRef.current = now;
           checkAppState();
         }
       }
     };
 
-    // On mobile, retry auth when coming back online
     const handleOnline = () => {
       const now = Date.now();
-      if (now - lastCheckTimeRef.current > 3000) {
+      if (now - lastCheckTimeRef.current > 30000) {
         lastCheckTimeRef.current = now;
         checkAppState();
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('online', handleOnline);
     return () => {
@@ -104,7 +103,7 @@ export const AuthProvider = ({ children }) => {
 
       let retryCount = 0;
       const maxRetries = 4;
-      const delays = [1000, 2000, 3000, 4000];
+      const delays = [2000, 6000, 12000, 20000];
       const retryAuth = async () => {
         try {
           const retryUser = await base44.auth.me();
@@ -112,10 +111,13 @@ export const AuthProvider = ({ children }) => {
           setIsAuthenticated(true);
           setAuthError(null);
           setIsLoadingAuth(false);
-        } catch {
+        } catch (retryErr) {
+          // If rate limited, wait longer before next retry
+          const isRateLimit = retryErr?.status === 429;
           retryCount++;
           if (retryCount < maxRetries) {
-            setTimeout(retryAuth, delays[retryCount]);
+            const delay = isRateLimit ? delays[retryCount] * 3 : delays[retryCount];
+            setTimeout(retryAuth, delay);
           } else {
             // Still failing after all retries — show login screen
             setIsLoadingAuth(false);
