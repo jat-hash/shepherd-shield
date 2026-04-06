@@ -225,9 +225,16 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
     // Polling fallback every 4 seconds
     pollRef.current = setInterval(poll, 4000);
 
+    // Poll immediately when tab regains focus
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") poll();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
     return () => {
       unsub();
       clearInterval(pollRef.current);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [user?.email, poll, triggerAlert]);
 
