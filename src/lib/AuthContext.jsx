@@ -14,8 +14,9 @@ export const AuthProvider = ({ children }) => {
   const lastCheckTimeRef = useRef(0);
 
   useEffect(() => {
-    // Small delay on initial load so the SDK can hydrate its stored token
-    setTimeout(checkAppState, 300);
+    // iOS Safari needs more time after login redirect to hydrate the stored token
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    setTimeout(checkAppState, isIOS ? 1500 : 300);
     
     const handleVisibilityChange = () => {
       if (!document.hidden) {
