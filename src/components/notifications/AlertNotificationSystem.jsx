@@ -154,6 +154,13 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
     // Sound
     playSound(priority);
 
+    // Vibrate
+    if (navigator.vibrate) {
+      if (priority === "high") navigator.vibrate([300, 100, 300, 100, 300]);
+      else if (priority === "medium") navigator.vibrate([200, 100, 200]);
+      else navigator.vibrate([100]);
+    }
+
     // Browser notification for medium/high
     if (priority === "medium" || priority === "high") {
       showBrowserNotification(message, priority);
