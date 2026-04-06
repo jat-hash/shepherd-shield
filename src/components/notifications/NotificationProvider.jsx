@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { AlertTriangle, MessageSquare, CalendarCheck } from "lucide-react";
 import EmergencyOverlay from "./EmergencyOverlay";
 import OfflineIndicator from "./OfflineIndicator";
+import UrgentAlertSystem from "./UrgentAlertSystem";
 import { cacheData, syncPendingMessages } from "@/lib/offlineStorage";
 
 // Loud sound notification helper
@@ -338,6 +339,7 @@ export default function NotificationProvider({ children }) {
   return (
     <>
       {children}
+      <UrgentAlertSystem />
       <EmergencyOverlay 
         alert={emergencyAlert} 
         onDismiss={() => setEmergencyAlert(null)} 

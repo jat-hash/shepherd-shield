@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, MessageCircle, RotateCw } from "lucide-react";
 
 import NotificationBell from "@/components/notifications/NotificationBell";
+import AlertNotificationSystem from "@/components/notifications/AlertNotificationSystem";
 import UserSwitcher from "@/components/UserSwitcher";
 import AIAssistant from "@/components/AIAssistant";
 
@@ -27,6 +28,7 @@ export default function Layout({ children, currentPageName }) {
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [alertUnreadCount, setAlertUnreadCount] = useState(0);
 
   const user = authUser || fallbackUser;
 
@@ -65,6 +67,7 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <>
+      <AlertNotificationSystem onUnreadCountChange={setAlertUnreadCount} />
       <div className="min-h-screen bg-[#0a1128] text-white flex flex-col">
       <style>{`
         :root {
