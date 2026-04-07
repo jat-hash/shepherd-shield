@@ -8,48 +8,55 @@ function playSound(priority) {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const master = ctx.createGain();
+    master.gain.setValueAtTime(1.0, ctx.currentTime);
     master.connect(ctx.destination);
 
     if (priority === "low") {
-      // Soft click
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(master);
-      osc.type = "sine"; osc.frequency.setValueAtTime(880, ctx.currentTime);
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.12);
-    } else if (priority === "medium") {
-      // Two-tone notification
-      [0, 0.18].forEach((offset, i) => {
+      // Ascending 3-note ding — clearly audible
+      [0, 0.18, 0.36].forEach((offset, i) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain); gain.connect(master);
-        osc.type = "triangle";
-        osc.frequency.setValueAtTime(i === 0 ? 660 : 880, ctx.currentTime + offset);
-        gain.gain.setValueAtTime(0.3, ctx.currentTime + offset);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.18);
+        osc.type = "sine";
+        osc.frequency.setValueAtTime([784, 988, 1175][i], ctx.currentTime + offset);
+        gain.gain.setValueAtTime(0.5, ctx.currentTime + offset);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.25);
         osc.start(ctx.currentTime + offset);
-        osc.stop(ctx.currentTime + offset + 0.18);
+        osc.stop(ctx.currentTime + offset + 0.25);
+      });
+    } else if (priority === "medium") {
+      // Urgent double-pulse beep — like a warning klaxon
+      [0, 0.25, 0.5, 0.75].forEach((offset, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(master);
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(i % 2 === 0 ? 700 : 950, ctx.currentTime + offset);
+        gain.gain.setValueAtTime(0.7, ctx.currentTime + offset);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.2);
+        osc.start(ctx.currentTime + offset);
+        osc.stop(ctx.currentTime + offset + 0.2);
       });
     } else if (priority === "high") {
-      // Urgent alarm — repeating bursts
-      for (let i = 0; i < 3; i++) {
-        const offset = i * 0.22;
+      // Loud wailing siren — alternating frequency sweep
+      for (let i = 0; i < 6; i++) {
+        const offset = i * 0.2;
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain); gain.connect(master);
         osc.type = "square";
-        osc.frequency.setValueAtTime(440, ctx.currentTime + offset);
-        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + offset + 0.1);
-        gain.gain.setValueAtTime(0.4, ctx.currentTime + offset);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.2);
+        const freqStart = i % 2 === 0 ? 440 : 880;
+        const freqEnd = i % 2 === 0 ? 880 : 440;
+        osc.frequency.setValueAtTime(freqStart, ctx.currentTime + offset);
+        osc.frequency.exponentialRampToValueAtTime(freqEnd, ctx.currentTime + offset + 0.18);
+        gain.gain.setValueAtTime(0.9, ctx.currentTime + offset);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.18);
         osc.start(ctx.currentTime + offset);
-        osc.stop(ctx.currentTime + offset + 0.2);
+        osc.stop(ctx.currentTime + offset + 0.18);
       }
     }
 
-    setTimeout(() => ctx.close(), 2000);
+    setTimeout(() => ctx.close(), 3000);
   } catch (_) {}
 }
 
@@ -187,19 +194,25 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
       }
     }
 
-    // Vibrate
+    // Vibrate — all priorities
     if (navigator.vibrate) {
       if (priority === "high") {
-        // Repeating vibration pattern for high priority
+        // Initial strong burst
+        navigator.vibrate([500, 150, 500, 150, 500, 150, 500]);
+        // Keep looping until acknowledged
         const vibrateLoop = setInterval(() => {
           if (activeHighAlarmsRef.current.size > 0) {
-            navigator.vibrate([300, 100, 300, 100, 300]);
+            navigator.vibrate([400, 120, 400, 120, 400]);
           } else {
             clearInterval(vibrateLoop);
           }
-        }, 1500);
-      } else if (priority === "medium") navigator.vibrate([200, 100, 200]);
-      else navigator.vibrate([100]);
+        }, 2000);
+      } else if (priority === "medium") {
+        navigator.vibrate([300, 100, 300, 100, 300]);
+      } else {
+        // Low — two short pulses so it's noticeable
+        navigator.vibrate([150, 80, 150]);
+      }
     }
 
     // Browser notification for medium/high
