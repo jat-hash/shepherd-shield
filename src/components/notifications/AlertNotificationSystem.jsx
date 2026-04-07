@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { X, AlertTriangle, Bell, Info } from "lucide-react";
+import { X, AlertTriangle, Bell, Info, CheckCircle } from "lucide-react";
 
 // --- Sound Generator ---
 function playSound(priority) {
@@ -73,12 +73,20 @@ function AlertToast({ alert, onDismiss }) {
 
   useEffect(() => {
     setTimeout(() => setVisible(true), 10);
-    const timer = setTimeout(() => {
-      setVisible(false);
-      setTimeout(onDismiss, 300);
-    }, priority === "high" ? 6000 : 4000);
-    return () => clearTimeout(timer);
+    // High priority requires manual acknowledgment — no auto-dismiss
+    if (alert.priority !== "high") {
+      const timer = setTimeout(() => {
+        setVisible(false);
+        setTimeout(onDismiss, 300);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
   }, []);
+
+  const handleAcknowledge = () => {
+    setVisible(false);
+    setTimeout(onDismiss, 300);
+  };
 
   const { priority, message, type } = alert;
 
@@ -107,9 +115,18 @@ function AlertToast({ alert, onDismiss }) {
         </p>
         <p className="text-sm leading-snug">{message}</p>
       </div>
-      <button onClick={() => { setVisible(false); setTimeout(onDismiss, 300); }} className="opacity-60 hover:opacity-100">
-        <X className="w-4 h-4" />
-      </button>
+      {priority === "high" ? (
+        <button
+          onClick={handleAcknowledge}
+          className="flex items-center gap-1 bg-red-500 hover:bg-red-400 text-white text-xs font-bold px-2 py-1 rounded-lg whitespace-nowrap"
+        >
+          <CheckCircle className="w-3 h-3" /> ACK
+        </button>
+      ) : (
+        <button onClick={() => { setVisible(false); setTimeout(onDismiss, 300); }} className="opacity-60 hover:opacity-100">
+          <X className="w-4 h-4" />
+        </button>
+      )}
     </div>
   );
 }
@@ -125,6 +142,12 @@ function ScreenFlash({ active }) {
   );
 }
 
+// --- Continuous Alarm ---
+function startContinuousAlarm() {
+  const interval = setInterval(() => playSound("high"), 1500);
+  return interval;
+}
+
 // --- Main Component ---
 export default function AlertNotificationSystem({ onUnreadCountChange }) {
   const { user } = useAuth();
@@ -133,6 +156,8 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
   const seenIdsRef = useRef(new Set());
   const unreadCountRef = useRef(0);
   const pollRef = useRef(null);
+  const alarmIntervalRef = useRef(null);
+  const activeHighAlarmsRef = useRef(new Set());
 
   // Request browser notification permission on mount
   useEffect(() => {
@@ -154,10 +179,26 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
     // Sound
     playSound(priority);
 
+    // Continuous alarm for high priority until acknowledged
+    if (priority === "high") {
+      activeHighAlarmsRef.current.add(id);
+      if (!alarmIntervalRef.current) {
+        alarmIntervalRef.current = startContinuousAlarm();
+      }
+    }
+
     // Vibrate
     if (navigator.vibrate) {
-      if (priority === "high") navigator.vibrate([300, 100, 300, 100, 300]);
-      else if (priority === "medium") navigator.vibrate([200, 100, 200]);
+      if (priority === "high") {
+        // Repeating vibration pattern for high priority
+        const vibrateLoop = setInterval(() => {
+          if (activeHighAlarmsRef.current.size > 0) {
+            navigator.vibrate([300, 100, 300, 100, 300]);
+          } else {
+            clearInterval(vibrateLoop);
+          }
+        }, 1500);
+      } else if (priority === "medium") navigator.vibrate([200, 100, 200]);
       else navigator.vibrate([100]);
     }
 
@@ -238,8 +279,17 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
     };
   }, [user?.email, poll, triggerAlert]);
 
-  const dismissToast = useCallback((toastId) => {
+  const dismissToast = useCallback((toastId, notifId, priority) => {
     setToasts(prev => prev.filter(t => t._toastId !== toastId));
+    // If this was a high-priority alarm, remove from active set
+    if (priority === "high" && notifId) {
+      activeHighAlarmsRef.current.delete(notifId);
+      if (activeHighAlarmsRef.current.size === 0 && alarmIntervalRef.current) {
+        clearInterval(alarmIntervalRef.current);
+        alarmIntervalRef.current = null;
+        if (navigator.vibrate) navigator.vibrate(0); // stop vibration
+      }
+    }
   }, []);
 
   return (
@@ -252,7 +302,7 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
           <div key={t._toastId} className="pointer-events-auto">
             <AlertToast
               alert={t}
-              onDismiss={() => dismissToast(t._toastId)}
+              onDismiss={() => dismissToast(t._toastId, t.id, t.priority)}
             />
           </div>
         ))}

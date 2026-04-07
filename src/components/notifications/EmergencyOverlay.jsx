@@ -1,39 +1,72 @@
 import React, { useEffect, useRef } from "react";
-import { AlertTriangle, X } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+function playEmergencyAlarm(ctxRef, intervalRef) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    ctxRef.current = ctx;
+
+    const playBurst = () => {
+      try {
+        for (let i = 0; i < 4; i++) {
+          const offset = i * 0.25;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.type = "square";
+          osc.frequency.setValueAtTime(i % 2 === 0 ? 880 : 440, ctx.currentTime + offset);
+          gain.gain.setValueAtTime(0.5, ctx.currentTime + offset);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.22);
+          osc.start(ctx.currentTime + offset);
+          osc.stop(ctx.currentTime + offset + 0.22);
+        }
+      } catch (_) {}
+    };
+
+    playBurst();
+    intervalRef.current = setInterval(playBurst, 1800);
+  } catch (_) {}
+}
+
 export default function EmergencyOverlay({ alert, onDismiss }) {
-  const audioRef = useRef(null);
+  const audioCtxRef = useRef(null);
+  const alarmIntervalRef = useRef(null);
+  const vibrateIntervalRef = useRef(null);
 
   useEffect(() => {
     if (alert) {
-      // Play alarm sound
-      if (audioRef.current) {
-        audioRef.current.play().catch(err => console.error("Audio play failed:", err));
-      }
-      
-      // Vibrate if supported
+      playEmergencyAlarm(audioCtxRef, alarmIntervalRef);
+
       if ('vibrate' in navigator) {
-        navigator.vibrate([200, 100, 200, 100, 200, 100, 200]);
+        navigator.vibrate([400, 150, 400, 150, 400]);
+        vibrateIntervalRef.current = setInterval(() => {
+          navigator.vibrate([400, 150, 400, 150, 400]);
+        }, 2000);
       }
     }
 
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
+      if (alarmIntervalRef.current) clearInterval(alarmIntervalRef.current);
+      if (vibrateIntervalRef.current) clearInterval(vibrateIntervalRef.current);
+      if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
+      if (navigator.vibrate) navigator.vibrate(0);
     };
   }, [alert]);
+
+  const handleAcknowledge = () => {
+    if (alarmIntervalRef.current) clearInterval(alarmIntervalRef.current);
+    if (vibrateIntervalRef.current) clearInterval(vibrateIntervalRef.current);
+    if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
+    if (navigator.vibrate) navigator.vibrate(0);
+    onDismiss();
+  };
 
   if (!alert) return null;
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center p-4 animate-pulse">
-      {/* Alarm sound */}
-      <audio ref={audioRef} loop>
-        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGS77uWhUBELTqXh8LllHgU2jdXty3coBS18xe/glkILElyx6OyrWBUIQ5zd8sFuJAUpfsvv2Ik0CBd4uf" type="audio/wav" />
-      </audio>
 
       <div className="max-w-2xl w-full bg-red-600 rounded-2xl border-4 border-white shadow-2xl overflow-hidden">
         {/* Header */}
@@ -49,14 +82,7 @@ export default function EmergencyOverlay({ alert, onDismiss }) {
               <p className="text-red-200 text-sm mt-1">Immediate Action Required</p>
             </div>
           </div>
-          <Button
-            onClick={onDismiss}
-            variant="ghost"
-            size="icon"
-            className="text-white hover:bg-red-600 rounded-full"
-          >
-            <X className="w-6 h-6" />
-          </Button>
+  
         </div>
 
         {/* Content */}
@@ -83,13 +109,14 @@ export default function EmergencyOverlay({ alert, onDismiss }) {
             </div>
           </div>
 
-          {/* Action Button */}
+          {/* Action Button - MUST acknowledge to stop alarm */}
           <Button
-            onClick={onDismiss}
-            className="w-full bg-white text-red-600 hover:bg-red-50 font-bold text-lg py-6 rounded-xl"
+            onClick={handleAcknowledge}
+            className="w-full bg-white text-red-600 hover:bg-red-50 font-bold text-lg py-6 rounded-xl animate-pulse"
           >
-            ACKNOWLEDGE ALERT
+            ✅ TAP TO ACKNOWLEDGE &amp; STOP ALARM
           </Button>
+          <p className="text-center text-red-200 text-xs">You must acknowledge this alert to stop the alarm</p>
         </div>
       </div>
     </div>
