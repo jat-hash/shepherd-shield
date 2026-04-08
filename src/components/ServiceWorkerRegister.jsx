@@ -205,7 +205,7 @@ export default function ServiceWorkerRegister() {
                 } else { addLog('No token returned'); }
               }).catch(e => addLog('Retry error: ' + e.message));
             } else {
-              addLog('Permission still: ' + Notification.permission);
+              addLog('Permission still: ' + ('Notification' in window ? Notification.permission : 'unsupported'));
             }
           }} style={{ color: '#0ff', background: 'none', border: '1px solid #0ff', borderRadius: 3, padding: '0 6px', cursor: 'pointer', fontSize: 11 }}>Retry</button>
           <button onClick={() => setShowDebug(false)} style={{ color: '#f00', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>✕</button>
