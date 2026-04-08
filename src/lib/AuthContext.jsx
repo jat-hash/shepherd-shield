@@ -99,37 +99,8 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('User auth check failed:', error);
       setIsAuthenticated(false);
-
-      // If it's an auth error (401/403), go straight to login — no retries
-      const isAuthError = error?.status === 401 || error?.status === 403 || error?.response?.status === 401 || error?.response?.status === 403;
-      if (isAuthError) {
-        setIsLoadingAuth(false);
-        setAuthError({ type: 'auth_required', message: 'Authentication required' });
-        return;
-      }
-
-      // Network/unknown error — retry a couple times then give up
-      let retryCount = 0;
-      const maxRetries = 2;
-      const delays = [2000, 5000];
-      const retryAuth = async () => {
-        try {
-          const retryUser = await base44.auth.me();
-          setUser(retryUser);
-          setIsAuthenticated(true);
-          setAuthError(null);
-          setIsLoadingAuth(false);
-        } catch (retryErr) {
-          retryCount++;
-          if (retryCount < maxRetries) {
-            setTimeout(retryAuth, delays[retryCount]);
-          } else {
-            setIsLoadingAuth(false);
-            setAuthError({ type: 'auth_required', message: 'Authentication required' });
-          }
-        }
-      };
-      setTimeout(retryAuth, delays[0]);
+      setIsLoadingAuth(false);
+      setAuthError({ type: 'auth_required', message: 'Authentication required' });
     }
   };
 

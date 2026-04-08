@@ -37,8 +37,9 @@ const AuthenticatedApp = () => {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else {
-      // auth_required or any unknown error — show session expired screen instead of blank
-      return <SessionExpiredScreen onRetry={checkAppState} onLogin={navigateToLogin} />;
+      // auth_required — redirect to login immediately
+      navigateToLogin();
+      return null;
     }
   }
 
