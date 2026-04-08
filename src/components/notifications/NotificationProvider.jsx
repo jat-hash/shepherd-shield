@@ -112,7 +112,7 @@ export default function NotificationProvider({ children }) {
         }
 
         // Send CRITICAL push notification (like Amber Alert)
-        if ('serviceWorker' in navigator && Notification.permission === 'granted') {
+        if ('serviceWorker' in navigator && 'Notification' in window && Notification.permission === 'granted') {
           navigator.serviceWorker.ready.then((registration) => {
             registration.showNotification('🚨 EMERGENCY ALERT', {
               body: `${event.data.alert_type.toUpperCase()}\n\n${event.data.message}`,
@@ -145,7 +145,7 @@ export default function NotificationProvider({ children }) {
               silent: false
             });
           });
-        } else if (Notification.permission === 'granted') {
+        } else if ('Notification' in window && Notification.permission === 'granted') {
           new Notification('🚨 EMERGENCY ALERT', {
             body: `${event.data.alert_type.toUpperCase()}\n\n${event.data.message}`,
             requireInteraction: true,
@@ -215,7 +215,7 @@ export default function NotificationProvider({ children }) {
           );
 
           // Browser notification
-          if (Notification.permission === 'granted') {
+          if ('Notification' in window && Notification.permission === 'granted') {
             new Notification(`Message from ${msg.sender_name}`, {
               body: msg.content.substring(0, 100),
               vibrate: msg.message_type === 'alert' ? [200, 100, 200] : [100],
@@ -275,7 +275,7 @@ export default function NotificationProvider({ children }) {
         );
         
         // Browser notification
-        if (Notification.permission === 'granted') {
+        if ('Notification' in window && Notification.permission === 'granted') {
           new Notification(isToday ? '🔔 URGENT: New Assignment' : 'New Assignment', {
             body: `${assignment.position_name} - ${new Date(assignment.service_date).toLocaleDateString()}`,
             vibrate: isToday ? [200, 100, 200] : [100],
