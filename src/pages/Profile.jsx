@@ -20,11 +20,7 @@ export default function Profile() {
   const [newPhone, setNewPhone] = useState("");
 
   useEffect(() => {
-    if (authUser) {
-      setUser(authUser);
-    } else {
-      base44.auth.me().then(setUser).catch(() => {});
-    }
+    if (authUser) setUser(authUser);
   }, [authUser]);
 
   const handleUpdateDisplayName = async () => {

@@ -67,11 +67,15 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    base44.auth.me().then((u) => { setUser(u); setUserLoaded(true); }).catch(() => setUserLoaded(true));
-    // Failsafe: don't spin forever
-    const t = setTimeout(() => setUserLoaded(true), 5000);
-    return () => clearTimeout(t);
-  }, []);
+    if (authUser) {
+      setUser(authUser);
+      setUserLoaded(true);
+    } else {
+      // Failsafe: don't spin forever if auth is slow
+      const t = setTimeout(() => setUserLoaded(true), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [authUser]);
 
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
