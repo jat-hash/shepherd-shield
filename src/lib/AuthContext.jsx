@@ -88,9 +88,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const checkUserAuth = async () => {
+  const checkUserAuth = async (isRetry = false) => {
     try {
-      setIsLoadingAuth(true);
+      if (!isRetry) setIsLoadingAuth(true);
       const currentUser = await base44.auth.me();
       setUser(currentUser);
       setIsAuthenticated(true);
@@ -101,25 +101,24 @@ export const AuthProvider = ({ children }) => {
       const status = error?.status || error?.response?.status;
 
       if (status === 401 || status === 403) {
-        // Genuinely not authenticated — redirect to login
         setIsAuthenticated(false);
         setIsLoadingAuth(false);
         setAuthError({ type: 'auth_required', message: 'Authentication required' });
       } else if (status === 429) {
-        // Rate limited — wait then retry
-        setTimeout(checkUserAuth, 5000);
+        // Rate limited — stop loading (keep existing auth state) and retry in background
+        setIsLoadingAuth(false);
+        setTimeout(() => checkUserAuth(true), 8000);
       } else {
-        // Network/unknown — retry once then give up
+        // Network/unknown — stop loading, retry once in background
+        setIsLoadingAuth(false);
         setTimeout(async () => {
           try {
             const retryUser = await base44.auth.me();
             setUser(retryUser);
             setIsAuthenticated(true);
             setAuthError(null);
-            setIsLoadingAuth(false);
           } catch {
             setIsAuthenticated(false);
-            setIsLoadingAuth(false);
             setAuthError({ type: 'auth_required', message: 'Authentication required' });
           }
         }, 3000);
