@@ -63,7 +63,8 @@ export const AuthProvider = ({ children }) => {
       const headers = { 'X-App-Id': appParams.appId };
       if (appParams.token) headers['Authorization'] = `Bearer ${appParams.token}`;
       const resp = await fetch(`/api/apps/public/prod/public-settings/by-id/${appParams.appId}`, { headers });
-      const publicSettings = resp.ok ? await resp.json() : null;
+      let publicSettings = null;
+      try { publicSettings = await resp.json(); } catch {}
 
       if (resp.ok) {
         setAppPublicSettings(publicSettings);
@@ -105,19 +106,19 @@ export const AuthProvider = ({ children }) => {
         setIsLoadingAuth(false);
         setAuthError({ type: 'auth_required', message: 'Authentication required' });
       } else if (status === 429) {
-        // Rate limited — keep loading spinner and retry
+        // Rate limited — stop loading (keep existing auth state) and retry in background
+        setIsLoadingAuth(false);
         setTimeout(() => checkUserAuth(true), 8000);
       } else {
-        // Network/unknown — retry once, keep spinner
+        // Network/unknown — stop loading, retry once in background
+        setIsLoadingAuth(false);
         setTimeout(async () => {
           try {
             const retryUser = await base44.auth.me();
             setUser(retryUser);
             setIsAuthenticated(true);
             setAuthError(null);
-            setIsLoadingAuth(false);
           } catch {
-            setIsLoadingAuth(false);
             setIsAuthenticated(false);
             setAuthError({ type: 'auth_required', message: 'Authentication required' });
           }
