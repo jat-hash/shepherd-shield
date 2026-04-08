@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { CheckCircle, XCircle, Clock, Edit2, Search, Trash2, Bell, Send, MessageSquare, WifiOff } from "lucide-react";
 import { cacheData, getCachedData, savePendingCheckIn, syncPendingCheckIns } from "@/lib/offlineStorage";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -28,6 +29,7 @@ function formatDate(val) {
 }
 
 export default function AdminMonitor() {
+  const { user: authUser } = useAuth();
   const [user, setUser] = useState(null);
   const [assignments, setAssignments] = useState([]);
   const [filteredAssignments, setFilteredAssignments] = useState([]);
@@ -52,19 +54,12 @@ export default function AdminMonitor() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   useEffect(() => {
-    base44.auth.me()
-      .then(u => {
-        setUser(u);
-        if (u.role !== 'admin') {
-          window.location.href = '/';
-        }
-      })
-      .catch(() => {
-        // Offline — set a placeholder admin user so the page loads with cached data
-        setUser({ role: 'admin', email: '', full_name: 'Admin (Offline)' });
-      });
+    if (authUser) {
+      if (authUser.role !== 'admin') { window.location.href = '/'; return; }
+      setUser(authUser);
+    }
     base44.functions.invoke("listUsers").then(res => setAllUsers(res?.data?.users || [])).catch(() => {});
-  }, []);
+  }, [authUser]);
 
   const loadAssignments = async () => {
     setLoading(true);

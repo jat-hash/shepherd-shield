@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { Plus, CheckCircle, Clock, XCircle, ChevronLeft, ChevronRight, Calendar, WifiOff, LayoutGrid } from "lucide-react";
 import ShiftScheduler from "@/components/assignments/ShiftScheduler";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import AssignmentForm from "@/components/assignments/AssignmentForm";
 import useOfflineData from "@/hooks/useOfflineData";
 
 export default function Assignments() {
+  const { user: authUser } = useAuth();
   const [formOpen, setFormOpen] = useState(false);
   const [editData, setEditData] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -16,7 +18,10 @@ export default function Assignments() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   useEffect(() => {
-    base44.auth.me().then(setCurrentUser).catch(() => {});
+    if (authUser) setCurrentUser(authUser);
+  }, [authUser]);
+
+  useEffect(() => {
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
     window.addEventListener("online", handleOnline);

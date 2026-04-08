@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { cacheData, getCachedData } from "@/lib/offlineStorage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 
 export default function Members() {
+  const { user: authUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
@@ -40,8 +42,8 @@ export default function Members() {
   const [profileStats, setProfileStats] = useState(null);
 
   useEffect(() => {
-    loadCurrentUser();
-  }, []);
+    if (authUser) setCurrentUser(authUser);
+  }, [authUser]);
 
   useEffect(() => {
     if (currentUser) {
@@ -63,16 +65,6 @@ export default function Members() {
     window.addEventListener("offline", handleOffline);
     return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
   }, [currentUser]);
-
-  const loadCurrentUser = async () => {
-    try {
-      const user = await base44.auth.me();
-      setCurrentUser(user);
-    } catch (error) {
-      console.error("Failed to load current user:", error);
-      setLoading(false);
-    }
-  };
 
   const loadUsers = async () => {
     if (!navigator.onLine) {
