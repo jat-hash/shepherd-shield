@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { initFirebase, getFCMToken } from "@/components/firebase";
 import { getMessaging, onMessage } from "firebase/messaging";
 
@@ -33,8 +34,10 @@ async function playAlarmSound() {
 }
 
 export default function ServiceWorkerRegister() {
+  const { user } = useAuth();
   const [debugLogs, setDebugLogs] = useState([]);
   const [showDebug, setShowDebug] = useState(false);
+  const initializedRef = useRef(false);
 
   const addLog = (msg) => {
     const line = `[${new Date().toLocaleTimeString()}] ${msg}`;
@@ -45,9 +48,9 @@ export default function ServiceWorkerRegister() {
   // Debug panel is hidden by default on mobile — no longer auto-showing
 
   useEffect(() => {
+    if (!user) return;
     const initPushNotifications = async () => {
       try {
-        const user = await base44.auth.me();
         if (!user) { addLog('No user logged in'); return; }
         addLog('User: ' + user.email);
 
@@ -106,6 +109,7 @@ export default function ServiceWorkerRegister() {
           fcm_token: token,
           device_id: navigator.userAgent.slice(0, 50)
         });
+        initializedRef.current = true;
         addLog('Token saved! ✅');
 
         // Register periodic background sync (poll every 5 min when app is closed)
@@ -155,9 +159,9 @@ export default function ServiceWorkerRegister() {
 
     initPushNotifications();
 
-    // Re-run when user returns to the app (e.g. after enabling permissions in settings)
+    // Re-run when user returns to the app only if not already initialized
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && Notification.permission === 'granted') {
+      if (document.visibilityState === 'visible' && Notification.permission === 'granted' && !initializedRef.current) {
         addLog('Page visible, retrying registration...');
         initPushNotifications();
       }
