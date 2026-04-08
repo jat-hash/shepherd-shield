@@ -13,8 +13,13 @@ export const AuthProvider = ({ children }) => {
   const [appPublicSettings, setAppPublicSettings] = useState(null);
   const lastCheckTimeRef = useRef(0);
 
+  const isIOSorSafari = () => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    return isIOS || isSafari;
+  };
+
   useEffect(() => {
-    // iOS Safari needs more time after login redirect to hydrate the stored token
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     setTimeout(checkAppState, isIOS ? 1500 : 300);
 
@@ -45,7 +50,6 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkAppState = async () => {
-    // If offline, skip auth checks and let the app load with cached data
     if (!navigator.onLine) {
       if (appParams.token) {
         await checkUserAuth();
@@ -76,14 +80,12 @@ export const AuthProvider = ({ children }) => {
           setIsLoadingAuth(false);
           return;
         }
-        // For auth errors or unknown, fall through to checkUserAuth
       }
 
       await checkUserAuth();
       setIsLoadingPublicSettings(false);
     } catch (error) {
       console.error('App state check failed:', error);
-      // Network error - try auth anyway
       await checkUserAuth();
       setIsLoadingPublicSettings(false);
     }
@@ -102,15 +104,20 @@ export const AuthProvider = ({ children }) => {
       const status = error?.status || error?.response?.status;
 
       if (status === 401 || status === 403) {
+        // Safari/iOS: token may not be hydrated yet after redirect — retry once before giving up
+        if (!isRetry && isIOSorSafari()) {
+          setTimeout(() => checkUserAuth(true), 2000);
+          return;
+        }
         setIsAuthenticated(false);
         setIsLoadingAuth(false);
         setAuthError({ type: 'auth_required', message: 'Authentication required' });
       } else if (status === 429) {
-        // Rate limited — stop loading (keep existing auth state) and retry in background
+        // Rate limited — stop loading and retry in background
         setIsLoadingAuth(false);
         setTimeout(() => checkUserAuth(true), 8000);
       } else {
-        // Network/unknown — keep loading spinner on and retry
+        // Network/unknown — keep spinner and retry
         setTimeout(async () => {
           try {
             const retryUser = await base44.auth.me();
@@ -131,12 +138,9 @@ export const AuthProvider = ({ children }) => {
   const logout = (shouldRedirect = true) => {
     setUser(null);
     setIsAuthenticated(false);
-    
     if (shouldRedirect) {
-      // Use the SDK's logout method which handles token cleanup and redirect
       base44.auth.logout(window.location.href);
     } else {
-      // Just remove the token without redirect
       base44.auth.logout();
     }
   };
