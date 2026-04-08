@@ -105,19 +105,19 @@ export const AuthProvider = ({ children }) => {
         setIsLoadingAuth(false);
         setAuthError({ type: 'auth_required', message: 'Authentication required' });
       } else if (status === 429) {
-        // Rate limited — stop loading (keep existing auth state) and retry in background
-        setIsLoadingAuth(false);
+        // Rate limited — keep loading spinner and retry
         setTimeout(() => checkUserAuth(true), 8000);
       } else {
-        // Network/unknown — stop loading, retry once in background
-        setIsLoadingAuth(false);
+        // Network/unknown — retry once, keep spinner
         setTimeout(async () => {
           try {
             const retryUser = await base44.auth.me();
             setUser(retryUser);
             setIsAuthenticated(true);
             setAuthError(null);
+            setIsLoadingAuth(false);
           } catch {
+            setIsLoadingAuth(false);
             setIsAuthenticated(false);
             setAuthError({ type: 'auth_required', message: 'Authentication required' });
           }
