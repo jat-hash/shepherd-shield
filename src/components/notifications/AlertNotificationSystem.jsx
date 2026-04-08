@@ -62,7 +62,7 @@ function playSound(priority) {
 
 // --- Browser Notification ---
 function showBrowserNotification(message, priority) {
-  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  if (!("Notification" in window) || window.Notification?.permission !== "granted") return;
   const icons = { high: "🚨", medium: "⚠️", low: "🔔" };
   try {
     new Notification(`${icons[priority] || "🔔"} Shepherd Shield Alert`, {
@@ -168,8 +168,8 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
 
   // Request browser notification permission on mount
   useEffect(() => {
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission().catch(() => {});
+    if ("Notification" in window && window.Notification?.permission === "default") {
+      window.Notification.requestPermission().catch(() => {});
     }
   }, []);
 
