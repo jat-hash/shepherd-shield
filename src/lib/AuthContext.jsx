@@ -98,12 +98,20 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(false);
     } catch (error) {
       console.error('User auth check failed:', error);
-      // Keep isLoadingAuth=true during retries so Safari users don't see a broken state
       setIsAuthenticated(false);
 
+      // If it's an auth error (401/403), go straight to login — no retries
+      const isAuthError = error?.status === 401 || error?.status === 403 || error?.response?.status === 401 || error?.response?.status === 403;
+      if (isAuthError) {
+        setIsLoadingAuth(false);
+        setAuthError({ type: 'auth_required', message: 'Authentication required' });
+        return;
+      }
+
+      // Network/unknown error — retry a couple times then give up
       let retryCount = 0;
-      const maxRetries = 4;
-      const delays = [2000, 6000, 12000, 20000];
+      const maxRetries = 2;
+      const delays = [2000, 5000];
       const retryAuth = async () => {
         try {
           const retryUser = await base44.auth.me();
@@ -112,14 +120,10 @@ export const AuthProvider = ({ children }) => {
           setAuthError(null);
           setIsLoadingAuth(false);
         } catch (retryErr) {
-          // If rate limited, wait longer before next retry
-          const isRateLimit = retryErr?.status === 429;
           retryCount++;
           if (retryCount < maxRetries) {
-            const delay = isRateLimit ? delays[retryCount] * 3 : delays[retryCount];
-            setTimeout(retryAuth, delay);
+            setTimeout(retryAuth, delays[retryCount]);
           } else {
-            // Still failing after all retries — show login screen
             setIsLoadingAuth(false);
             setAuthError({ type: 'auth_required', message: 'Authentication required' });
           }
