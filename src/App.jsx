@@ -88,30 +88,38 @@ const AuthenticatedApp = () => {
   }
 
   return (
-    <NotificationProvider>
-      <ServiceWorkerRegister />
-      <PWAInstaller />
-      <PocketMode />
-      <Routes>
-        <Route path="/" element={
-          <LayoutWrapper currentPageName={mainPageKey}>
-            <MainPage />
-          </LayoutWrapper>
-        } />
-        {Object.entries(Pages).map(([path, Page]) => (
-          <Route
-            key={path}
-            path={`/${path}`}
-            element={
-              <LayoutWrapper currentPageName={path}>
-                <Page />
-              </LayoutWrapper>
-            }
-          />
-        ))}
-        <Route path="*" element={<PageNotFound />} />
-      </Routes>
-    </NotificationProvider>
+    <ErrorBoundary>
+      <NotificationProvider>
+        <ErrorBoundary>
+          <ServiceWorkerRegister />
+        </ErrorBoundary>
+        <ErrorBoundary>
+          <PWAInstaller />
+        </ErrorBoundary>
+        <ErrorBoundary>
+          <PocketMode />
+        </ErrorBoundary>
+        <Routes>
+          <Route path="/" element={
+            <LayoutWrapper currentPageName={mainPageKey}>
+              <MainPage />
+            </LayoutWrapper>
+          } />
+          {Object.entries(Pages).map(([path, Page]) => (
+            <Route
+              key={path}
+              path={`/${path}`}
+              element={
+                <LayoutWrapper currentPageName={path}>
+                  <Page />
+                </LayoutWrapper>
+              }
+            />
+          ))}
+          <Route path="*" element={<PageNotFound />} />
+        </Routes>
+      </NotificationProvider>
+    </ErrorBoundary>
   );
 };
 
