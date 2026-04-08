@@ -37,9 +37,19 @@ const AuthenticatedApp = () => {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else {
-      // auth_required — redirect immediately
+      // auth_required — redirect to login
       navigateToLogin();
-      return null;
+      // Show spinner while redirect happens (Safari may delay)
+      return (
+        <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#0a1128] gap-4">
+          <div className="w-8 h-8 border-4 border-[#d4a843]/30 border-t-[#d4a843] rounded-full animate-spin"></div>
+          <p className="text-slate-400 text-sm">Redirecting to login...</p>
+          <button
+            onClick={navigateToLogin}
+            className="text-[#d4a843] text-sm underline mt-2"
+          >Tap here if not redirected</button>
+        </div>
+      );
     }
   }
 
