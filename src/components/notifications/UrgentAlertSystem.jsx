@@ -49,7 +49,7 @@ function playSound(priority) {
 
 // ── Browser Notification ──────────────────────────────────────────────────────
 function sendBrowserNotification(message) {
-  if (Notification.permission === "granted") {
+  if ('Notification' in window && Notification.permission === "granted") {
     new Notification("🚨 New Alert", { body: message, icon: "/favicon.ico" });
   }
 }
