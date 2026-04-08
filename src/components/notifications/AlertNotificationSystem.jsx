@@ -276,8 +276,8 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
       }
     });
 
-    // Polling fallback every 4 seconds
-    pollRef.current = setInterval(poll, 4000);
+    // Polling fallback every 60 seconds (real-time subscriptions handle the rest)
+    pollRef.current = setInterval(poll, 60000);
 
     // Poll immediately when tab regains focus
     const handleVisibility = () => {

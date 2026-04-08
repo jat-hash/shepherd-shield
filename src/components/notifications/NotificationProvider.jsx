@@ -323,15 +323,13 @@ export default function NotificationProvider({ children }) {
     // Keep app alive in background by pinging periodically
     const keepAlive = setInterval(() => {
       if (document.visibilityState === 'hidden') {
-        // App is in background - check for alerts
         base44.entities.EmergencyAlert.filter({ is_active: true }).then(alerts => {
           if (alerts.length > 0 && !emergencyAlert) {
-            // Trigger alert if one exists but isn't showing
             setEmergencyAlert(alerts[0]);
           }
         }).catch(() => {});
       }
-    }, 5000); // Check every 5 seconds when backgrounded
+    }, 120000); // Check every 2 minutes when backgrounded
 
     return () => clearInterval(keepAlive);
   }, [emergencyAlert]);
