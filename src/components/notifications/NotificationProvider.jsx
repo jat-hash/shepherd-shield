@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
 import { AlertTriangle, MessageSquare, CalendarCheck } from "lucide-react";
 import EmergencyOverlay from "./EmergencyOverlay";
@@ -57,12 +58,13 @@ const playNotificationSound = (type = 'message') => {
 };
 
 export default function NotificationProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [emergencyAlert, setEmergencyAlert] = useState(null);
+  const emergencyAlertRef = useRef(emergencyAlert);
 
   useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
-  }, []);
+    emergencyAlertRef.current = emergencyAlert;
+  }, [emergencyAlert]);
 
   // Sync when coming back online
   useEffect(() => {
@@ -324,7 +326,7 @@ export default function NotificationProvider({ children }) {
     const keepAlive = setInterval(() => {
       if (document.visibilityState === 'hidden') {
         base44.entities.EmergencyAlert.filter({ is_active: true }).then(alerts => {
-          if (alerts.length > 0 && !emergencyAlert) {
+          if (alerts.length > 0 && !emergencyAlertRef.current) {
             setEmergencyAlert(alerts[0]);
           }
         }).catch(() => {});
@@ -332,7 +334,7 @@ export default function NotificationProvider({ children }) {
     }, 120000); // Check every 2 minutes when backgrounded
 
     return () => clearInterval(keepAlive);
-  }, [emergencyAlert]);
+  }, []); // No dependency on emergencyAlert — use ref to avoid interval reset
 
   return (
     <>
