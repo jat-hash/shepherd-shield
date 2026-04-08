@@ -20,15 +20,57 @@ class ErrorBoundary extends React.Component {
   }
   
   componentDidCatch(error) {
-    console.error('Error boundary caught:', error);
+    console.error('ErrorBoundary caught:', error);
   }
   
   render() {
     if (this.state.hasError) {
+      console.error('ErrorBoundary displaying error:', this.state.error?.message);
       return (
-        <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#0a1128] text-white">
-          <p className="text-lg font-bold mb-4">Loading...</p>
-          <div className="w-8 h-8 border-4 border-[#d4a843]/30 border-t-[#d4a843] rounded-full animate-spin"></div>
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#0a1128',
+          color: 'white',
+          zIndex: 9999,
+          fontSize: '14px'
+        }}>
+          <p style={{ color: '#d4a843', fontWeight: 'bold', marginBottom: '12px' }}>App Error</p>
+          <div style={{
+            width: '32px',
+            height: '32px',
+            border: '4px solid rgba(212,168,67,0.3)',
+            borderTop: '4px solid #d4a843',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+          <p style={{ fontSize: '12px', marginTop: '12px', color: '#94a3b8', maxWidth: '80%', textAlign: 'center' }}>
+            {this.state.error?.message || 'An error occurred'}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              marginTop: '12px',
+              padding: '8px 16px',
+              background: '#d4a843',
+              color: '#0a1128',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: 'bold'
+            }}
+          >
+            Reload App
+          </button>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       );
     }
@@ -57,70 +99,152 @@ const LayoutWrapper = ({ children, currentPageName }) => {
 };
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, checkAppState } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
-  if (isLoadingPublicSettings || isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-[#0a1128]">
-        <div className="w-8 h-8 border-4 border-[#d4a843]/30 border-t-[#d4a843] rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else {
-      // auth_required — redirect to login
-      navigateToLogin();
-      // Show spinner while redirect happens (Safari may delay)
+  try {
+    if (isLoadingPublicSettings || isLoadingAuth) {
       return (
-        <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#0a1128] gap-4">
-          <div className="w-8 h-8 border-4 border-[#d4a843]/30 border-t-[#d4a843] rounded-full animate-spin"></div>
-          <p className="text-slate-400 text-sm">Redirecting to login...</p>
-          <button
-            onClick={navigateToLogin}
-            className="text-[#d4a843] text-sm underline mt-2"
-          >Tap here if not redirected</button>
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#0a1128',
+          zIndex: 9999
+        }}>
+          <div style={{
+            width: '32px',
+            height: '32px',
+            border: '4px solid rgba(212,168,67,0.3)',
+            borderTop: '4px solid #d4a843',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       );
     }
-  }
 
-  return (
-    <ErrorBoundary>
-      <NotificationProvider>
-        <ErrorBoundary>
-          <ServiceWorkerRegister />
-        </ErrorBoundary>
-        <ErrorBoundary>
-          <PWAInstaller />
-        </ErrorBoundary>
-        <ErrorBoundary>
-          <PocketMode />
-        </ErrorBoundary>
-        <Routes>
-          <Route path="/" element={
-            <LayoutWrapper currentPageName={mainPageKey}>
-              <MainPage />
-            </LayoutWrapper>
-          } />
-          {Object.entries(Pages).map(([path, Page]) => (
-            <Route
-              key={path}
-              path={`/${path}`}
-              element={
-                <LayoutWrapper currentPageName={path}>
-                  <Page />
-                </LayoutWrapper>
-              }
-            />
-          ))}
-          <Route path="*" element={<PageNotFound />} />
-        </Routes>
-      </NotificationProvider>
-    </ErrorBoundary>
-  );
+    if (authError) {
+      if (authError.type === 'user_not_registered') {
+        return <UserNotRegisteredError />;
+      } else {
+        navigateToLogin();
+        return (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#0a1128',
+            color: 'white',
+            zIndex: 9999,
+            gap: '16px'
+          }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              border: '4px solid rgba(212,168,67,0.3)',
+              borderTop: '4px solid #d4a843',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }}></div>
+            <p style={{ color: '#94a3b8', fontSize: '14px' }}>Redirecting to login...</p>
+            <button
+              onClick={navigateToLogin}
+              style={{
+                color: '#d4a843',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '12px',
+                textDecoration: 'underline',
+                marginTop: '8px'
+              }}
+            >
+              Tap here if not redirected
+            </button>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
+        );
+      }
+    }
+
+    return (
+      <ErrorBoundary>
+        <NotificationProvider>
+          <ErrorBoundary>
+            <ServiceWorkerRegister />
+          </ErrorBoundary>
+          <ErrorBoundary>
+            <PWAInstaller />
+          </ErrorBoundary>
+          <ErrorBoundary>
+            <PocketMode />
+          </ErrorBoundary>
+          <Routes>
+            <Route path="/" element={
+              <LayoutWrapper currentPageName={mainPageKey}>
+                <MainPage />
+              </LayoutWrapper>
+            } />
+            {Object.entries(Pages).map(([path, Page]) => (
+              <Route
+                key={path}
+                path={`/${path}`}
+                element={
+                  <LayoutWrapper currentPageName={path}>
+                    <Page />
+                  </LayoutWrapper>
+                }
+              />
+            ))}
+            <Route path="*" element={<PageNotFound />} />
+          </Routes>
+        </NotificationProvider>
+      </ErrorBoundary>
+    );
+  } catch (err) {
+    console.error('AuthenticatedApp rendering error:', err);
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#0a1128',
+        color: 'white',
+        zIndex: 9999
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ color: '#d4a843', fontWeight: 'bold', marginBottom: '12px' }}>Loading...</p>
+          <div style={{
+            width: '32px',
+            height: '32px',
+            border: '4px solid rgba(212,168,67,0.3)',
+            borderTop: '4px solid #d4a843',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto'
+          }}></div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    );
+  }
 };
 
 function App() {
