@@ -13,6 +13,10 @@ export default function AIAssistant() {
   const [loading, setLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const messagesEndRef = useRef(null);
+  const [position, setPosition] = useState({ bottom: 24, right: 24 });
+  const dragRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef({ x: 0, y: 0, initialBottom: 24, initialRight: 24 });
 
   useEffect(() => {
     const initializeConversation = async () => {
@@ -50,6 +54,41 @@ export default function AIAssistant() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+    dragStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      initialBottom: position.bottom,
+      initialRight: position.right
+    };
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    const deltaX = e.clientX - dragStartRef.current.x;
+    const deltaY = e.clientY - dragStartRef.current.y;
+    setPosition({
+      bottom: Math.max(0, dragStartRef.current.initialBottom - deltaY),
+      right: Math.max(0, dragStartRef.current.initialRight - deltaX)
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, position]);
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim() || !conversation || loading) return;
@@ -78,9 +117,17 @@ export default function AIAssistant() {
     <>
       {/* Chat Button */}
       <button
+        ref={dragRef}
+        onMouseDown={handleMouseDown}
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] flex items-center justify-center shadow-lg transition-all duration-200 z-40"
-        title="Open AI Assistant"
+        style={{
+          position: 'fixed',
+          bottom: `${position.bottom}px`,
+          right: `${position.right}px`,
+          cursor: isDragging ? 'grabbing' : 'grab'
+        }}
+        className="w-14 h-14 rounded-full bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] flex items-center justify-center shadow-lg transition-all duration-200 z-40"
+        title="Open AI Assistant (drag to move)"
         aria-label="Open AI Assistant"
       >
         {isOpen ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
@@ -88,7 +135,11 @@ export default function AIAssistant() {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 w-96 max-w-[calc(100vw-24px)] h-[500px] bg-[#141f3d] border border-[rgba(212,168,67,0.3)] rounded-xl shadow-2xl flex flex-col z-40">
+        <div style={{
+          position: 'fixed',
+          bottom: `${position.bottom + 72}px`,
+          right: `${position.right}px`
+        }} className="w-96 max-w-[calc(100vw-24px)] h-[500px] bg-[#141f3d] border border-[rgba(212,168,67,0.3)] rounded-xl shadow-2xl flex flex-col z-40">
           {/* Header */}
           <div className="bg-[#0a1128] border-b border-[rgba(212,168,67,0.2)] px-4 py-3 flex items-center justify-between rounded-t-xl">
             <div>
