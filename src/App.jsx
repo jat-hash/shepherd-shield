@@ -25,6 +25,12 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, checkAppState } = useAuth();
 
+  React.useEffect(() => {
+    if (authError && authError.type === 'auth_required') {
+      navigateToLogin();
+    }
+  }, [authError]);
+
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-[#0a1128]">
@@ -37,9 +43,12 @@ const AuthenticatedApp = () => {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else {
-      // auth_required — redirect to login immediately
-      navigateToLogin();
-      return null;
+      // auth_required — redirecting via useEffect above
+      return (
+        <div className="fixed inset-0 flex items-center justify-center bg-[#0a1128]">
+          <div className="w-8 h-8 border-4 border-[#d4a843]/30 border-t-[#d4a843] rounded-full animate-spin"></div>
+        </div>
+      );
     }
   }
 
