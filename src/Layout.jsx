@@ -279,13 +279,9 @@ export default function Layout({ children, currentPageName }) {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 pb-6 overflow-auto lg:ml-56">
+      <main className="flex-1 pb-6 lg:ml-56 lg:overflow-auto w-full">
         {children}
       </main>
-
-
-
-      {/* Desktop Sidebar Nav (hidden on mobile) */}
       <nav className="hidden lg:flex fixed left-0 top-[57px] bottom-0 w-56 bg-[#141f3d] border-r border-[rgba(212,168,67,0.15)] flex-col py-4 z-[1001] overflow-y-auto">
         {NAV_ITEMS.map(item => {
           const isActive = currentPageName === item.page;
