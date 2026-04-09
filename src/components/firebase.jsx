@@ -1,5 +1,4 @@
 import { initializeApp } from 'firebase/app';
-import { getMessaging, getToken } from 'firebase/messaging';
 
 const firebaseConfig = {
   apiKey: "AIzaSyD7BE-xvRYRzxh1gaHpEqIBw7k49J4xAoo",
@@ -12,47 +11,29 @@ const firebaseConfig = {
 };
 
 let app;
-let messaging;
 
 export const initFirebase = () => {
   if (!app) {
     app = initializeApp(firebaseConfig);
-    messaging = getMessaging(app);
   }
-  return { app, messaging };
+  return { app };
 };
 
 export const getFCMToken = async (swRegistration) => {
-  const { messaging: msg } = initFirebase();
-
   const notifPermission = ('Notification' in window) ? window.Notification.permission : 'denied';
-  console.log('[FCM] Current permission:', notifPermission);
   if (notifPermission !== 'granted') {
     throw new Error('Notification permission not granted: ' + notifPermission);
   }
 
-  console.log('[FCM] SW scope:', swRegistration?.scope, 'active state:', swRegistration?.active?.state);
-  console.log('[FCM] SW installing:', swRegistration?.installing, 'waiting:', swRegistration?.waiting);
-  console.log('[FCM] messaging object exists:', !!msg);
+  const { getMessaging, getToken } = await import('firebase/messaging');
+  const { app: firebaseApp } = initFirebase();
+  const messaging = getMessaging(firebaseApp);
 
-  let token;
-  try {
-    console.log('[FCM] Calling getToken with VAPID key and SW registration...');
-    token = await getToken(msg, {
-      vapidKey: 'BDXxLp5-kEn--p9rd4nRgyapdT_sTe7IhthMn5Sm4AUxzAcYB_Ka_KxVVTLnxta6OLq08YR-C3ujPJoXFiEYLS8',
-      serviceWorkerRegistration: swRegistration
-    });
-    console.log('[FCM] getToken success, result:', token ? token.substring(0, 20) + '...' : 'EMPTY/NULL');
-  } catch (err) {
-    console.error('[FCM] getToken error - code:', err.code, 'message:', err.message);
-    console.error('[FCM] Full error:', err);
-    throw new Error('getToken failed: ' + (err.code || 'unknown') + ' - ' + err.message);
-  }
+  const token = await getToken(messaging, {
+    vapidKey: 'BDXxLp5-kEn--p9rd4nRgyapdT_sTe7IhthMn5Sm4AUxzAcYB_Ka_KxVVTLnxta6OLq08YR-C3ujPJoXFiEYLS8',
+    serviceWorkerRegistration: swRegistration
+  });
 
-  if (!token) {
-    throw new Error('getToken returned empty/null - SW may not be valid or domain not authorized');
-  }
-
-  console.log('[FCM] Returning token successfully');
+  if (!token) throw new Error('getToken returned empty/null');
   return token;
 };

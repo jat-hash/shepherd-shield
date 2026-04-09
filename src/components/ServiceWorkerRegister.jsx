@@ -2,8 +2,17 @@ import React, { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { initFirebase, getFCMToken } from "@/components/firebase";
-import { getMessaging, onMessage } from "firebase/messaging";
+
+// FCM is only supported on non-iOS browsers with service worker + push support
+const isFCMSupported = () => {
+  try {
+    const ua = navigator.userAgent;
+    const isIOS = /iphone|ipad|ipod/i.test(ua);
+    const isSafariOnly = /safari/i.test(ua) && !/chrome|crios|fxios/i.test(ua);
+    if (isIOS || isSafariOnly) return false;
+    return 'serviceWorker' in navigator && 'Notification' in window && 'PushManager' in window;
+  } catch (_) { return false; }
+};
 
 // Play an alarm beep sound for foreground alerts
 async function playAlarmSound() {
@@ -52,6 +61,7 @@ export default function ServiceWorkerRegister() {
     const initPushNotifications = async () => {
       try {
         if (!user) { addLog('No user logged in'); return; }
+        if (!isFCMSupported()) { addLog('FCM not supported on this browser (iOS/Safari) — skipping'); return; }
         addLog('User: ' + user.email);
 
         if (!('serviceWorker' in navigator)) { addLog('SW not supported'); return; }
@@ -95,16 +105,14 @@ export default function ServiceWorkerRegister() {
         // Get FCM token using the active SW registration
         let token;
         try {
+          const { getFCMToken } = await import('@/components/firebase');
           token = await getFCMToken(swRegistration);
-          if (!token) {
-            addLog('ERROR: No FCM token obtained from Firebase');
-            return;
-          }
-          addLog('Token: ' + token.substring(0, 20) + '...');
         } catch (tokenErr) {
           addLog('ERROR getting token: ' + tokenErr.message);
           return;
         }
+        if (!token) { addLog('ERROR: No FCM token obtained'); return; }
+        addLog('Token: ' + token.substring(0, 20) + '...');
 
         // Save token to backend
         await base44.functions.invoke('saveFCMToken', {
@@ -130,29 +138,24 @@ export default function ServiceWorkerRegister() {
         }
 
         // Listen for foreground messages and play alarm
-        const { app } = initFirebase();
-        const messaging = getMessaging(app);
-        onMessage(messaging, (payload) => {
-          addLog('Foreground msg: ' + (payload.notification?.title || 'no title'));
-          const title = payload.notification?.title || 'Shepherd Shield Alert';
-          const body = payload.notification?.body || 'New notification';
-
-          playAlarmSound();
-
-          toast.error(`🚨 ${title}: ${body}`, {
-            duration: 10000,
-            position: 'top-center',
+        try {
+          const { initFirebase } = await import('@/components/firebase');
+          const { getMessaging, onMessage } = await import('firebase/messaging');
+          const { app } = initFirebase();
+          const messaging = getMessaging(app);
+          onMessage(messaging, (payload) => {
+            addLog('Foreground msg: ' + (payload.notification?.title || 'no title'));
+            const title = payload.notification?.title || 'Shepherd Shield Alert';
+            const body = payload.notification?.body || 'New notification';
+            playAlarmSound();
+            toast.error(`🚨 ${title}: ${body}`, { duration: 10000, position: 'top-center' });
+            if ('Notification' in window && window.Notification.permission === 'granted') {
+              try { new window.Notification(title, { body, icon: '/icon-192.png', requireInteraction: true }); } catch (_) {}
+            }
           });
-
-          if ('Notification' in window && window.Notification.permission === 'granted') {
-            try { new window.Notification(title, {
-              body,
-              icon: '/icon-192.png',
-              requireInteraction: true,
-              vibrate: [300, 100, 300, 100, 300]
-            }); } catch (_) {}
-          }
-        });
+        } catch (msgErr) {
+          addLog('Messaging listener error: ' + msgErr.message);
+        }
       } catch (error) {
         addLog('ERROR: ' + (error.code ? error.code + ' - ' : '') + error.message);
         addLog('STACK: ' + (error.stack || '').split('\n')[1]);
