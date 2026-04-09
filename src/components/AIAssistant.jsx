@@ -55,6 +55,7 @@ export default function AIAssistant() {
   }, [messages]);
 
   const handleMouseDown = (e) => {
+    e.preventDefault();
     setIsDragging(true);
     dragStartRef.current = {
       x: e.clientX,
@@ -62,6 +63,29 @@ export default function AIAssistant() {
       initialBottom: position.bottom,
       initialRight: position.right
     };
+  };
+
+  const handleTouchStart = (e) => {
+    const touch = e.touches[0];
+    setIsDragging(true);
+    dragStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      initialBottom: position.bottom,
+      initialRight: position.right
+    };
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - dragStartRef.current.x;
+    const deltaY = touch.clientY - dragStartRef.current.y;
+    setPosition({
+      bottom: Math.max(0, dragStartRef.current.initialBottom - deltaY),
+      right: Math.max(0, dragStartRef.current.initialRight - deltaX)
+    });
   };
 
   const handleMouseMove = (e) => {
@@ -82,9 +106,13 @@ export default function AIAssistant() {
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+      document.addEventListener('touchend', handleMouseUp);
       return () => {
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleMouseUp);
       };
     }
   }, [isDragging, position]);
@@ -119,7 +147,8 @@ export default function AIAssistant() {
       <button
         ref={dragRef}
         onMouseDown={handleMouseDown}
-        onClick={() => setIsOpen(!isOpen)}
+        onTouchStart={handleTouchStart}
+        onClick={() => !isDragging && setIsOpen(!isOpen)}
         style={{
           position: 'fixed',
           bottom: `${position.bottom}px`,
