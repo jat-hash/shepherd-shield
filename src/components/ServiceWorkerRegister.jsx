@@ -57,14 +57,16 @@ export default function ServiceWorkerRegister() {
         if (!('serviceWorker' in navigator)) { addLog('SW not supported'); return; }
         addLog('SW supported');
 
-        addLog('Permission: ' + Notification.permission);
-        if (Notification.permission === 'denied') {
+        if (!('Notification' in window)) { addLog('Notifications not supported on this browser'); return; }
+
+        addLog('Permission: ' + window.Notification.permission);
+        if (window.Notification.permission === 'denied') {
           addLog('⚠️ Notifications blocked in browser settings - alerts may not work');
           // Continue anyway - don't block the app
-        } else if (Notification.permission !== 'granted') {
+        } else if (window.Notification.permission !== 'granted') {
           addLog('Requesting permission...');
           try {
-            const result = await Notification.requestPermission();
+            const result = await window.Notification.requestPermission();
             addLog('Permission result: ' + result);
             if (result !== 'granted') {
               addLog('⚠️ User denied notifications - alerts may not work');
@@ -77,7 +79,7 @@ export default function ServiceWorkerRegister() {
         }
 
         // If permission is denied, skip SW registration but let user use the app
-        if (Notification.permission === 'denied') {
+        if (window.Notification.permission === 'denied') {
           addLog('Cannot register SW - notifications permanently denied');
           return;
         }
@@ -142,7 +144,7 @@ export default function ServiceWorkerRegister() {
             position: 'top-center',
           });
 
-          if (Notification.permission === 'granted') {
+          if ('Notification' in window && window.Notification.permission === 'granted') {
             new Notification(title, {
               body,
               icon: '/icon-192.png',
@@ -161,7 +163,7 @@ export default function ServiceWorkerRegister() {
 
     // Re-run when user returns to the app only if not already initialized
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && Notification.permission === 'granted' && !initializedRef.current) {
+      if (document.visibilityState === 'visible' && 'Notification' in window && window.Notification.permission === 'granted' && !initializedRef.current) {
         addLog('Page visible, retrying registration...');
         initPushNotifications();
       }
@@ -195,7 +197,7 @@ export default function ServiceWorkerRegister() {
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => {
             addLog('Manual retry...');
-            if (Notification.permission === 'granted') {
+            if ('Notification' in window && window.Notification.permission === 'granted') {
               navigator.serviceWorker.register('/firebase-messaging-sw.js').then(async () => {
                 const swReg = await navigator.serviceWorker.ready;
                 const token = await getFCMToken(swReg);
@@ -205,7 +207,7 @@ export default function ServiceWorkerRegister() {
                 } else { addLog('No token returned'); }
               }).catch(e => addLog('Retry error: ' + e.message));
             } else {
-              addLog('Permission still: ' + ('Notification' in window ? Notification.permission : 'unsupported'));
+              addLog('Permission still: ' + ('Notification' in window ? window.Notification.permission : 'unsupported'));
             }
           }} style={{ color: '#0ff', background: 'none', border: '1px solid #0ff', borderRadius: 3, padding: '0 6px', cursor: 'pointer', fontSize: 11 }}>Retry</button>
           <button onClick={() => setShowDebug(false)} style={{ color: '#f00', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>✕</button>
