@@ -8,8 +8,8 @@ const isFCMSupported = () => {
   try {
     const ua = navigator.userAgent;
     const isIOS = /iphone|ipad|ipod/i.test(ua);
-    const isSafariOnly = /safari/i.test(ua) && !/chrome|crios|fxios/i.test(ua);
-    if (isIOS || isSafariOnly) return false;
+    // Block only iOS Safari — desktop Safari on macOS supports FCM
+    if (isIOS) return false;
     return 'serviceWorker' in navigator && 'Notification' in window && 'PushManager' in window;
   } catch (_) { return false; }
 };
@@ -203,6 +203,7 @@ export default function ServiceWorkerRegister() {
             if ('Notification' in window && window.Notification.permission === 'granted') {
               navigator.serviceWorker.register('/firebase-messaging-sw.js').then(async () => {
                 const swReg = await navigator.serviceWorker.ready;
+                const { getFCMToken } = await import('@/components/firebase');
                 const token = await getFCMToken(swReg);
                 if (token) {
                   await base44.functions.invoke('saveFCMToken', { fcm_token: token, device_id: navigator.userAgent.slice(0, 50) });
