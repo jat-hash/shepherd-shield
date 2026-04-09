@@ -136,14 +136,13 @@ export default function NotificationProvider({ children }) {
             });
           }).catch(() => {
             // Fallback to regular notification
-            new Notification('🚨 EMERGENCY ALERT', {
-              body: `${event.data.alert_type.toUpperCase()}\n\n${event.data.message}`,
-              requireInteraction: true,
-              vibrate: [1000, 200, 1000, 200, 1000],
-              tag: 'emergency-' + event.data.id,
-              renotify: true,
-              silent: false
-            });
+            if ('Notification' in window && window.Notification?.permission === 'granted') {
+              try { new window.Notification('🚨 EMERGENCY ALERT', {
+                body: `${event.data.alert_type.toUpperCase()}\n\n${event.data.message}`,
+                requireInteraction: true,
+                tag: 'emergency-' + event.data.id,
+              }); } catch (_) {}
+            }
           });
         } else if ('Notification' in window && window.Notification?.permission === 'granted') {
           new Notification('🚨 EMERGENCY ALERT', {

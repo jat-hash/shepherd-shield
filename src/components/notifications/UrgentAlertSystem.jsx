@@ -49,8 +49,8 @@ function playSound(priority) {
 
 // ── Browser Notification ──────────────────────────────────────────────────────
 function sendBrowserNotification(message) {
-  if ('Notification' in window && Notification.permission === "granted") {
-    new Notification("🚨 New Alert", { body: message, icon: "/favicon.ico" });
+  if ('Notification' in window && window.Notification?.permission === "granted") {
+    try { new window.Notification("🚨 New Alert", { body: message, icon: "/favicon.ico" }); } catch (_) {}
   }
 }
 
@@ -122,8 +122,8 @@ export default function UrgentAlertSystem() {
 
   // Request browser notification permission on mount
   useEffect(() => {
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
+    if ("Notification" in window && window.Notification?.permission === "default") {
+      window.Notification.requestPermission().catch(() => {});
     }
   }, []);
 
