@@ -20,7 +20,7 @@ export default function Dashboard() {
   const [locationDismissed, setLocationDismissed] = useState(() => sessionStorage.getItem('locationPromptDismissed') === 'true');
   const [locationGranted, setLocationGranted] = useState(true);
   const [notifDismissed, setNotifDismissed] = useState(() => sessionStorage.getItem('notifPromptDismissed') === 'true');
-  const [notifGranted, setNotifGranted] = useState(() => Notification?.permission === 'granted');
+  const [notifGranted, setNotifGranted] = useState(() => ('Notification' in window) && window.Notification?.permission === 'granted');
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -53,7 +53,8 @@ export default function Dashboard() {
   };
 
   const requestNotifications = async () => {
-    const permission = await Notification.requestPermission();
+    if (!('Notification' in window)) return;
+    const permission = await window.Notification.requestPermission();
     if (permission === 'granted') {
       setNotifGranted(true);
       // Trigger FCM token registration now that permission is granted
