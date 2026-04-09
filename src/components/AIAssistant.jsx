@@ -17,6 +17,7 @@ export default function AIAssistant() {
   const dragRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, initialBottom: 24, initialRight: 24 });
+  const hasDraggedRef = useRef(false);
 
   useEffect(() => {
     const initializeConversation = async () => {
@@ -56,6 +57,7 @@ export default function AIAssistant() {
 
   const handleMouseDown = (e) => {
     e.preventDefault();
+    hasDraggedRef.current = false;
     setIsDragging(true);
     dragStartRef.current = {
       x: e.clientX,
@@ -67,6 +69,7 @@ export default function AIAssistant() {
 
   const handleTouchStart = (e) => {
     const touch = e.touches[0];
+    hasDraggedRef.current = false;
     setIsDragging(true);
     dragStartRef.current = {
       x: touch.clientX,
@@ -78,10 +81,13 @@ export default function AIAssistant() {
 
   const handleTouchMove = (e) => {
     if (!isDragging) return;
-    e.preventDefault();
     const touch = e.touches[0];
     const deltaX = touch.clientX - dragStartRef.current.x;
     const deltaY = touch.clientY - dragStartRef.current.y;
+    if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+      hasDraggedRef.current = true;
+      e.preventDefault();
+    }
     setPosition({
       bottom: Math.max(0, dragStartRef.current.initialBottom - deltaY),
       right: Math.max(0, dragStartRef.current.initialRight - deltaX)
@@ -92,6 +98,9 @@ export default function AIAssistant() {
     if (!isDragging) return;
     const deltaX = e.clientX - dragStartRef.current.x;
     const deltaY = e.clientY - dragStartRef.current.y;
+    if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+      hasDraggedRef.current = true;
+    }
     setPosition({
       bottom: Math.max(0, dragStartRef.current.initialBottom - deltaY),
       right: Math.max(0, dragStartRef.current.initialRight - deltaX)
@@ -100,6 +109,13 @@ export default function AIAssistant() {
 
   const handleMouseUp = () => {
     setIsDragging(false);
+  };
+
+  const handleClick = () => {
+    if (!hasDraggedRef.current) {
+      setIsOpen(prev => !prev);
+    }
+    hasDraggedRef.current = false;
   };
 
   useEffect(() => {
@@ -148,7 +164,7 @@ export default function AIAssistant() {
         ref={dragRef}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
-        onClick={() => !isDragging && setIsOpen(!isOpen)}
+        onClick={handleClick}
         style={{
           position: 'fixed',
           bottom: `${position.bottom}px`,
