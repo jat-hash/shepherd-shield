@@ -145,14 +145,14 @@ export default function NotificationProvider({ children }) {
             }
           });
         } else if ('Notification' in window && window.Notification?.permission === 'granted') {
-          new Notification('🚨 EMERGENCY ALERT', {
+          try { new window.Notification('🚨 EMERGENCY ALERT', {
             body: `${event.data.alert_type.toUpperCase()}\n\n${event.data.message}`,
             requireInteraction: true,
             vibrate: [1000, 200, 1000, 200, 1000],
             tag: 'emergency-' + event.data.id,
             renotify: true,
             silent: false
-          });
+          }); } catch (_) {}
         }
       } else if (event.type === "update") {
         if (!event.data?.is_active) {
@@ -215,12 +215,12 @@ export default function NotificationProvider({ children }) {
 
           // Browser notification
           if ('Notification' in window && window.Notification?.permission === 'granted') {
-            new Notification(`Message from ${msg.sender_name}`, {
+            try { new window.Notification(`Message from ${msg.sender_name}`, {
               body: msg.content.substring(0, 100),
               vibrate: msg.message_type === 'alert' ? [200, 100, 200] : [100],
               tag: 'message-' + msg.id,
               silent: false
-            });
+            }); } catch (_) {}
           }
         }
       }
@@ -275,12 +275,12 @@ export default function NotificationProvider({ children }) {
         
         // Browser notification
         if ('Notification' in window && window.Notification?.permission === 'granted') {
-          new Notification(isToday ? '🔔 URGENT: New Assignment' : 'New Assignment', {
+          try { new window.Notification(isToday ? '🔔 URGENT: New Assignment' : 'New Assignment', {
             body: `${assignment.position_name} - ${new Date(assignment.service_date).toLocaleDateString()}`,
             vibrate: isToday ? [200, 100, 200] : [100],
             tag: 'assignment-' + assignment.id,
             silent: false
-          });
+          }); } catch (_) {}
         }
       } else if (event.type === "update") {
         const assignment = event.data;

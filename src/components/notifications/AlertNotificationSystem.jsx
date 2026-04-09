@@ -65,7 +65,7 @@ function showBrowserNotification(message, priority) {
   if (!("Notification" in window) || window.Notification?.permission !== "granted") return;
   const icons = { high: "🚨", medium: "⚠️", low: "🔔" };
   try {
-    new Notification(`${icons[priority] || "🔔"} Shepherd Shield Alert`, {
+    new window.Notification(`${icons[priority] || "🔔"} Shepherd Shield Alert`, {
       body: message,
       icon: "/icon-192.png",
       tag: `alert-${Date.now()}`,
