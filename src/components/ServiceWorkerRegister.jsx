@@ -145,12 +145,12 @@ export default function ServiceWorkerRegister() {
           });
 
           if ('Notification' in window && window.Notification.permission === 'granted') {
-            new Notification(title, {
+            try { new window.Notification(title, {
               body,
               icon: '/icon-192.png',
               requireInteraction: true,
               vibrate: [300, 100, 300, 100, 300]
-            });
+            }); } catch (_) {}
           }
         });
       } catch (error) {

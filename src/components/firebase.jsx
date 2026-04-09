@@ -25,9 +25,10 @@ export const initFirebase = () => {
 export const getFCMToken = async (swRegistration) => {
   const { messaging: msg } = initFirebase();
 
-  console.log('[FCM] Current permission:', Notification.permission);
-  if (Notification.permission !== 'granted') {
-    throw new Error('Notification permission not granted: ' + Notification.permission);
+  const notifPermission = ('Notification' in window) ? window.Notification.permission : 'denied';
+  console.log('[FCM] Current permission:', notifPermission);
+  if (notifPermission !== 'granted') {
+    throw new Error('Notification permission not granted: ' + notifPermission);
   }
 
   console.log('[FCM] SW scope:', swRegistration?.scope, 'active state:', swRegistration?.active?.state);
