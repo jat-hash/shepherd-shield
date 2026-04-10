@@ -71,17 +71,22 @@ export default function AdminMonitor() {
       return;
     }
     try {
-      const [assignmentsRes, personalRes, usersRes, equipmentRes] = await Promise.allSettled([
+      const [todayAssignments, todayPersonalCheckIns, checkedOutEquipment] = await Promise.all([
         base44.entities.Assignment.filter({ service_date: today }, "-start_time", 200),
         base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 200),
-        base44.functions.invoke("listUsers"),
         base44.entities.Equipment.filter({ checked_out: true }, "-checked_out_at", 200),
       ]);
-      const todayAssignments = assignmentsRes.status === 'fulfilled' ? assignmentsRes.value : [];
-      const todayPersonalCheckIns = personalRes.status === 'fulfilled' ? personalRes.value : [];
-      const teamUsers = usersRes.status === 'fulfilled' ? (usersRes.value?.data?.users || []) : [];
-      const checkedOutEquipment = equipmentRes.status === 'fulfilled' ? equipmentRes.value : [];
       setEquipmentCheckouts(checkedOutEquipment || []);
+
+      // Fetch all users separately so a failure here doesn't break the whole page
+      let teamUsers = [];
+      try {
+        const usersRes = await base44.functions.invoke("listUsers");
+        teamUsers = usersRes?.data?.users || [];
+        setAllUsers(teamUsers);
+      } catch (e) {
+        console.warn("Could not load user list:", e.message);
+      }
 
       // Normalize personal check-ins to assignment shape
       const normalizedPersonal = todayPersonalCheckIns.map(p => ({
