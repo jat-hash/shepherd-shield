@@ -61,6 +61,7 @@ export default function NotificationProvider({ children }) {
   const { user } = useAuth();
   const [emergencyAlert, setEmergencyAlert] = useState(null);
   const emergencyAlertRef = useRef(emergencyAlert);
+  const mountTimeRef = useRef(Date.now());  // only process events created after mount
 
   useEffect(() => {
     emergencyAlertRef.current = emergencyAlert;
@@ -84,6 +85,10 @@ export default function NotificationProvider({ children }) {
   // Emergency Alerts with full-screen overlay
   useEffect(() => {
     const unsubscribe = base44.entities.EmergencyAlert.subscribe((event) => {
+      // Ignore events that existed before this session mounted
+      const eventTime = event.data?.created_date ? new Date(event.data.created_date).getTime() : 0;
+      if (eventTime && eventTime < mountTimeRef.current - 5000) return;
+
       if (event.type === "create" && event.data?.is_active) {
         setEmergencyAlert(event.data);
 
@@ -176,6 +181,9 @@ export default function NotificationProvider({ children }) {
     const unsubscribe = base44.entities.TeamMessage.subscribe((event) => {
       if (event.type === "create" && event.data) {
         const msg = event.data;
+        // Ignore old messages that existed before this session mounted
+        const msgTime = msg.created_date ? new Date(msg.created_date).getTime() : 0;
+        if (msgTime && msgTime < mountTimeRef.current - 5000) return;
         
         // Cache message for offline access
         cacheData('messages', msg);
@@ -234,6 +242,9 @@ export default function NotificationProvider({ children }) {
 
     const unsubscribe = base44.entities.Assignment.subscribe((event) => {
       if (event.data?.assigned_to_email !== user.email) return;
+      // Ignore old assignments that existed before this session mounted
+      const evtTime = event.data?.created_date ? new Date(event.data.created_date).getTime() : 0;
+      if (event.type === "create" && evtTime && evtTime < mountTimeRef.current - 5000) return;
 
       // Cache assignment for offline access
       if (event.type === "create" || event.type === "update") {
