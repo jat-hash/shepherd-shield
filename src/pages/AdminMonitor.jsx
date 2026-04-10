@@ -73,7 +73,7 @@ export default function AdminMonitor() {
     try {
       const [all, personalCheckIns, usersRes] = await Promise.all([
         base44.entities.Assignment.list("-service_date", 500),
-        base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 200),
+        base44.entities.PersonalCheckIn.list("-check_in_time", 500),
         base44.functions.invoke("listUsers"),
       ]);
       const teamUsers = usersRes?.data?.users || [];
@@ -179,7 +179,11 @@ export default function AdminMonitor() {
       filtered = filtered.filter(a => !a.checked_in);
     }
 
-    if (dateFilter) {
+    // Only apply date filter when not filtering by a specific check-in state
+    // (so admins can see all currently checked-in people regardless of assignment date)
+    if (dateFilter && checkInFilter === "all") {
+      filtered = filtered.filter(a => a.service_date === dateFilter);
+    } else if (dateFilter && checkInFilter === "not_checked_in") {
       filtered = filtered.filter(a => a.service_date === dateFilter);
     }
 
