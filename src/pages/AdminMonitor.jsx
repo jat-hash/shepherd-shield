@@ -178,20 +178,18 @@ export default function AdminMonitor() {
       filtered = filtered.filter(a => a.status === statusFilter);
     }
 
+    // Date filter: always show checked-in/checked-out people regardless of assignment date
+    // so admin can see who is currently on duty
+    if (dateFilter) {
+      filtered = filtered.filter(a => a.service_date === dateFilter || a.checked_in || a.checked_out);
+    }
+
     if (checkInFilter === "checked_in") {
       filtered = filtered.filter(a => a.checked_in && !a.checked_out);
     } else if (checkInFilter === "checked_out") {
       filtered = filtered.filter(a => a.checked_out);
     } else if (checkInFilter === "not_checked_in") {
-      filtered = filtered.filter(a => !a.checked_in);
-    }
-
-    // Only apply date filter when not filtering by a specific check-in state
-    // (so admins can see all currently checked-in people regardless of assignment date)
-    if (dateFilter && checkInFilter === "all") {
-      filtered = filtered.filter(a => a.service_date === dateFilter);
-    } else if (dateFilter && checkInFilter === "not_checked_in") {
-      filtered = filtered.filter(a => a.service_date === dateFilter);
+      filtered = filtered.filter(a => !a.checked_in && a.service_date === dateFilter);
     }
 
     setFilteredAssignments(filtered);
