@@ -144,7 +144,7 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
       notifications.forEach(n => {
         if (!seenIdsRef.current.has(n.id)) {
           // Only alert for notifications created after this session started
-          if (n.created_date && n.created_date >= mountTimeRef.current) {
+          if (n.created_date && new Date(n.created_date) >= new Date(mountTimeRef.current)) {
             triggerAlert({
               id: n.id,
               message: n.message || n.title,
