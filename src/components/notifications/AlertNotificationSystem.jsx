@@ -206,9 +206,15 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
     };
   }, [user?.email, poll, triggerAlert]);
 
-  const dismissToast = useCallback((toastId) => {
+  const dismissToast = useCallback((toastId, notifId) => {
     setToasts(prev => prev.filter(t => t._toastId !== toastId));
-  }, []);
+    // Mark as read in DB so it never reappears
+    if (notifId) {
+      base44.entities.Notification.update(notifId, { read: true }).catch(() => {});
+    }
+    unreadCountRef.current = Math.max(0, unreadCountRef.current - 1);
+    onUnreadCountChange?.(unreadCountRef.current);
+  }, [onUnreadCountChange]);
 
   return (
     <>
@@ -218,7 +224,7 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
           <div key={t._toastId} className="pointer-events-auto">
             <AlertToast
               alert={t}
-              onDismiss={() => dismissToast(t._toastId)}
+              onDismiss={() => dismissToast(t._toastId, t.id)}
             />
           </div>
         ))}
