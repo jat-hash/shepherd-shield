@@ -8,55 +8,6 @@ import OfflineIndicator from "./OfflineIndicator";
 import UrgentAlertSystem from "./UrgentAlertSystem";
 import { cacheData, syncPendingMessages } from "@/lib/offlineStorage";
 
-// Loud sound notification helper
-const playNotificationSound = (type = 'message') => {
-  try {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    
-    if (type === 'emergency') {
-      // LOUD urgent alarm - multiple beeps
-      for (let i = 0; i < 3; i++) {
-        setTimeout(() => {
-          const oscillator = audioContext.createOscillator();
-          const gainNode = audioContext.createGain();
-          oscillator.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-          oscillator.frequency.value = 880;
-          oscillator.type = 'square';
-          gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-          oscillator.start(audioContext.currentTime);
-          oscillator.stop(audioContext.currentTime + 0.3);
-        }, i * 400);
-      }
-    } else if (type === 'alert') {
-      // Alert message - double beep
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      oscillator.frequency.value = 660;
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.25);
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.25);
-    } else {
-      // Regular message - single ping
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      oscillator.frequency.value = 520;
-      gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.2);
-    }
-  } catch (error) {
-    console.log('Audio not supported');
-  }
-};
-
 export default function NotificationProvider({ children }) {
   const { user } = useAuth();
   const [emergencyAlert, setEmergencyAlert] = useState(null);
@@ -94,9 +45,6 @@ export default function NotificationProvider({ children }) {
 
         // Cache alert for offline access
         cacheData('alerts', event.data);
-
-        // LOUD emergency sound
-        playNotificationSound('emergency');
 
         // INTENSE vibration pattern (like Amber Alert)
         if (navigator.vibrate) {
@@ -164,7 +112,6 @@ export default function NotificationProvider({ children }) {
           setEmergencyAlert(null);
         } else {
           setEmergencyAlert(event.data);
-          playNotificationSound('emergency');
           if (navigator.vibrate) {
             navigator.vibrate([1000, 200, 1000, 200, 1000, 200, 1000]);
           }
@@ -197,9 +144,6 @@ export default function NotificationProvider({ children }) {
                                msg.content?.toLowerCase().includes(user.email?.toLowerCase());
 
         if (isHighPriority) {
-          // Play alert sound for priority messages
-          playNotificationSound(msg.message_type === 'alert' ? 'alert' : 'message');
-          
           // Vibrate
           if (navigator.vibrate) {
             navigator.vibrate(msg.message_type === 'alert' ? [200, 100, 200] : [100]);
@@ -256,9 +200,6 @@ export default function NotificationProvider({ children }) {
         const today = new Date().toISOString().split("T")[0];
         const isToday = assignment.service_date === today;
 
-        // Play sound for new assignment
-        playNotificationSound(isToday ? 'alert' : 'message');
-        
         // Vibrate
         if (navigator.vibrate) {
           navigator.vibrate(isToday ? [200, 100, 200] : [100]);
