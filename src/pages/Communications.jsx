@@ -208,7 +208,8 @@ export default function Communications() {
       
       // Send FCM notification to receiver if DM
       if (activeChannel.type === 'dm' && messageData.content) {
-        const recipientEmail = activeChannel.name.replace('DM: ', '').split('-').find(e => e !== user.email);
+        const withoutPrefix = activeChannel.name.replace('DM: ', '');
+        const recipientEmail = withoutPrefix.replace(user.email, '').replace(/^-|-$/g, '').trim();
         if (recipientEmail) {
           base44.functions.invoke('sendFCMNotification', {
             recipient_email: recipientEmail,
