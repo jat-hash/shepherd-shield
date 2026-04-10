@@ -71,14 +71,17 @@ export default function AdminMonitor() {
       return;
     }
     try {
-      const [todayAssignments, todayPersonalCheckIns, usersRes, checkedOutEquipment] = await Promise.all([
+      const [assignmentsRes, personalRes, usersRes, equipmentRes] = await Promise.allSettled([
         base44.entities.Assignment.filter({ service_date: today }, "-start_time", 200),
         base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 200),
         base44.functions.invoke("listUsers"),
         base44.entities.Equipment.filter({ checked_out: true }, "-checked_out_at", 200),
       ]);
+      const todayAssignments = assignmentsRes.status === 'fulfilled' ? assignmentsRes.value : [];
+      const todayPersonalCheckIns = personalRes.status === 'fulfilled' ? personalRes.value : [];
+      const teamUsers = usersRes.status === 'fulfilled' ? (usersRes.value?.data?.users || []) : [];
+      const checkedOutEquipment = equipmentRes.status === 'fulfilled' ? equipmentRes.value : [];
       setEquipmentCheckouts(checkedOutEquipment || []);
-      const teamUsers = usersRes?.data?.users || [];
 
       // Normalize personal check-ins to assignment shape
       const normalizedPersonal = todayPersonalCheckIns.map(p => ({
