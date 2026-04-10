@@ -59,7 +59,7 @@ export default function Profile() {
       {/* Profile Header */}
       <div className="bg-[#1a2744] rounded-2xl border border-[rgba(212,168,67,0.1)] p-4 sm:p-6 text-center">
         <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#d4a843] to-[#b8902a] flex items-center justify-center text-[#0a1128] text-2xl sm:text-3xl font-bold mx-auto mb-3 sm:mb-4">
-         {(displayUser?.full_name || displayUser?.display_name || displayUser?.email || '?').charAt(0).toUpperCase()}
+         {(displayUser?.data?.display_name || displayUser?.display_name || displayUser?.full_name || displayUser?.email || '?').charAt(0).toUpperCase()}
         </div>
         
         {/* Display Name */}
@@ -77,8 +77,8 @@ export default function Profile() {
           </div>
         ) : (
           <div className="flex items-center justify-center gap-2 mb-3">
-            <h2 className="text-xl font-bold text-white">{displayUser?.full_name || displayUser?.display_name || "User"}</h2>
-            <button onClick={() => { setNewDisplayName(displayUser?.display_name || ""); setEditingDisplayName(true); }} className="text-slate-400 hover:text-[#d4a843] transition-colors">
+            <h2 className="text-xl font-bold text-white">{displayUser?.data?.display_name || displayUser?.display_name || displayUser?.full_name || "User"}</h2>
+            <button onClick={() => { setNewDisplayName(displayUser?.data?.display_name || displayUser?.display_name || ""); setEditingDisplayName(true); }} className="text-slate-400 hover:text-[#d4a843] transition-colors">
               <Edit2 className="w-4 h-4" />
             </button>
           </div>

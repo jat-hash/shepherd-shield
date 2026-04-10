@@ -78,7 +78,7 @@ export default function IncidentForm({ open, onClose, onSaved }) {
     const user = await base44.auth.me();
     await base44.entities.Incident.create({
       ...form,
-      reported_by: user?.full_name || user?.email || "Unknown",
+      reported_by: user?.data?.display_name || user?.display_name || user?.full_name || user?.email || "Unknown",
     });
     setSaving(false);
     onSaved?.();

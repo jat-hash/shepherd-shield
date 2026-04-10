@@ -12,7 +12,7 @@ export default function MemberProfileDialog({ member, open, onClose }) {
     setStats(null);
     Promise.all([
       base44.entities.Assignment.filter({ assigned_to_email: member.email }),
-      base44.entities.Incident.filter({ reported_by: member.full_name || member.email }),
+      base44.entities.Incident.filter({ reported_by: member.data?.display_name || member.display_name || member.full_name || member.email }),
     ]).then(([assignments, incidents]) => {
       setStats({ assignments: assignments.length, incidents: incidents.length });
     });
@@ -20,7 +20,7 @@ export default function MemberProfileDialog({ member, open, onClose }) {
 
   if (!member) return null;
 
-  const name = member.display_name || member.full_name || "Team Member";
+  const name = member.data?.display_name || member.display_name || member.full_name || "Team Member";
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
