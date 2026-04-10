@@ -102,11 +102,11 @@ export default function ShiftScheduler({ onSaved }) {
         start_time: pos?.default_radio_channel ? "09:00" : "09:00",
         end_time: "12:00",
         assigned_to_email: userEmail,
-        assigned_to_name: user.display_name || user.full_name || userEmail,
+        assigned_to_name: user.data?.display_name || user.display_name || user.full_name || userEmail,
         radio_channel: pos?.default_radio_channel || "",
         status: "Pending",
       });
-      toast.success(`${user.display_name || user.full_name} assigned to ${positionName}`);
+      toast.success(`${user.data?.display_name || user.display_name || user.full_name} assigned to ${positionName}`);
       await loadAll();
       onSaved?.();
     } catch (e) {
@@ -150,7 +150,7 @@ export default function ShiftScheduler({ onSaved }) {
                       >
                         <GripVertical className="w-3 h-3 text-slate-600 shrink-0" />
                         <User className="w-3 h-3 text-[#d4a843] shrink-0" />
-                        <span className="truncate text-[10px]">{u.display_name || u.full_name || u.email.split("@")[0]}</span>
+                        <span className="truncate text-[10px]">{u.data?.display_name || u.display_name || u.full_name || u.email.split("@")[0]}</span>
                       </div>
                     )}
                   </Draggable>
