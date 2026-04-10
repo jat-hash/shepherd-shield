@@ -126,6 +126,14 @@ export default function Communications() {
     setLoading(true);
     const currentChannel = activeChannel.name;
 
+    // Guard: if this is a DM channel, ensure current user is a participant
+    if (activeChannel.type === "dm" && user?.email && !currentChannel.includes(user.email)) {
+      setMessages([]);
+      setPinnedMessages([]);
+      setLoading(false);
+      return;
+    }
+
     if (!navigator.onLine) {
       getCachedData('messages').then(cached => {
         const channelMsgs = (cached || []).filter(m => m.channel === currentChannel).sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
@@ -135,17 +143,15 @@ export default function Communications() {
       });
       return;
     }
-    
+
     base44.entities.TeamMessage.filter({ channel: currentChannel }, "-created_date", 100)
       .then(msgs => {
         const sorted = msgs.reverse();
         setMessages(sorted.filter(m => !m.is_pinned));
         setPinnedMessages(sorted.filter(m => m.is_pinned));
-        // Cache all messages for this channel
         cacheData('messages', sorted).catch(() => {});
         setLoading(false);
-        
-        // Mark as read
+
         if (user?.email) {
           sorted.forEach(msg => {
             if (!msg.read_by?.includes(user.email) && msg.sender_email !== user.email) {
@@ -158,10 +164,10 @@ export default function Communications() {
       });
 
     const unsub = base44.entities.TeamMessage.subscribe((event) => {
-      // For DM channels, only show messages if the current user is a participant
       const eventChannel = event.data?.channel || "";
       const isDMEvent = eventChannel.startsWith("DM: ");
-      const userIsParticipant = isDMEvent ? eventChannel.includes(user?.email || "") : true;
+      // Strict participant check: user's email must be in the channel string
+      const userIsParticipant = isDMEvent ? (user?.email ? eventChannel.includes(user.email) : false) : true;
 
       const isForCurrentChannel = event.data?.channel === currentChannel;
       const isDeleteOfVisible = event.type === "delete" &&
