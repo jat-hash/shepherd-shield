@@ -14,34 +14,6 @@ const isFCMSupported = () => {
   } catch (_) { return false; }
 };
 
-// Play an alarm beep sound for foreground alerts
-async function playAlarmSound() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    // Resume context - required after user gesture policy
-    if (ctx.state === 'suspended') {
-      await ctx.resume();
-    }
-    const playBeep = (startTime, freq = 880) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.value = freq;
-      osc.type = 'square';
-      gain.gain.setValueAtTime(0.5, startTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.5);
-      osc.start(startTime);
-      osc.stop(startTime + 0.5);
-    };
-    playBeep(ctx.currentTime);
-    playBeep(ctx.currentTime + 0.6);
-    playBeep(ctx.currentTime + 1.2);
-  } catch (e) {
-    console.log('Audio context error:', e);
-  }
-}
-
 export default function ServiceWorkerRegister() {
   const { user } = useAuth();
   const [debugLogs, setDebugLogs] = useState([]);
@@ -147,7 +119,7 @@ export default function ServiceWorkerRegister() {
             addLog('Foreground msg: ' + (payload.notification?.title || 'no title'));
             const title = payload.notification?.title || 'Shepherd Shield Alert';
             const body = payload.notification?.body || 'New notification';
-            playAlarmSound();
+            if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
             toast.error(`🚨 ${title}: ${body}`, { duration: 10000, position: 'top-center' });
             if ('Notification' in window && window.Notification.permission === 'granted') {
               try { new window.Notification(title, { body, icon: '/icon-192.png', requireInteraction: true }); } catch (_) {}
