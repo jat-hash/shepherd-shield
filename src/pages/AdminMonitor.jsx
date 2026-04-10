@@ -88,32 +88,60 @@ export default function AdminMonitor() {
         console.warn("Could not load user list:", e.message);
       }
 
-      // Normalize personal check-ins to assignment shape
-      const normalizedPersonal = todayPersonalCheckIns.map(p => ({
-        id: p.id,
-        assigned_to_name: p.user_name,
-        assigned_to_email: p.user_email,
-        position_name: "Personal Check-in",
-        service_date: p.check_in_date,
-        start_time: "",
-        end_time: "",
-        status: "Confirmed",
-        checked_in: true,
-        check_in_time: p.check_in_time,
-        checked_out: !!p.check_out_time,
-        check_out_time: p.check_out_time,
-        check_in_latitude: p.latitude,
-        check_in_longitude: p.longitude,
-        _isPersonal: true,
-      }));
+      // Build a map of personal check-ins by email for merging
+      const personalByEmail = {};
+      todayPersonalCheckIns.forEach(p => { personalByEmail[p.user_email] = p; });
 
-      // Build set of emails already represented
+      // Merge personal check-in status INTO assignments where the person checked in personally
+      // (e.g. they did a personal check-in but also have a formal assignment)
+      const enrichedAssignments = todayAssignments.map(a => {
+        const personal = personalByEmail[a.assigned_to_email];
+        if (personal && !a.checked_in && personal.check_in_time) {
+          return {
+            ...a,
+            checked_in: true,
+            check_in_time: personal.check_in_time,
+            checked_out: !!personal.check_out_time,
+            check_out_time: personal.check_out_time || null,
+            check_in_latitude: personal.latitude,
+            check_in_longitude: personal.longitude,
+          };
+        }
+        return a;
+      });
+
+      // Emails that already have a formal assignment today — these take priority
+      const assignmentEmails = new Set(enrichedAssignments.map(a => a.assigned_to_email));
+
+      // Only include personal check-ins for people WITHOUT a formal assignment today
+      // (avoids duplicate/conflicting status entries)
+      const normalizedPersonal = todayPersonalCheckIns
+        .filter(p => !assignmentEmails.has(p.user_email))
+        .map(p => ({
+          id: p.id,
+          assigned_to_name: p.user_name,
+          assigned_to_email: p.user_email,
+          position_name: "Personal Check-in",
+          service_date: p.check_in_date,
+          start_time: "",
+          end_time: "",
+          status: "Confirmed",
+          checked_in: true,
+          check_in_time: p.check_in_time,
+          checked_out: !!p.check_out_time,
+          check_out_time: p.check_out_time,
+          check_in_latitude: p.latitude,
+          check_in_longitude: p.longitude,
+          _isPersonal: true,
+        }));
+
+      // Build set of all emails represented
       const emailsWithRecords = new Set([
         ...todayAssignments.map(a => a.assigned_to_email),
         ...normalizedPersonal.map(p => p.assigned_to_email),
       ]);
 
-      // Ghost entries for members with no assignment or personal check-in today
+      // Ghost entries for members with no record today
       const ghostMembers = teamUsers
         .filter(u => u.email && !emailsWithRecords.has(u.email))
         .map(u => ({
@@ -130,7 +158,7 @@ export default function AdminMonitor() {
           _isGhost: true,
         }));
 
-      const merged = [...todayAssignments, ...normalizedPersonal, ...ghostMembers];
+      const merged = [...enrichedAssignments, ...normalizedPersonal, ...ghostMembers];
       setAssignments(merged);
       setFilteredAssignments(merged);
       await cacheData('assignments', merged).catch(() => {});
