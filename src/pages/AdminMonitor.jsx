@@ -71,10 +71,12 @@ export default function AdminMonitor() {
       return;
     }
     try {
-      const [all, personalCheckIns] = await Promise.all([
+      const [all, personalCheckIns, usersRes] = await Promise.all([
         base44.entities.Assignment.list("-service_date", 500),
         base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 200),
+        base44.functions.invoke("listUsers"),
       ]);
+      const teamUsers = usersRes?.data?.users || [];
       // Normalize personal check-ins to assignment shape
       const normalizedPersonal = personalCheckIns.map(p => ({
         id: p.id,
@@ -93,7 +95,27 @@ export default function AdminMonitor() {
         check_in_longitude: p.longitude,
         _isPersonal: true,
       }));
-      const merged = [...all, ...normalizedPersonal];
+      // Add ghost records for members who have no record today
+      const emailsWithTodayRecords = new Set([
+        ...all.filter(a => a.service_date === today).map(a => a.assigned_to_email),
+        ...normalizedPersonal.map(p => p.assigned_to_email),
+      ]);
+      const ghostMembers = teamUsers
+        .filter(u => !emailsWithTodayRecords.has(u.email))
+        .map(u => ({
+          id: `ghost-${u.email}`,
+          assigned_to_name: u.full_name || u.email,
+          assigned_to_email: u.email,
+          position_name: "No Assignment Today",
+          service_date: today,
+          start_time: "",
+          end_time: "",
+          status: "Pending",
+          checked_in: false,
+          checked_out: false,
+          _isGhost: true,
+        }));
+      const merged = [...all, ...normalizedPersonal, ...ghostMembers];
       setAssignments(merged);
       setFilteredAssignments(merged);
       await cacheData('assignments', merged).catch(() => {});
