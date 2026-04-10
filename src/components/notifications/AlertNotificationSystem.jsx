@@ -3,63 +3,6 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { X, AlertTriangle, Bell, Info, CheckCircle } from "lucide-react";
 
-// --- Sound Generator ---
-function playSound(priority) {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const master = ctx.createGain();
-    master.gain.setValueAtTime(1.0, ctx.currentTime);
-    master.connect(ctx.destination);
-
-    if (priority === "low") {
-      // Ascending 3-note ding — clearly audible
-      [0, 0.18, 0.36].forEach((offset, i) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(master);
-        osc.type = "sine";
-        osc.frequency.setValueAtTime([784, 988, 1175][i], ctx.currentTime + offset);
-        gain.gain.setValueAtTime(0.5, ctx.currentTime + offset);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.25);
-        osc.start(ctx.currentTime + offset);
-        osc.stop(ctx.currentTime + offset + 0.25);
-      });
-    } else if (priority === "medium") {
-      // Urgent double-pulse beep — like a warning klaxon
-      [0, 0.25, 0.5, 0.75].forEach((offset, i) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(master);
-        osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(i % 2 === 0 ? 700 : 950, ctx.currentTime + offset);
-        gain.gain.setValueAtTime(0.7, ctx.currentTime + offset);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.2);
-        osc.start(ctx.currentTime + offset);
-        osc.stop(ctx.currentTime + offset + 0.2);
-      });
-    } else if (priority === "high") {
-      // Loud wailing siren — alternating frequency sweep
-      for (let i = 0; i < 6; i++) {
-        const offset = i * 0.2;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(master);
-        osc.type = "square";
-        const freqStart = i % 2 === 0 ? 440 : 880;
-        const freqEnd = i % 2 === 0 ? 880 : 440;
-        osc.frequency.setValueAtTime(freqStart, ctx.currentTime + offset);
-        osc.frequency.exponentialRampToValueAtTime(freqEnd, ctx.currentTime + offset + 0.18);
-        gain.gain.setValueAtTime(0.9, ctx.currentTime + offset);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.18);
-        osc.start(ctx.currentTime + offset);
-        osc.stop(ctx.currentTime + offset + 0.18);
-      }
-    }
-
-    setTimeout(() => ctx.close(), 3000);
-  } catch (_) {}
-}
-
 // --- Browser Notification ---
 function showBrowserNotification(message, priority) {
   if (!("Notification" in window) || window.Notification?.permission !== "granted") return;
@@ -80,7 +23,6 @@ function AlertToast({ alert, onDismiss }) {
 
   useEffect(() => {
     setTimeout(() => setVisible(true), 10);
-    // High priority requires manual acknowledgment — no auto-dismiss
     if (alert.priority !== "high") {
       const timer = setTimeout(() => {
         setVisible(false);
@@ -95,7 +37,7 @@ function AlertToast({ alert, onDismiss }) {
     setTimeout(onDismiss, 300);
   };
 
-  const { priority, message, type } = alert;
+  const { priority, message } = alert;
 
   const styles = {
     low: "bg-slate-700 border-slate-500 text-slate-100",
@@ -149,12 +91,6 @@ function ScreenFlash({ active }) {
   );
 }
 
-// --- Continuous Alarm ---
-function startContinuousAlarm() {
-  const interval = setInterval(() => playSound("high"), 1500);
-  return interval;
-}
-
 // --- Main Component ---
 export default function AlertNotificationSystem({ onUnreadCountChange }) {
   const { user } = useAuth();
@@ -164,8 +100,6 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
   const seededRef = useRef(false);
   const unreadCountRef = useRef(0);
   const pollRef = useRef(null);
-  const alarmIntervalRef = useRef(null);
-  const activeHighAlarmsRef = useRef(new Set());
 
   // Request browser notification permission on mount
   useEffect(() => {
@@ -175,16 +109,15 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
   }, []);
 
   const triggerAlert = useCallback((notification) => {
-    const { id, message, priority = "low", type } = notification;
+    const { id, message, priority = "low" } = notification;
 
     if (seenIdsRef.current.has(id)) return;
     seenIdsRef.current.add(id);
 
-    // Increment unread count
     unreadCountRef.current += 1;
     onUnreadCountChange?.(unreadCountRef.current);
 
-    // Browser notification for medium/high (respects system DND)
+    // Browser notification (respects system DND)
     if (priority === "medium" || priority === "high") {
       showBrowserNotification(message, priority);
     }
@@ -195,7 +128,6 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
       setTimeout(() => setScreenFlash(false), 1200);
     }
 
-    // In-app toast
     const toastId = `${id}-${Date.now()}`;
     setToasts(prev => [...prev, { ...notification, _toastId: toastId }]);
   }, [onUnreadCountChange]);
@@ -218,26 +150,25 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
           });
         }
       });
-    } catch (_) {
-      // Silently fail
-    }
+    } catch (_) {}
   }, [user?.email, triggerAlert]);
 
   useEffect(() => {
     if (!user?.email) return;
 
-    let unsub = null;
+    let unsub = () => {};
     let cancelled = false;
 
-    // Seed ALL existing unread notification IDs first, THEN subscribe
-    base44.entities.Notification.filter({ user_email: user.email, read: false }, "-created_date", 100)
+    // CRITICAL: seed ALL existing notification IDs first, THEN subscribe
+    // This prevents old/existing notifications from triggering on load
+    base44.entities.Notification.filter({ user_email: user.email }, "-created_date", 200)
       .then(existing => {
         existing.forEach(n => seenIdsRef.current.add(n.id));
         seededRef.current = true;
 
         if (cancelled) return;
 
-        // Now safe to subscribe — all pre-existing IDs are in seenIdsRef
+        // Only subscribe AFTER seeding is complete
         unsub = base44.entities.Notification.subscribe((event) => {
           if (event.type === "create" && event.data?.user_email === user.email) {
             triggerAlert({
@@ -249,44 +180,39 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
           }
         });
 
-        // Polling fallback every 60 seconds
+        // Start polling fallback only after seeding
         pollRef.current = setInterval(poll, 60000);
       })
       .catch(() => {
         seededRef.current = true;
       });
 
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") poll();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
     return () => {
       cancelled = true;
-      unsub?.();
+      unsub();
       clearInterval(pollRef.current);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [user?.email, triggerAlert, poll]);
+  }, [user?.email, poll, triggerAlert]);
 
-  const dismissToast = useCallback((toastId, notifId, priority) => {
+  const dismissToast = useCallback((toastId) => {
     setToasts(prev => prev.filter(t => t._toastId !== toastId));
-    // If this was a high-priority alarm, remove from active set
-    if (priority === "high" && notifId) {
-      activeHighAlarmsRef.current.delete(notifId);
-      if (activeHighAlarmsRef.current.size === 0 && alarmIntervalRef.current) {
-        clearInterval(alarmIntervalRef.current);
-        alarmIntervalRef.current = null;
-        if (navigator.vibrate) navigator.vibrate(0); // stop vibration
-      }
-    }
   }, []);
 
   return (
     <>
       <ScreenFlash active={screenFlash} />
-
-      {/* Toast Stack — top right */}
       <div className="fixed top-20 right-4 z-[9998] flex flex-col gap-2 pointer-events-none">
         {toasts.map(t => (
           <div key={t._toastId} className="pointer-events-auto">
             <AlertToast
               alert={t}
-              onDismiss={() => dismissToast(t._toastId, t.id, t.priority)}
+              onDismiss={() => dismissToast(t._toastId)}
             />
           </div>
         ))}
