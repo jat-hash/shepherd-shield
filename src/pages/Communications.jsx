@@ -271,7 +271,7 @@ export default function Communications() {
     setActiveChannel({
       name: dmChannel,
       type: "dm",
-      displayName: otherUser.full_name || otherUser.email
+      displayName: otherUser.data?.display_name || otherUser.display_name || otherUser.full_name || otherUser.email
     });
     
     if (!dmChannels.includes(dmChannel)) {
@@ -318,7 +318,8 @@ export default function Communications() {
     const withoutPrefix = dmChannel.replace("DM: ", "");
     // Try to find the other email by checking all users
     const otherUser = allUsers.find(u => u.email !== user?.email && withoutPrefix.includes(u.email));
-    if (otherUser?.full_name) return otherUser.full_name;
+    if (otherUser?.data?.display_name) return otherUser.data.display_name;
+    if (otherUser?.display_name) return otherUser.display_name;
     // Fallback: parse by splitting on "-" (works when emails have no hyphens)
     const parts = withoutPrefix.split("-");
     const otherEmail = parts.find(e => e !== user?.email && e.includes("@"));
