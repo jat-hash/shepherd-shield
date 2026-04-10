@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { CheckCircle, XCircle, Clock, Edit2, Search, Trash2, Bell, Send, MessageSquare, WifiOff } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Edit2, Search, Trash2, Bell, Send, MessageSquare, WifiOff, Wrench } from "lucide-react";
 import { cacheData, getCachedData, savePendingCheckIn, syncPendingCheckIns } from "@/lib/offlineStorage";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,7 @@ export default function AdminMonitor() {
   const today = new Date().toLocaleDateString('en-CA'); // en-CA gives YYYY-MM-DD in local time
   const [dateFilter, setDateFilter] = useState(today);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [equipmentCheckouts, setEquipmentCheckouts] = useState([]);
 
   useEffect(() => {
     if (authUser) {
@@ -71,11 +72,13 @@ export default function AdminMonitor() {
       return;
     }
     try {
-      const [all, personalCheckIns, usersRes] = await Promise.all([
+      const [all, personalCheckIns, usersRes, checkedOutEquipment] = await Promise.all([
         base44.entities.Assignment.list("-service_date", 500),
         base44.entities.PersonalCheckIn.list("-check_in_time", 500),
         base44.functions.invoke("listUsers"),
+        base44.entities.Equipment.filter({ checked_out: true }, "-checked_out_at", 200),
       ]);
+      setEquipmentCheckouts(checkedOutEquipment || []);
       const teamUsers = usersRes?.data?.users || [];
       // Normalize personal check-ins to assignment shape
       const normalizedPersonal = personalCheckIns.map(p => ({
@@ -154,7 +157,11 @@ export default function AdminMonitor() {
     if (!user) return;
     const unsubA = base44.entities.Assignment.subscribe(() => loadAssignments());
     const unsubP = base44.entities.PersonalCheckIn.subscribe(() => loadAssignments());
-    return () => { unsubA(); unsubP(); };
+    const unsubE = base44.entities.Equipment.subscribe(() => {
+      base44.entities.Equipment.filter({ checked_out: true }, "-checked_out_at", 200)
+        .then(setEquipmentCheckouts).catch(() => {});
+    });
+    return () => { unsubA(); unsubP(); unsubE(); };
   }, [user]);
 
   useEffect(() => {
@@ -561,6 +568,50 @@ export default function AdminMonitor() {
               </div>
             </div>
           ))
+        )}
+      </div>
+
+      {/* Equipment Checkouts Section */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Wrench className="w-5 h-5 text-[#d4a843]" />
+          <h2 className="text-lg font-semibold text-white">Equipment Currently Checked Out</h2>
+          <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-[#d4a843]/20 text-[#d4a843]">{equipmentCheckouts.length}</span>
+        </div>
+        {equipmentCheckouts.length === 0 ? (
+          <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-6 text-center">
+            <p className="text-slate-400 text-sm">No equipment currently checked out</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {equipmentCheckouts.map(eq => (
+              <div key={eq.id} className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Wrench className="w-4 h-4 text-[#d4a843] shrink-0" />
+                  <div>
+                    <p className="text-white font-medium">{eq.name}</p>
+                    <p className="text-slate-400 text-xs">{eq.category} {eq.serial_number ? `· S/N: ${eq.serial_number}` : ""}</p>
+                  </div>
+                </div>
+                <div className="text-right text-sm">
+                  <p className="text-slate-300">{eq.checked_out_by || "Unknown"}</p>
+                  <p className="text-slate-500 text-xs">{eq.checked_out_at ? formatTime(eq.checked_out_at) : ""}</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-emerald-500 text-emerald-400 hover:bg-emerald-500/10"
+                  onClick={async () => {
+                    await base44.entities.Equipment.update(eq.id, { checked_out: false, checked_out_by: null, checked_out_at: null });
+                    setEquipmentCheckouts(prev => prev.filter(e => e.id !== eq.id));
+                    toast.success(`${eq.name} checked back in`);
+                  }}
+                >
+                  Check In
+                </Button>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
