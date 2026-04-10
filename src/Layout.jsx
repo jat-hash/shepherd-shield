@@ -155,7 +155,6 @@ export default function Layout({ children, currentPageName }) {
             <div className="w-8 h-8 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-xs cursor-pointer hover:bg-[#e0bb5e] transition-colors" title={user?.display_name}>
               {(user?.display_name || "").charAt(0).toUpperCase() || "?"}
             </div>
-            </div>
           </Link>
         </div>
       </header>
@@ -372,7 +371,7 @@ export default function Layout({ children, currentPageName }) {
                   { name: "Special Events", page: "SpecialEvents", icon: Calendar },
                   ...(user?.role === 'admin' ? [{ name: "Auto Rotate Schedule", page: "AutoRotation", icon: Bot }] : []),
                   { name: "Documents", page: "Documents", icon: FolderOpen },
-                  ].map(item => (
+                ].map(item => (
                   <Link
                     key={item.page}
                     to={createPageUrl(item.page)}
@@ -385,7 +384,7 @@ export default function Layout({ children, currentPageName }) {
                     <item.icon className="w-3.5 h-3.5" />
                     {item.name}
                   </Link>
-                  ))}
+                ))}
               </div>
             )}
           </div>
