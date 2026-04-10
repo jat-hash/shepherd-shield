@@ -101,7 +101,7 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
 
   const handleUserSelect = (email) => {
     const u = users.find(u => u.email === email);
-    setForm({ ...form, assigned_to_email: email, assigned_to_name: u?.display_name || u?.full_name || email });
+    setForm({ ...form, assigned_to_email: email, assigned_to_name: u?.data?.display_name || u?.display_name || u?.full_name || email });
   };
 
   const handlePositionSelect = (positionName) => {
@@ -115,7 +115,7 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
         position_name: pos.name,
         radio_channel: pos.default_radio_channel || form.radio_channel,
         assigned_to_email: pos.default_assigned_email || form.assigned_to_email,
-        assigned_to_name: assignedUser?.display_name || assignedUser?.full_name || pos.default_assigned_name || form.assigned_to_name,
+        assigned_to_name: assignedUser?.data?.display_name || assignedUser?.display_name || assignedUser?.full_name || pos.default_assigned_name || form.assigned_to_name,
       });
       setSelectedResponsibilities(pos.area_responsibilities || []);
     } else {
@@ -224,7 +224,7 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
               <Select value={form.assigned_to_email} onValueChange={handleUserSelect}>
                 <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white mt-1"><SelectValue placeholder="Select team member" /></SelectTrigger>
                 <SelectContent className="bg-[#1a2744] border-slate-700">
-                  {users.map(u => <SelectItem key={u.id} value={u.email} className="text-white">{u.display_name || u.full_name || u.email}</SelectItem>)}
+                  {users.map(u => <SelectItem key={u.id} value={u.email} className="text-white">{u.data?.display_name || u.display_name || u.full_name || u.email}</SelectItem>)}
                 </SelectContent>
               </Select>
             ) : (
