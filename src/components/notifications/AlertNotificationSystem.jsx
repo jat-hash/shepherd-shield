@@ -184,39 +184,7 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
     unreadCountRef.current += 1;
     onUnreadCountChange?.(unreadCountRef.current);
 
-    // Sound
-    playSound(priority);
-
-    // Continuous alarm for high priority until acknowledged
-    if (priority === "high") {
-      activeHighAlarmsRef.current.add(id);
-      if (!alarmIntervalRef.current) {
-        alarmIntervalRef.current = startContinuousAlarm();
-      }
-    }
-
-    // Vibrate — all priorities
-    if (navigator.vibrate) {
-      if (priority === "high") {
-        // Initial strong burst
-        navigator.vibrate([500, 150, 500, 150, 500, 150, 500]);
-        // Keep looping until acknowledged
-        const vibrateLoop = setInterval(() => {
-          if (activeHighAlarmsRef.current.size > 0) {
-            navigator.vibrate([400, 120, 400, 120, 400]);
-          } else {
-            clearInterval(vibrateLoop);
-          }
-        }, 2000);
-      } else if (priority === "medium") {
-        navigator.vibrate([300, 100, 300, 100, 300]);
-      } else {
-        // Low — two short pulses so it's noticeable
-        navigator.vibrate([150, 80, 150]);
-      }
-    }
-
-    // Browser notification for medium/high
+    // Browser notification for medium/high (respects system DND)
     if (priority === "medium" || priority === "high") {
       showBrowserNotification(message, priority);
     }
@@ -233,7 +201,7 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
   }, [onUnreadCountChange]);
 
   const poll = useCallback(async () => {
-    if (!user?.email) return;
+    if (!user?.email || !seededRef.current) return;
     try {
       const notifications = await base44.entities.Notification.filter(
         { user_email: user.email, read: false },
