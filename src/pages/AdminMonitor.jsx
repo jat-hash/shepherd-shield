@@ -50,7 +50,6 @@ export default function AdminMonitor() {
   const [notifyPhoneNumber, setNotifyPhoneNumber] = useState("");
   const [allUsers, setAllUsers] = useState([]);
   const today = new Date().toLocaleDateString('en-CA'); // en-CA gives YYYY-MM-DD in local time
-  const [dateFilter, setDateFilter] = useState(today);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [equipmentCheckouts, setEquipmentCheckouts] = useState([]);
 
@@ -72,16 +71,17 @@ export default function AdminMonitor() {
       return;
     }
     try {
-      const [all, personalCheckIns, usersRes, checkedOutEquipment] = await Promise.all([
-        base44.entities.Assignment.list("-service_date", 500),
-        base44.entities.PersonalCheckIn.list("-check_in_time", 500),
+      const [todayAssignments, todayPersonalCheckIns, usersRes, checkedOutEquipment] = await Promise.all([
+        base44.entities.Assignment.filter({ service_date: today }, "-start_time", 200),
+        base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 200),
         base44.functions.invoke("listUsers"),
         base44.entities.Equipment.filter({ checked_out: true }, "-checked_out_at", 200),
       ]);
       setEquipmentCheckouts(checkedOutEquipment || []);
       const teamUsers = usersRes?.data?.users || [];
+
       // Normalize personal check-ins to assignment shape
-      const normalizedPersonal = personalCheckIns.map(p => ({
+      const normalizedPersonal = todayPersonalCheckIns.map(p => ({
         id: p.id,
         assigned_to_name: p.user_name,
         assigned_to_email: p.user_email,
@@ -98,13 +98,16 @@ export default function AdminMonitor() {
         check_in_longitude: p.longitude,
         _isPersonal: true,
       }));
-      // Add ghost records for members who have no record today
-      const emailsWithTodayRecords = new Set([
-        ...all.filter(a => a.service_date === today).map(a => a.assigned_to_email),
+
+      // Build set of emails already represented
+      const emailsWithRecords = new Set([
+        ...todayAssignments.map(a => a.assigned_to_email),
         ...normalizedPersonal.map(p => p.assigned_to_email),
       ]);
+
+      // Ghost entries for members with no assignment or personal check-in today
       const ghostMembers = teamUsers
-        .filter(u => !emailsWithTodayRecords.has(u.email))
+        .filter(u => u.email && !emailsWithRecords.has(u.email))
         .map(u => ({
           id: `ghost-${u.email}`,
           assigned_to_name: u.full_name || u.email,
@@ -118,7 +121,8 @@ export default function AdminMonitor() {
           checked_out: false,
           _isGhost: true,
         }));
-      const merged = [...all, ...normalizedPersonal, ...ghostMembers];
+
+      const merged = [...todayAssignments, ...normalizedPersonal, ...ghostMembers];
       setAssignments(merged);
       setFilteredAssignments(merged);
       await cacheData('assignments', merged).catch(() => {});
@@ -178,22 +182,16 @@ export default function AdminMonitor() {
       filtered = filtered.filter(a => a.status === statusFilter);
     }
 
-    // Date filter: always show checked-in/checked-out people regardless of assignment date
-    // so admin can see who is currently on duty
-    if (dateFilter) {
-      filtered = filtered.filter(a => a.service_date === dateFilter || a.checked_in || a.checked_out);
-    }
-
     if (checkInFilter === "checked_in") {
       filtered = filtered.filter(a => a.checked_in && !a.checked_out);
     } else if (checkInFilter === "checked_out") {
       filtered = filtered.filter(a => a.checked_out);
     } else if (checkInFilter === "not_checked_in") {
-      filtered = filtered.filter(a => !a.checked_in && a.service_date === dateFilter);
+      filtered = filtered.filter(a => !a.checked_in);
     }
 
     setFilteredAssignments(filtered);
-  }, [searchQuery, statusFilter, checkInFilter, dateFilter, assignments]);
+  }, [searchQuery, statusFilter, checkInFilter, assignments]);
 
   const handleEdit = (assignment) => {
     setEditingAssignment(assignment);
@@ -425,19 +423,7 @@ export default function AdminMonitor() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-center gap-2 mt-2">
-          <Input
-            type="date"
-            value={dateFilter}
-            onChange={e => setDateFilter(e.target.value)}
-            className="bg-[#0a1128] border-[rgba(212,168,67,0.2)] text-white w-48"
-          />
-          {dateFilter && (
-            <Button variant="ghost" size="sm" onClick={() => setDateFilter("")} className="text-slate-400 hover:text-white">
-              Clear date
-            </Button>
-          )}
-        </div>
+
       </div>
 
       {/* Assignments List */}
