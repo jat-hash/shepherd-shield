@@ -138,6 +138,10 @@ export default function NotificationProvider({ children }) {
         // Skip own messages
         if (msg.sender_email === user.email) return;
 
+        // For DM channels, only show notification if current user is a participant
+        const isDM = msg.channel?.startsWith('DM: ');
+        if (isDM && !msg.channel.includes(user.email)) return;
+
         // Show if it's in a relevant channel or mentions user
         const isHighPriority = msg.message_type === "alert" || 
                                msg.content?.toLowerCase().includes(user.full_name?.toLowerCase()) ||
