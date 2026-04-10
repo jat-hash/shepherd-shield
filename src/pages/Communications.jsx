@@ -151,7 +151,7 @@ export default function Communications() {
         setPinnedMessages(sorted.filter(m => m.is_pinned));
         cacheData('messages', sorted).catch(() => {});
         setLoading(false);
-
+        
         if (user?.email) {
           sorted.forEach(msg => {
             if (!msg.read_by?.includes(user.email) && msg.sender_email !== user.email) {
