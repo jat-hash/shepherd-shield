@@ -22,10 +22,10 @@ export default function Communications() {
   const [typingUsers, setTypingUsers] = useState(new Set());
   const [isTyping, setIsTyping] = useState(false);
   const [dmChannels, setDmChannels] = useState([]);
-  const [dmUserMap, setDmUserMap] = useState({}); // channel -> other user's full_name
   const [activeChannel, setActiveChannel] = useState({ name: "All Team", type: "group" });
   const [uploading, setUploading] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [allUsers, setAllUsers] = useState([]);
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
   const fileInputRef = useRef(null);
@@ -55,45 +55,29 @@ export default function Communications() {
     base44.auth.me().then(u => {
       setUser(u);
       requestNotificationPermission();
+      // Load users for name lookup
+      base44.functions.invoke("listUsers").then(res => {
+        setAllUsers(res?.data?.users || []);
+      }).catch(() => {});
       if (navigator.onLine) {
-        // Load users first to build name map
-        base44.functions.invoke("listUsers").then(res => {
-          const allUsers = res?.data?.users || [];
-          cacheData(USERS_CACHE_KEY, allUsers).catch(() => {});
-          const nameMap = {};
-          allUsers.forEach(user => { nameMap[user.email] = user.full_name || user.email; });
-          // Load DM channels
-          base44.entities.TeamMessage.list("-created_date", 500).then(all => {
-            const dmSet = new Set();
-            all.forEach(msg => {
-              if (msg.channel?.startsWith("DM: ") && msg.channel.includes(u.email)) {
-                dmSet.add(msg.channel);
-              }
-            });
-            const channels = Array.from(dmSet);
-            setDmChannels(channels);
-            // Build channel -> display name map
-            const channelNames = {};
-            channels.forEach(ch => {
-              const emails = ch.replace("DM: ", "").split("-");
-              const otherEmail = emails.find(e => e !== u.email);
-              channelNames[ch] = otherEmail ? (nameMap[otherEmail] || otherEmail.split("@")[0]) : "Unknown";
-            });
-            setDmUserMap(channelNames);
+        // Load DM channels and cache users
+        base44.entities.TeamMessage.list("-created_date", 500).then(all => {
+          const dmSet = new Set();
+          all.forEach(msg => {
+            if (msg.channel?.startsWith("DM: ") && msg.channel.includes(u.email)) {
+              dmSet.add(msg.channel);
+            }
           });
-        }).catch(() => {
-          // Fallback: load DM channels from messages without name lookup
-          base44.entities.TeamMessage.list("-created_date", 500).then(all => {
-            const dmSet = new Set();
-            all.forEach(msg => {
-              if (msg.channel?.startsWith("DM: ") && msg.channel.includes(u.email)) {
-                dmSet.add(msg.channel);
-              }
-            });
-            setDmChannels(Array.from(dmSet));
-          }).catch(() => {});
+          setDmChannels(Array.from(dmSet));
         });
+        // Pre-cache users for offline DM selector
+        base44.functions.invoke("listUsers").then(res => {
+          const all = res?.data?.users || [];
+          setAllUsers(all);
+          cacheData(USERS_CACHE_KEY, all).catch(() => {});
+        }).catch(() => {});
       } else {
+        // Load DM channels from cached messages
         getCachedData('messages').then(cached => {
           if (!cached) return;
           const dmSet = new Set();
@@ -174,19 +158,22 @@ export default function Communications() {
       });
 
     const unsub = base44.entities.TeamMessage.subscribe((event) => {
-      // For DM channels: only process events for channels the current user is in
-      const eventChannel = event.data?.channel;
-      if (eventChannel?.startsWith("DM: ") && user?.email && !eventChannel.includes(user.email)) return;
+      // For DM channels, only show messages if the current user is a participant
+      const eventChannel = event.data?.channel || "";
+      const isDMEvent = eventChannel.startsWith("DM: ");
+      const userIsParticipant = isDMEvent ? eventChannel.includes(user?.email || "") : true;
 
-      if (eventChannel === currentChannel || (event.type === "delete" && messages.some(m => m.id === event.id)) || (event.type === "delete" && pinnedMessages.some(m => m.id === event.id))) {
+      const isForCurrentChannel = event.data?.channel === currentChannel;
+      const isDeleteOfVisible = event.type === "delete" &&
+        (messages.some(m => m.id === event.id) || pinnedMessages.some(m => m.id === event.id));
+
+      if ((isForCurrentChannel && userIsParticipant) || isDeleteOfVisible) {
         if (event.type === "create") {
           if (event.data.is_pinned) {
             setPinnedMessages(prev => [...prev, event.data]);
           } else {
             setMessages(prev => [...prev, event.data]);
           }
-          
-          // Send browser notification for new messages (when tab is open)
           if (user?.email && event.data.sender_email !== user.email) {
             const senderName = event.data.sender_name || event.data.sender_email;
             sendNotification(`New message from ${senderName}`, {
@@ -195,8 +182,6 @@ export default function Communications() {
               requireInteraction: false
             });
           }
-          
-          // Auto mark as read
           if (user?.email && event.data.sender_email !== user.email) {
             setTimeout(() => {
               base44.entities.TeamMessage.update(event.data.id, {
@@ -234,7 +219,7 @@ export default function Communications() {
     const messageData = {
       channel: activeChannel.name,
       content: newMsg.trim() || (attachment ? "Shared a file" : ""),
-      sender_name: user.display_name || user.full_name || user.email,
+      sender_name: user.full_name || user.email,
       sender_email: user.email,
       message_type: messageType,
       attachment: attachment,
@@ -305,16 +290,15 @@ export default function Communications() {
   };
 
   const handleSelectDM = (dmChannel, otherUser) => {
-    const displayName = otherUser.full_name || otherUser.email;
     setActiveChannel({
       name: dmChannel,
       type: "dm",
-      displayName
+      displayName: otherUser.full_name || otherUser.email
     });
     
     if (!dmChannels.includes(dmChannel)) {
       setDmChannels(prev => [...prev, dmChannel]);
-      setDmUserMap(prev => ({ ...prev, [dmChannel]: displayName }));
+      // If offline, queue the DM so it persists
       if (!navigator.onLine) {
         savePendingDM(dmChannel, otherUser).catch(() => {});
         toast.info('DM saved locally - will sync when online');
@@ -350,11 +334,15 @@ export default function Communications() {
   };
 
   const getDmDisplayName = (dmChannel) => {
-    // Use resolved name map if available
-    if (dmUserMap[dmChannel]) return dmUserMap[dmChannel];
-    // Fallback: parse email prefix
-    const emails = dmChannel.replace("DM: ", "").split("-");
-    const otherEmail = emails.find(e => e !== user?.email);
+    // Parse the two emails — sorted and joined with "-"
+    // We split on the pattern: find the email that is NOT the current user's
+    const withoutPrefix = dmChannel.replace("DM: ", "");
+    // Try to find the other email by checking all users
+    const otherUser = allUsers.find(u => u.email !== user?.email && withoutPrefix.includes(u.email));
+    if (otherUser?.full_name) return otherUser.full_name;
+    // Fallback: parse by splitting on "-" (works when emails have no hyphens)
+    const parts = withoutPrefix.split("-");
+    const otherEmail = parts.find(e => e !== user?.email && e.includes("@"));
     return otherEmail?.split("@")[0] || "Unknown";
   };
 
