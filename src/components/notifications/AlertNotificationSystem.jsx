@@ -226,42 +226,42 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
   useEffect(() => {
     if (!user?.email) return;
 
-    // Seed seen IDs with already-existing notifications so we don't spam on load
-    base44.entities.Notification.filter({ user_email: user.email, read: false }, "-created_date", 50)
+    let unsub = null;
+    let cancelled = false;
+
+    // Seed ALL existing unread notification IDs first, THEN subscribe
+    base44.entities.Notification.filter({ user_email: user.email, read: false }, "-created_date", 100)
       .then(existing => {
         existing.forEach(n => seenIdsRef.current.add(n.id));
         seededRef.current = true;
-      })
-      .catch(() => { seededRef.current = true; });
 
-    // Also subscribe to real-time changes
-    const unsub = base44.entities.Notification.subscribe((event) => {
-      if (!seededRef.current) return;
-      if (event.type === "create" && event.data?.user_email === user.email) {
-        triggerAlert({
-          id: event.data.id,
-          message: event.data.message || event.data.title,
-          priority: event.data.type === "general" ? "low" : event.data.type?.includes("reminder") ? "medium" : "high",
-          type: event.data.type,
+        if (cancelled) return;
+
+        // Now safe to subscribe — all pre-existing IDs are in seenIdsRef
+        unsub = base44.entities.Notification.subscribe((event) => {
+          if (event.type === "create" && event.data?.user_email === user.email) {
+            triggerAlert({
+              id: event.data.id,
+              message: event.data.message || event.data.title,
+              priority: event.data.type === "general" ? "low" : event.data.type?.includes("reminder") ? "medium" : "high",
+              type: event.data.type,
+            });
+          }
         });
-      }
-    });
 
-    // Polling fallback every 60 seconds
-    pollRef.current = setInterval(poll, 60000);
-
-    // Poll immediately when tab regains focus
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") poll();
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
+        // Polling fallback every 60 seconds
+        pollRef.current = setInterval(poll, 60000);
+      })
+      .catch(() => {
+        seededRef.current = true;
+      });
 
     return () => {
-      unsub();
+      cancelled = true;
+      unsub?.();
       clearInterval(pollRef.current);
-      document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [user?.email, poll, triggerAlert]);
+  }, [user?.email, triggerAlert, poll]);
 
   const dismissToast = useCallback((toastId, notifId, priority) => {
     setToasts(prev => prev.filter(t => t._toastId !== toastId));
