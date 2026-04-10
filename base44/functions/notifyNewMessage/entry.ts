@@ -15,8 +15,8 @@ Deno.serve(async (req) => {
 
     if (isDM) {
       // For DM, only notify the recipient
-      const emails = data.channel.replace('DM: ', '').split('-');
-      const recipientEmail = emails.find(e => e !== data.sender_email);
+      const withoutPrefix = data.channel.replace('DM: ', '');
+      const recipientEmail = withoutPrefix.replace(data.sender_email, '').replace(/^-|-$/g, '').trim();
       
       if (recipientEmail) {
         notifications = [{
