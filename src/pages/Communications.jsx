@@ -132,74 +132,19 @@ export default function Communications() {
       return;
     }
 
-    base44.entities.TeamMessage.filter({ channel: currentChannel }, "-created_date", 100)
-      .then(msgs => {
-        const sorted = msgs.reverse();
-        setMessages(sorted.filter(m => !m.is_pinned));
-        setPinnedMessages(sorted.filter(m => m.is_pinned));
-        cacheData('messages', sorted).catch(() => {});
-        setLoading(false);
-        
-        if (user?.email) {
-          sorted.forEach(msg => {
-            if (!msg.read_by?.includes(user.email) && msg.sender_email !== user.email) {
-              base44.entities.TeamMessage.update(msg.id, {
-                read_by: [...(msg.read_by || []), user.email]
-              }).catch(() => {});
-            }
-          });
-        }
-      });
+    // Use secure backend function for DM channels, direct query only for group channels
+    const fetchMsgs = activeChannel.type === 'dm'
+      ? base44.functions.invoke('getDMMessages', { channel: currentChannel }).then(res => (res?.data?.messages || []).reverse())
+      : base44.entities.TeamMessage.filter({ channel: currentChannel }, "-created_date", 100).then(msgs => msgs.reverse());
+
+    fetchMsgs.then(sorted => {
+      setMessages(sorted.filter(m => !m.is_pinned));
+      setPinnedMessages(sorted.filter(m => m.is_pinned));
+      cacheData('messages', sorted).catch(() => {});
+      setLoading(false);
+    });
 
     const unsub = base44.entities.TeamMessage.subscribe((event) => {
-      const eventChannel = event.data?.channel || "";
-      const isDMEvent = eventChannel.startsWith("DM: ");
-      // Strict participant check: user's email must be in the channel string
-      const userIsParticipant = isDMEvent ? (user?.email ? eventChannel.includes(user.email) : false) : true;
-
-      const isForCurrentChannel = event.data?.channel === currentChannel;
-      const isDeleteOfVisible = event.type === "delete" &&
-        (messages.some(m => m.id === event.id) || pinnedMessages.some(m => m.id === event.id));
-
-      if ((isForCurrentChannel && userIsParticipant) || isDeleteOfVisible) {
-        if (event.type === "create") {
-          if (event.data.is_pinned) {
-            setPinnedMessages(prev => [...prev, event.data]);
-          } else {
-            setMessages(prev => [...prev, event.data]);
-          }
-          if (user?.email && event.data.sender_email !== user.email) {
-            const senderName = event.data.sender_name || event.data.sender_email;
-            sendNotification(`New message from ${senderName}`, {
-              body: event.data.content?.substring(0, 100) || 'Sent a file',
-              tag: 'message-' + currentChannel,
-              requireInteraction: false
-            });
-          }
-          if (user?.email && event.data.sender_email !== user.email) {
-            setTimeout(() => {
-              base44.entities.TeamMessage.update(event.data.id, {
-                read_by: [...(event.data.read_by || []), user.email]
-              }).catch(() => {});
-            }, 1000);
-          }
-        } else if (event.type === "update") {
-          const updateList = (prev) => prev.map(m => m.id === event.id ? event.data : m);
-          if (event.data.is_pinned) {
-            setPinnedMessages(updateList);
-            setMessages(prev => prev.filter(m => m.id !== event.id));
-          } else {
-            setMessages(updateList);
-            setPinnedMessages(prev => prev.filter(m => m.id !== event.id));
-          }
-        } else if (event.type === "delete") {
-          setMessages(prev => prev.filter(m => m.id !== event.id));
-          setPinnedMessages(prev => prev.filter(m => m.id !== event.id));
-        }
-      }
-    });
-    return unsub;
-  }, [activeChannel.name, user]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -310,9 +255,10 @@ export default function Communications() {
       return;
     }
     setLoading(true);
-    base44.entities.TeamMessage.filter({ channel: activeChannel.name }, "-created_date", 100)
-      .then(msgs => {
-        const sorted = msgs.reverse();
+    const fetchMsgsReload = activeChannel.type === 'dm'
+      ? base44.functions.invoke('getDMMessages', { channel: activeChannel.name }).then(res => (res?.data?.messages || []).reverse())
+      : base44.entities.TeamMessage.filter({ channel: activeChannel.name }, "-created_date", 100).then(msgs => msgs.reverse());
+    fetchMsgsReload.then(sorted => {
         setMessages(sorted.filter(m => !m.is_pinned));
         setPinnedMessages(sorted.filter(m => m.is_pinned));
         cacheData('messages', sorted).catch(() => {});
