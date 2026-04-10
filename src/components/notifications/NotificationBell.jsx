@@ -83,9 +83,8 @@ export default function NotificationBell({ userEmail }) {
   };
 
   const markAllRead = async () => {
-    const unreadNotifications = notifications.filter(n => !n.read);
-    await Promise.all(unreadNotifications.map(n => base44.entities.Notification.delete(n.id)));
-    setNotifications(prev => prev.filter(n => n.read));
+    await Promise.all(notifications.map(n => base44.entities.Notification.delete(n.id)));
+    setNotifications([]);
     setUnreadCount(0);
   };
 
