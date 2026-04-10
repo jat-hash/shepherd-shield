@@ -165,11 +165,16 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
     let unsub = () => {};
     let cancelled = false;
 
-    // CRITICAL: seed ALL existing notification IDs first, THEN subscribe
-    // This prevents old/existing notifications from triggering on load
-    base44.entities.Notification.filter({ user_email: user.email }, "-created_date", 200)
+    // CRITICAL: seed ALL existing notification IDs first, mark them read, THEN subscribe
+    base44.entities.Notification.filter({ user_email: user.email, read: false }, "-created_date", 500)
       .then(existing => {
         existing.forEach(n => seenIdsRef.current.add(n.id));
+        // Mark all pre-existing unread notifications as read so they never reappear
+        if (existing.length > 0) {
+          existing.forEach(n => {
+            base44.entities.Notification.update(n.id, { read: true }).catch(() => {});
+          });
+        }
         seededRef.current = true;
 
         if (cancelled) return;
