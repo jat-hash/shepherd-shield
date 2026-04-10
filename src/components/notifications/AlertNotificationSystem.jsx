@@ -98,6 +98,7 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
   const [screenFlash, setScreenFlash] = useState(false);
   const seenIdsRef = useRef(new Set());
   const seededRef = useRef(false);
+  const mountTimeRef = useRef(new Date().toISOString());
   const unreadCountRef = useRef(0);
   const pollRef = useRef(null);
 
@@ -142,12 +143,17 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
       );
       notifications.forEach(n => {
         if (!seenIdsRef.current.has(n.id)) {
-          triggerAlert({
-            id: n.id,
-            message: n.message || n.title,
-            priority: n.type === "general" ? "low" : n.type?.includes("reminder") ? "medium" : "high",
-            type: n.type,
-          });
+          // Only alert for notifications created after this session started
+          if (n.created_date && n.created_date >= mountTimeRef.current) {
+            triggerAlert({
+              id: n.id,
+              message: n.message || n.title,
+              priority: n.type === "general" ? "low" : n.type?.includes("reminder") ? "medium" : "high",
+              type: n.type,
+            });
+          } else {
+            seenIdsRef.current.add(n.id);
+          }
         }
       });
     } catch (_) {}

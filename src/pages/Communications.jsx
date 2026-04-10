@@ -145,6 +145,44 @@ export default function Communications() {
     });
 
     const unsub = base44.entities.TeamMessage.subscribe((event) => {
+      const eventChannel = event.data?.channel || "";
+      const isDMEvent = eventChannel.startsWith("DM: ");
+      const userIsParticipant = isDMEvent ? (user?.email ? eventChannel.includes(user.email) : false) : true;
+      const isForCurrentChannel = event.data?.channel === currentChannel;
+      const isDeleteOfVisible = event.type === "delete" &&
+        (messages.some(m => m.id === event.id) || pinnedMessages.some(m => m.id === event.id));
+
+      if ((isForCurrentChannel && userIsParticipant) || isDeleteOfVisible) {
+        if (event.type === "create") {
+          if (event.data.is_pinned) {
+            setPinnedMessages(prev => [...prev, event.data]);
+          } else {
+            setMessages(prev => [...prev, event.data]);
+          }
+          if (user?.email && event.data.sender_email !== user.email) {
+            setTimeout(() => {
+              base44.entities.TeamMessage.update(event.data.id, {
+                read_by: [...(event.data.read_by || []), user.email]
+              }).catch(() => {});
+            }, 1000);
+          }
+        } else if (event.type === "update") {
+          const updateList = (prev) => prev.map(m => m.id === event.id ? event.data : m);
+          if (event.data.is_pinned) {
+            setPinnedMessages(updateList);
+            setMessages(prev => prev.filter(m => m.id !== event.id));
+          } else {
+            setMessages(updateList);
+            setPinnedMessages(prev => prev.filter(m => m.id !== event.id));
+          }
+        } else if (event.type === "delete") {
+          setMessages(prev => prev.filter(m => m.id !== event.id));
+          setPinnedMessages(prev => prev.filter(m => m.id !== event.id));
+        }
+      }
+    });
+    return unsub;
+  }, [activeChannel.name, user]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
