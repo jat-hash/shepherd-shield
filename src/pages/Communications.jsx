@@ -60,16 +60,10 @@ export default function Communications() {
         setAllUsers(res?.data?.users || []);
       }).catch(() => {});
       if (navigator.onLine) {
-        // Load DM channels and cache users
-        base44.entities.TeamMessage.list("-created_date", 500).then(all => {
-          const dmSet = new Set();
-          all.forEach(msg => {
-            if (msg.channel?.startsWith("DM: ") && msg.channel.includes(u.email)) {
-              dmSet.add(msg.channel);
-            }
-          });
-          setDmChannels(Array.from(dmSet));
-        });
+        // Load only DM channels the current user is a participant in (secure backend function)
+        base44.functions.invoke('getMyDMChannels').then(res => {
+          setDmChannels(res?.data?.channels || []);
+        }).catch(() => {});
         // Pre-cache users for offline DM selector
         base44.functions.invoke("listUsers").then(res => {
           const all = res?.data?.users || [];
@@ -99,14 +93,8 @@ export default function Communications() {
       // Reload DM channels from server
       if (user) {
         try {
-          const all = await base44.entities.TeamMessage.list("-created_date", 500);
-          const dmSet = new Set();
-          all.forEach(msg => {
-            if (msg.channel?.startsWith("DM: ") && msg.channel.includes(user.email)) {
-              dmSet.add(msg.channel);
-            }
-          });
-          setDmChannels(Array.from(dmSet));
+          const res = await base44.functions.invoke('getMyDMChannels');
+          setDmChannels(res?.data?.channels || []);
         } catch (e) {
           console.error('Failed to reload DM channels:', e);
         }
