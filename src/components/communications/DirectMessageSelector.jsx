@@ -50,7 +50,7 @@ export default function DirectMessageSelector({ currentUserEmail, onSelectDM }) 
   }, [open, currentUserEmail]);
 
   const filteredUsers = users.filter(u =>
-    u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+    (u.data?.display_name || u.display_name || u.full_name)?.toLowerCase().includes(search.toLowerCase()) ||
     u.email?.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -104,10 +104,10 @@ export default function DirectMessageSelector({ currentUserEmail, onSelectDM }) 
                   className="w-full text-left bg-[#0a1128] rounded-lg p-3 border border-slate-700 hover:border-[#d4a843]/30 transition-all flex items-center gap-3"
                 >
                   <div className="w-10 h-10 rounded-full bg-[#d4a843] flex items-center justify-center text-[#0a1128] font-bold text-sm">
-                    {user.full_name?.charAt(0) || "U"}
+                    {(user.data?.display_name || user.display_name || user.full_name)?.charAt(0) || "U"}
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-white">{user.full_name || "Unknown"}</p>
+                    <p className="text-sm font-medium text-white">{user.data?.display_name || user.display_name || user.full_name || "Unknown"}</p>
                     <p className="text-xs text-slate-500">{user.email}</p>
                   </div>
                 </button>
