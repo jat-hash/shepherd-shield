@@ -86,6 +86,7 @@ export default function NotificationBell({ userEmail }) {
     await Promise.all(notifications.map(n => base44.entities.Notification.delete(n.id)));
     setNotifications([]);
     setUnreadCount(0);
+    setOpen(false);
   };
 
   const deleteNotification = async (notificationId) => {
