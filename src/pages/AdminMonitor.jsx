@@ -197,8 +197,34 @@ export default function AdminMonitor() {
     if (!user) return;
     const unsubA = base44.entities.Assignment.subscribe(() => loadAssignments());
     const unsubP = base44.entities.PersonalCheckIn.subscribe(() => loadAssignments());
-    const unsubE = base44.entities.Equipment.subscribe(() => {
-      base44.entities.Equipment.filter({ checked_out: true }, "-checked_out_at", 200)
+    const unsubE = base44.entities.Equipment.subscribe((event) => {
+      // When equipment is checked out, auto-create a PersonalCheckIn for that user
+      if (event.type === 'update' && event.data?.checked_out && event.data?.checked_out_by) {
+        const today = new Date().toLocaleDateString('en-CA');
+        // Try to find user email from allUsers by name match
+        base44.functions.invoke('listUsers').then(res => {
+          const users = res?.data?.users || [];
+          const match = users.find(u =>
+            u.full_name === event.data.checked_out_by ||
+            u.email === event.data.checked_out_by
+          );
+          if (match) {
+            // Check if PersonalCheckIn already exists for today
+            base44.entities.PersonalCheckIn.filter({ user_email: match.email, check_in_date: today }, '-check_in_time', 1)
+              .then(existing => {
+                if (!existing || existing.length === 0) {
+                  base44.entities.PersonalCheckIn.create({
+                    user_email: match.email,
+                    user_name: match.full_name || match.email,
+                    check_in_date: today,
+                    check_in_time: event.data.checked_out_at || new Date().toISOString(),
+                  }).catch(() => {});
+                }
+              }).catch(() => {});
+          }
+        }).catch(() => {});
+      }
+      base44.entities.Equipment.filter({ checked_out: true }, '-checked_out_at', 200)
         .then(setEquipmentCheckouts).catch(() => {});
     });
     return () => { unsubA(); unsubP(); unsubE(); };
