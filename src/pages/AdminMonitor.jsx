@@ -146,7 +146,7 @@ export default function AdminMonitor() {
         .filter(u => u.email && !emailsWithRecords.has(u.email))
         .map(u => ({
           id: `ghost-${u.email}`,
-          assigned_to_name: u.full_name || u.email,
+          assigned_to_name: u.data?.display_name || u.display_name || u.full_name || u.email,
           assigned_to_email: u.email,
           position_name: "No Assignment Today",
           service_date: today,
@@ -205,7 +205,7 @@ export default function AdminMonitor() {
         base44.functions.invoke('listUsers').then(res => {
           const users = res?.data?.users || [];
           const match = users.find(u =>
-            u.full_name === event.data.checked_out_by ||
+            (u.data?.display_name || u.display_name || u.full_name) === event.data.checked_out_by ||
             u.email === event.data.checked_out_by
           );
           if (match) {
@@ -215,7 +215,7 @@ export default function AdminMonitor() {
                 if (!existing || existing.length === 0) {
                   base44.entities.PersonalCheckIn.create({
                     user_email: match.email,
-                    user_name: match.full_name || match.email,
+                    user_name: match.data?.display_name || match.display_name || match.full_name || match.email,
                     check_in_date: today,
                     check_in_time: event.data.checked_out_at || new Date().toISOString(),
                   }).catch(() => {});
@@ -701,7 +701,7 @@ export default function AdminMonitor() {
                   <SelectItem value="all" className="text-white">All Team Members</SelectItem>
                   {allUsers.map(u => (
                     <SelectItem key={u.email} value={u.email} className="text-white">
-                      {u.full_name || u.email}
+                      {u.data?.display_name || u.display_name || u.full_name || u.email}
                     </SelectItem>
                   ))}
                 </SelectContent>
