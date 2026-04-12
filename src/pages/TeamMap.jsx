@@ -152,9 +152,16 @@ export default function TeamMap() {
     ]);
     setAllPositions(positions);
 
-    // Normalize personal check-ins and merge
+    // Deduplicate personal check-ins by email, exclude people who already have a formal assignment
+    const assignmentEmails = new Set(allAssignments.map(a => a.assigned_to_email));
+    const seenEmails = new Set();
     const normalizedPersonal = personalCheckIns
-      .filter(p => !p.check_out_time)
+      .filter(p => !p.check_out_time && !assignmentEmails.has(p.user_email))
+      .filter(p => {
+        if (seenEmails.has(p.user_email)) return false;
+        seenEmails.add(p.user_email);
+        return true;
+      })
       .map(p => ({
         id: p.id,
         assigned_to_name: p.user_name,
