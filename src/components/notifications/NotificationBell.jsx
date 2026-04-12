@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Bell, X, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "../../utils";
 
 function extractUrl(text) {
@@ -12,7 +12,16 @@ function extractUrl(text) {
   return match ? match[0] : null;
 }
 
+function getNotificationPage(notification) {
+  const type = notification.type || "";
+  if (notification.assignment_id || type.includes("assignment")) return "Assignments";
+  if (type === "general" && notification.message?.toLowerCase().includes("message")) return "Communications";
+  if (type.includes("message") || type.includes("comm")) return "Communications";
+  return null;
+}
+
 export default function NotificationBell({ userEmail }) {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
@@ -44,7 +53,6 @@ export default function NotificationBell({ userEmail }) {
     try {
       unsub = base44.entities.Notification.subscribe((event) => {
         if (event.data?.user_email === userEmail || event.old_data?.user_email === userEmail) {
-          // Debounce to avoid rate limiting
           clearTimeout(debounceTimer.current);
           debounceTimer.current = setTimeout(() => {
             loadNotifications();
@@ -96,9 +104,21 @@ export default function NotificationBell({ userEmail }) {
   };
 
   const deleteNotification = async (notificationId) => {
+    const notif = notifications.find(n => n.id === notificationId);
     await base44.entities.Notification.delete(notificationId);
     setNotifications(prev => prev.filter(n => n.id !== notificationId));
-    setUnreadCount(prev => Math.max(0, prev - (notifications.find(n => n.id === notificationId)?.read ? 0 : 1)));
+    setUnreadCount(prev => Math.max(0, prev - (notif?.read ? 0 : 1)));
+  };
+
+  const handleNotificationClick = (notification) => {
+    const url = extractUrl(notification.message);
+    const targetPage = getNotificationPage(notification);
+    if (url) return; // links handled by <a> tag
+    if (targetPage) {
+      markAsRead(notification.id);
+      setOpen(false);
+      navigate(createPageUrl(targetPage));
+    }
   };
 
   return (
@@ -117,12 +137,7 @@ export default function NotificationBell({ userEmail }) {
         <div className="p-3 border-b border-[rgba(212,168,67,0.1)] flex items-center justify-between">
           <h3 className="text-sm font-bold text-white">Notifications</h3>
           {unreadCount > 0 && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={markAllRead}
-              className="text-xs text-[#d4a843] hover:text-[#e0bb5e] h-auto py-1"
-            >
+            <Button size="sm" variant="ghost" onClick={markAllRead} className="text-xs text-[#d4a843] hover:text-[#e0bb5e] h-auto py-1">
               Mark all read
             </Button>
           )}
@@ -130,67 +145,64 @@ export default function NotificationBell({ userEmail }) {
 
         <div className="max-h-96 overflow-y-auto">
           {notifications.length === 0 ? (
-            <div className="p-6 text-center text-slate-400 text-sm">
-              No notifications
-            </div>
+            <div className="p-6 text-center text-slate-400 text-sm">No notifications</div>
           ) : (
-            notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className={`p-3 border-b border-[rgba(212,168,67,0.05)] hover:bg-white/5 transition-colors ${
-                  !notification.read ? 'bg-[#d4a843]/5' : ''
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white mb-1">{notification.title}</p>
-                    {(() => {
-                      const url = extractUrl(notification.message);
-                      if (url) {
-                        return (
-                          <a href={url} target="_blank" rel="noreferrer" onClick={() => setOpen(false)}
-                            className="text-xs text-blue-400 hover:text-blue-300 underline flex items-center gap-1 mt-1">
-                            <ExternalLink className="w-3 h-3" />
-                            {notification.message.replace(url, "").trim() || url}
-                          </a>
-                        );
-                      }
-                      return <p className="text-xs text-slate-400 line-clamp-2">{notification.message}</p>;
-                    })()}
-                    <p className="text-[10px] text-slate-500 mt-1">
-                      {new Date(notification.created_date + (notification.created_date.endsWith('Z') ? '' : 'Z')).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
-                    </p>
+            notifications.map((notification) => {
+              const url = extractUrl(notification.message);
+              const targetPage = getNotificationPage(notification);
+              const isClickable = !url && !!targetPage;
+
+              return (
+                <div
+                  key={notification.id}
+                  onClick={() => handleNotificationClick(notification)}
+                  className={`p-3 border-b border-[rgba(212,168,67,0.05)] transition-colors ${isClickable ? 'cursor-pointer hover:bg-white/10' : 'hover:bg-white/5'} ${!notification.read ? 'bg-[#d4a843]/5' : ''}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-white mb-1">{notification.title}</p>
+                      {url ? (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => { e.stopPropagation(); setOpen(false); }}
+                          className="text-xs text-blue-400 hover:text-blue-300 underline flex items-center gap-1 mt-1"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          {notification.message.replace(url, "").trim() || url}
+                        </a>
+                      ) : (
+                        <p className="text-xs text-slate-400 line-clamp-2">{notification.message}</p>
+                      )}
+                      <p className="text-[10px] text-slate-500 mt-1">
+                        {new Date(notification.created_date + (notification.created_date.endsWith('Z') ? '' : 'Z')).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
+                      </p>
+                      {isClickable && (
+                        <p className="text-xs text-[#d4a843] mt-1">Tap to open {targetPage} →</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }}
+                      className="text-slate-500 hover:text-red-400 transition-colors flex-shrink-0"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => deleteNotification(notification.id)}
-                    className="text-slate-500 hover:text-red-400 transition-colors flex-shrink-0"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
+
+                  {!notification.read && !isClickable && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={(e) => { e.stopPropagation(); markAsRead(notification.id); }}
+                      className="text-xs text-[#d4a843] hover:text-[#e0bb5e] h-auto py-1 mt-2"
+                    >
+                      Mark as read
+                    </Button>
+                  )}
                 </div>
-
-                {!notification.read && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => markAsRead(notification.id)}
-                    className="text-xs text-[#d4a843] hover:text-[#e0bb5e] h-auto py-1 mt-2"
-                  >
-                    Mark as read
-                  </Button>
-                )}
-
-                {notification.assignment_id && (
-                  <Link
-                    to={createPageUrl("Assignments")}
-                    onClick={() => { setOpen(false); markAsRead(notification.id); }}
-                    className="text-xs text-[#d4a843] hover:text-[#e0bb5e] mt-1 inline-block font-medium"
-                  >
-                    View assignment →
-                  </Link>
-                )}
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </PopoverContent>
