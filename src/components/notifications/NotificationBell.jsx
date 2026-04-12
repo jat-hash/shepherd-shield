@@ -1,10 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Bell, X } from "lucide-react";
+import { Bell, X, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../../utils";
+
+function extractUrl(text) {
+  if (!text) return null;
+  const match = text.match(/https?:\/\/[^\s]+/);
+  return match ? match[0] : null;
+}
 
 export default function NotificationBell({ userEmail }) {
   const [notifications, setNotifications] = useState([]);
@@ -138,7 +144,19 @@ export default function NotificationBell({ userEmail }) {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-white mb-1">{notification.title}</p>
-                    <p className="text-xs text-slate-400 line-clamp-2">{notification.message}</p>
+                    {(() => {
+                      const url = extractUrl(notification.message);
+                      if (url) {
+                        return (
+                          <a href={url} target="_blank" rel="noreferrer" onClick={() => setOpen(false)}
+                            className="text-xs text-blue-400 hover:text-blue-300 underline flex items-center gap-1 mt-1">
+                            <ExternalLink className="w-3 h-3" />
+                            {notification.message.replace(url, "").trim() || url}
+                          </a>
+                        );
+                      }
+                      return <p className="text-xs text-slate-400 line-clamp-2">{notification.message}</p>;
+                    })()}
                     <p className="text-[10px] text-slate-500 mt-1">
                       {new Date(notification.created_date + (notification.created_date.endsWith('Z') ? '' : 'Z')).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                     </p>
@@ -164,9 +182,9 @@ export default function NotificationBell({ userEmail }) {
 
                 {notification.assignment_id && (
                   <Link
-                    to={createPageUrl("Dashboard")}
-                    onClick={() => setOpen(false)}
-                    className="text-xs text-blue-400 hover:text-blue-300 mt-1 inline-block"
+                    to={createPageUrl("Assignments")}
+                    onClick={() => { setOpen(false); markAsRead(notification.id); }}
+                    className="text-xs text-[#d4a843] hover:text-[#e0bb5e] mt-1 inline-block font-medium"
                   >
                     View assignment →
                   </Link>

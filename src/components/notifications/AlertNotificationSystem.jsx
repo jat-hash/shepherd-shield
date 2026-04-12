@@ -62,7 +62,23 @@ function AlertToast({ alert, onDismiss }) {
         <p className="text-xs font-bold uppercase tracking-wider opacity-70 mb-0.5">
           {priority === "high" ? "🚨 HIGH PRIORITY" : priority === "medium" ? "⚠️ Alert" : "Notification"}
         </p>
-        <p className="text-sm leading-snug">{message}</p>
+        {(() => {
+          const urlMatch = message?.match(/https?:\/\/[^\s]+/);
+          if (urlMatch) {
+            const url = urlMatch[0];
+            const text = message.replace(url, "").trim();
+            return (
+              <>
+                {text && <p className="text-sm leading-snug">{text}</p>}
+                <a href={url} target="_blank" rel="noreferrer"
+                  className="text-xs underline opacity-80 hover:opacity-100 flex items-center gap-1 mt-1">
+                  🔗 {url.length > 40 ? url.slice(0, 40) + "..." : url}
+                </a>
+              </>
+            );
+          }
+          return <p className="text-sm leading-snug">{message}</p>;
+        })()}
       </div>
       {priority === "high" ? (
         <button
