@@ -15,18 +15,17 @@ function extractUrl(text) {
 function getNotificationPage(notification) {
   const type = notification.type || "";
   if (notification.assignment_id || type.includes("assignment")) return "Assignments";
-  if (type === "general" && notification.message?.toLowerCase().includes("message")) return "Communications";
-  if (type.includes("message") || type.includes("comm")) return "Communications";
+  if (type === "general") return "Communications";
   return null;
 }
 
 export default function NotificationBell({ userEmail }) {
-  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
   const debounceTimer = useRef(null);
   const prevUnreadCount = useRef(0);
+  const navigate = useNavigate();
 
   const playNotificationSound = () => {
     try {
@@ -103,21 +102,25 @@ export default function NotificationBell({ userEmail }) {
     setOpen(false);
   };
 
-  const deleteNotification = async (notificationId) => {
-    const notif = notifications.find(n => n.id === notificationId);
+  const deleteNotification = async (e, notificationId) => {
+    e.stopPropagation();
     await base44.entities.Notification.delete(notificationId);
     setNotifications(prev => prev.filter(n => n.id !== notificationId));
-    setUnreadCount(prev => Math.max(0, prev - (notif?.read ? 0 : 1)));
+    setUnreadCount(prev => Math.max(0, prev - (notifications.find(n => n.id === notificationId)?.read ? 0 : 1)));
   };
 
   const handleNotificationClick = (notification) => {
     const url = extractUrl(notification.message);
-    const targetPage = getNotificationPage(notification);
-    if (url) return; // links handled by <a> tag
-    if (targetPage) {
+    if (url) {
+      window.open(url, "_blank");
       markAsRead(notification.id);
+      return;
+    }
+    const page = getNotificationPage(notification);
+    if (page) {
       setOpen(false);
-      navigate(createPageUrl(targetPage));
+      markAsRead(notification.id);
+      navigate(createPageUrl(page));
     }
   };
 
@@ -137,7 +140,12 @@ export default function NotificationBell({ userEmail }) {
         <div className="p-3 border-b border-[rgba(212,168,67,0.1)] flex items-center justify-between">
           <h3 className="text-sm font-bold text-white">Notifications</h3>
           {unreadCount > 0 && (
-            <Button size="sm" variant="ghost" onClick={markAllRead} className="text-xs text-[#d4a843] hover:text-[#e0bb5e] h-auto py-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={markAllRead}
+              className="text-xs text-[#d4a843] hover:text-[#e0bb5e] h-auto py-1"
+            >
               Mark all read
             </Button>
           )}
@@ -145,33 +153,31 @@ export default function NotificationBell({ userEmail }) {
 
         <div className="max-h-96 overflow-y-auto">
           {notifications.length === 0 ? (
-            <div className="p-6 text-center text-slate-400 text-sm">No notifications</div>
+            <div className="p-6 text-center text-slate-400 text-sm">
+              No notifications
+            </div>
           ) : (
             notifications.map((notification) => {
+              const page = getNotificationPage(notification);
               const url = extractUrl(notification.message);
-              const targetPage = getNotificationPage(notification);
-              const isClickable = !url && !!targetPage;
+              const isClickable = !!(page || url);
 
               return (
                 <div
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}
-                  className={`p-3 border-b border-[rgba(212,168,67,0.05)] transition-colors ${isClickable ? 'cursor-pointer hover:bg-white/10' : 'hover:bg-white/5'} ${!notification.read ? 'bg-[#d4a843]/5' : ''}`}
+                  className={`p-3 border-b border-[rgba(212,168,67,0.05)] transition-colors ${
+                    isClickable ? 'cursor-pointer hover:bg-[#d4a843]/10' : 'hover:bg-white/5'
+                  } ${!notification.read ? 'bg-[#d4a843]/5' : ''}`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-white mb-1">{notification.title}</p>
                       {url ? (
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={(e) => { e.stopPropagation(); setOpen(false); }}
-                          className="text-xs text-blue-400 hover:text-blue-300 underline flex items-center gap-1 mt-1"
-                        >
+                        <span className="text-xs text-blue-400 flex items-center gap-1">
                           <ExternalLink className="w-3 h-3" />
-                          {notification.message.replace(url, "").trim() || url}
-                        </a>
+                          {notification.message.replace(url, "").trim() || "Open link"}
+                        </span>
                       ) : (
                         <p className="text-xs text-slate-400 line-clamp-2">{notification.message}</p>
                       )}
@@ -179,27 +185,18 @@ export default function NotificationBell({ userEmail }) {
                         {new Date(notification.created_date + (notification.created_date.endsWith('Z') ? '' : 'Z')).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                       </p>
                       {isClickable && (
-                        <p className="text-xs text-[#d4a843] mt-1">Tap to open {targetPage} →</p>
+                        <p className="text-[10px] text-[#d4a843] mt-0.5">
+                          {url ? 'Tap to open link' : `Tap to go to ${page}`} →
+                        </p>
                       )}
                     </div>
                     <button
-                      onClick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }}
+                      onClick={(e) => deleteNotification(e, notification.id)}
                       className="text-slate-500 hover:text-red-400 transition-colors flex-shrink-0"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
-
-                  {!notification.read && !isClickable && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={(e) => { e.stopPropagation(); markAsRead(notification.id); }}
-                      className="text-xs text-[#d4a843] hover:text-[#e0bb5e] h-auto py-1 mt-2"
-                    >
-                      Mark as read
-                    </Button>
-                  )}
                 </div>
               );
             })
