@@ -114,9 +114,15 @@ export default function AdminMonitor() {
       const assignmentEmails = new Set(enrichedAssignments.map(a => a.assigned_to_email));
 
       // Only include personal check-ins for people WITHOUT a formal assignment today
-      // (avoids duplicate/conflicting status entries)
+      // Deduplicate by email - keep only the first (most recent, sorted by time desc) record per person
+      const seenPersonalEmails = new Set();
       const normalizedPersonal = todayPersonalCheckIns
         .filter(p => !assignmentEmails.has(p.user_email))
+        .filter(p => {
+          if (seenPersonalEmails.has(p.user_email)) return false;
+          seenPersonalEmails.add(p.user_email);
+          return true;
+        })
         .map(p => ({
           id: p.id,
           assigned_to_name: p.user_name,
