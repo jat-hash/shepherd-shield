@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { CheckCircle, XCircle, Clock, Edit2, Search, Trash2, Bell, Send, MessageSquare, WifiOff, Wrench } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Edit2, Search, Trash2, Bell, Send, MessageSquare, WifiOff, Wrench, RefreshCw } from "lucide-react";
 import { cacheData, getCachedData, savePendingCheckIn, syncPendingCheckIns } from "@/lib/offlineStorage";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -181,6 +181,9 @@ export default function AdminMonitor() {
   useEffect(() => {
     if (user?.role === 'admin') {
       loadAssignments();
+      // Auto-refresh every 30 seconds
+      const interval = setInterval(() => loadAssignments(), 30000);
+      return () => clearInterval(interval);
     }
   }, [user]);
 
@@ -415,9 +418,20 @@ export default function AdminMonitor() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 lg:ml-60 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Admin Monitor</h1>
-        <p className="text-slate-400 text-sm mt-1">Real-time check-in/check-out tracking</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Admin Monitor</h1>
+          <p className="text-slate-400 text-sm mt-1">Real-time check-in/check-out tracking</p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={loadAssignments}
+          className="border-[rgba(212,168,67,0.3)] text-[#d4a843] hover:bg-[#d4a843]/10 gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Refresh
+        </Button>
       </div>
 
       {isOffline && (
