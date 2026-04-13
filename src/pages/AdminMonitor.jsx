@@ -62,7 +62,8 @@ export default function AdminMonitor() {
   }, [authUser]);
 
   const loadAssignments = async () => {
-    const today = new Date().toLocaleDateString('en-CA');
+    // Use UTC date since PersonalCheckIn records store UTC-based dates
+    const today = new Date().toISOString().slice(0, 10);
     setLoading(true);
     if (!navigator.onLine) {
       const cached = await getCachedData('assignments');
