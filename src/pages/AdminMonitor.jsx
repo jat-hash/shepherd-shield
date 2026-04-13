@@ -49,7 +49,7 @@ export default function AdminMonitor() {
   const [notifySendSMS, setNotifySendSMS] = useState(false);
   const [notifyPhoneNumber, setNotifyPhoneNumber] = useState("");
   const [allUsers, setAllUsers] = useState([]);
-  const today = new Date().toLocaleDateString('en-CA'); // en-CA gives YYYY-MM-DD in local time
+  // Recalculated fresh on each load inside loadAssignments
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [equipmentCheckouts, setEquipmentCheckouts] = useState([]);
 
@@ -62,6 +62,7 @@ export default function AdminMonitor() {
   }, [authUser]);
 
   const loadAssignments = async () => {
+    const today = new Date().toLocaleDateString('en-CA');
     setLoading(true);
     if (!navigator.onLine) {
       const cached = await getCachedData('assignments');
@@ -88,14 +89,16 @@ export default function AdminMonitor() {
         console.warn("Could not load user list:", e.message);
       }
 
-      // Build a map of personal check-ins by email for merging
+      // Build a map of personal check-ins by email for merging (case-insensitive)
       const personalByEmail = {};
-      todayPersonalCheckIns.forEach(p => { personalByEmail[p.user_email] = p; });
+      todayPersonalCheckIns.forEach(p => {
+        if (p.user_email) personalByEmail[p.user_email.toLowerCase()] = p;
+      });
 
       // Merge personal check-in status INTO assignments where the person checked in personally
       // (e.g. they did a personal check-in but also have a formal assignment)
       const enrichedAssignments = todayAssignments.map(a => {
-        const personal = personalByEmail[a.assigned_to_email];
+        const personal = personalByEmail[(a.assigned_to_email || '').toLowerCase()];
         if (personal && !a.checked_in && personal.check_in_time) {
           return {
             ...a,
@@ -110,14 +113,14 @@ export default function AdminMonitor() {
         return a;
       });
 
-      // Emails that already have a formal assignment today — these take priority
-      const assignmentEmails = new Set(enrichedAssignments.map(a => a.assigned_to_email));
+      // Emails that already have a formal assignment today — these take priority (normalized)
+      const assignmentEmails = new Set(enrichedAssignments.map(a => (a.assigned_to_email || '').toLowerCase()));
 
       // Only include personal check-ins for people WITHOUT a formal assignment today
       // Deduplicate by email - keep only the first (most recent, sorted by time desc) record per person
       const seenPersonalEmails = new Set();
       const normalizedPersonal = todayPersonalCheckIns
-        .filter(p => !assignmentEmails.has(p.user_email))
+        .filter(p => !assignmentEmails.has((p.user_email || '').toLowerCase()))
         .filter(p => {
           if (seenPersonalEmails.has(p.user_email)) return false;
           seenPersonalEmails.add(p.user_email);
