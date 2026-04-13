@@ -59,39 +59,7 @@ export default function AssignmentCard({ assignment, onUpdate }) {
     }
   };
 
-  const handleUndoCheckIn = async () => {
-    try {
-      await base44.entities.Assignment.update(assignment.id, {
-        checked_in: false,
-        check_in_time: null,
-        check_in_latitude: null,
-        check_in_longitude: null,
-        checked_out: false,
-        check_out_time: null,
-        status: "Pending"
-      });
-      toast.success("Check-in undone");
-      onUpdate?.();
-    } catch (error) {
-      toast.error("Failed to undo check-in");
-    }
-  };
-
-  const handleUndoCheckOut = async () => {
-    try {
-      await base44.entities.Assignment.update(assignment.id, {
-        checked_out: false,
-        check_out_time: null
-      });
-      toast.success("Check-out undone");
-      onUpdate?.();
-    } catch (error) {
-      toast.error("Failed to undo check-out");
-    }
-  };
-
   const handleDelete = async () => {
-
     try {
       await base44.entities.Assignment.delete(assignment.id);
       toast.success("Assignment deleted");
@@ -174,13 +142,9 @@ export default function AssignmentCard({ assignment, onUpdate }) {
               </Link>
             </>
           ) : !assignment.checked_out ? (
-
             <>
               <Button onClick={handleCheckOut} variant="outline" className="flex-1 border-[#d4a843] text-[#d4a843] hover:bg-[#d4a843]/10 font-bold text-sm">
                 Check Out
-              </Button>
-              <Button onClick={handleUndoCheckIn} variant="ghost" className="text-xs text-slate-400 hover:text-red-400 px-2">
-                Undo Check-In
               </Button>
               <Link to={createPageUrl("SOPLibrary")}>
                 <Button variant="outline" size="icon" className="border-[#d4a843]/30 text-[#d4a843] hover:bg-[#d4a843]/10">
@@ -189,12 +153,8 @@ export default function AssignmentCard({ assignment, onUpdate }) {
               </Link>
             </>
           ) : (
-
-            <div className="flex-1 flex items-center justify-between">
-              <span className="text-emerald-400 text-sm font-medium">✓ Completed ({assignment.check_in_time} – {assignment.check_out_time})</span>
-              <Button onClick={handleUndoCheckOut} variant="ghost" className="text-xs text-slate-400 hover:text-red-400 px-2">
-                Undo Check-Out
-              </Button>
+            <div className="flex-1 text-center text-emerald-400 text-sm font-medium py-2">
+              ✓ Completed ({assignment.check_in_time} – {assignment.check_out_time})
             </div>
           )}
         </div>

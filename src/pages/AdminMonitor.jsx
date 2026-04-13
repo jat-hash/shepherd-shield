@@ -427,17 +427,16 @@ export default function AdminMonitor() {
         </div>
       )}
 
-
-
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle className="w-5 h-5 text-emerald-500" />
-            <span className="text-emerald-400 text-sm font-medium">On Duty</span>
+            <span className="text-emerald-400 text-sm font-medium">Checked In</span>
           </div>
           <p className="text-3xl font-bold text-white">{checkedInCount}</p>
         </div>
+
         <div className="bg-blue-900/20 border border-blue-500/30 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-2">
             <XCircle className="w-5 h-5 text-blue-500" />
@@ -445,10 +444,11 @@ export default function AdminMonitor() {
           </div>
           <p className="text-3xl font-bold text-white">{checkedOutCount}</p>
         </div>
+
         <div className="bg-orange-900/20 border border-orange-500/30 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-2">
             <Clock className="w-5 h-5 text-orange-500" />
-            <span className="text-orange-400 text-sm font-medium">Not In Yet</span>
+            <span className="text-orange-400 text-sm font-medium">Not Checked In</span>
           </div>
           <p className="text-3xl font-bold text-white">{notCheckedInCount}</p>
         </div>
@@ -600,16 +600,21 @@ export default function AdminMonitor() {
                     size="sm"
                     onClick={() => handleCheckInToggle(assignment)}
                     variant="outline"
-                    className={`text-xs ${
+                    className={`${
                       !assignment.checked_in
                         ? "border-emerald-500 text-emerald-400 hover:bg-emerald-500/10"
                         : !assignment.checked_out
                         ? "border-blue-500 text-blue-400 hover:bg-blue-500/10"
                         : "border-slate-500 text-slate-400 hover:bg-slate-500/10"
                     }`}
-                    title={!assignment.checked_in ? "Check In" : !assignment.checked_out ? "Check Out" : "Clear check-in"}
                   >
-                    {!assignment.checked_in ? "In" : !assignment.checked_out ? "Out" : "Done"}
+                    {!assignment.checked_in ? (
+                      <>In</>
+                    ) : !assignment.checked_out ? (
+                      <>Out</>
+                    ) : (
+                      <>Reset</>
+                    )}
                   </Button>
                 </div>
               </div>
