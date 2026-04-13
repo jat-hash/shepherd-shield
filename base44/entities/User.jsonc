@@ -1,0 +1,47 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "user",
+        "security_chief"
+      ],
+      "description": "User role in the application"
+    },
+    "command_position": {
+      "type": "string",
+      "description": "Position in the chain of command"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Display name for the user"
+    },
+    "phone_number": {
+      "type": "string",
+      "description": "Phone number for SMS notifications (format: +1234567890)"
+    },
+    "notifications_email": {
+      "type": "boolean",
+      "default": true,
+      "description": "Receive email notifications"
+    },
+    "notifications_sms": {
+      "type": "boolean",
+      "default": true,
+      "description": "Receive SMS notifications"
+    },
+    "notifications_in_app": {
+      "type": "boolean",
+      "default": true,
+      "description": "Receive in-app notifications"
+    }
+  },
+  "required": [
+    "role",
+    "command_position",
+    "display_name"
+  ]
+}

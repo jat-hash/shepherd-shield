@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 const LEADER_NAME_PATTERNS = ['pacheco', 'james lim', 'wilbert ryan'];
+const LEADER_ROLES = ['security_chief', 'security chief', 'chief'];
 
 Deno.serve(async (req) => {
   try {
@@ -26,9 +27,12 @@ Deno.serve(async (req) => {
     const leaders = allUsers.filter(u => {
       const fullName = (u.full_name || u.display_name || '').toLowerCase();
       const email = (u.email || '').toLowerCase();
-      return LEADER_NAME_PATTERNS.some(pattern =>
+      const role = (u.role || '').toLowerCase();
+      const nameMatch = LEADER_NAME_PATTERNS.some(pattern =>
         fullName.includes(pattern) || email.includes(pattern)
       );
+      const roleMatch = LEADER_ROLES.some(r => role.includes(r));
+      return nameMatch || roleMatch;
     });
 
     if (leaders.length === 0) {
