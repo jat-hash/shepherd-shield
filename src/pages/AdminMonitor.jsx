@@ -611,17 +611,11 @@ export default function AdminMonitor() {
                         ? "border-emerald-500 text-emerald-400 hover:bg-emerald-500/10"
                         : !assignment.checked_out
                         ? "border-blue-500 text-blue-400 hover:bg-blue-500/10"
-                        : "border-red-500 text-red-400 hover:bg-red-500/10 animate-pulse"
+                        : "border-slate-500 text-slate-400 hover:bg-slate-500/10"
                     }`}
-                    title={assignment.checked_in && assignment.checked_out ? "Both checked in AND out — click to reset" : ""}
+                    title={!assignment.checked_in ? "Check In" : !assignment.checked_out ? "Check Out" : "Clear check-in"}
                   >
-                    {!assignment.checked_in ? (
-                      <>In</>
-                    ) : !assignment.checked_out ? (
-                      <>Out</>
-                    ) : (
-                      <>⚠️ Fix</>  
-                    )}
+                    {!assignment.checked_in ? "In" : !assignment.checked_out ? "Out" : "Done"}
                   </Button>
                 </div>
               </div>

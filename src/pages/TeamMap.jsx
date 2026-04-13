@@ -179,9 +179,8 @@ export default function TeamMap() {
       }));
 
     const allCheckedInMerged = [...allAssignments, ...normalizedPersonal];
-    const activeMembers = allCheckedInMerged.filter(a =>
-      a.check_in_latitude && a.check_in_longitude
-    );
+    // Show ALL checked-in members on map — those without GPS get a flag but still appear in sidebar
+    const activeMembers = allCheckedInMerged.filter(a => a.check_in_latitude && a.check_in_longitude);
     setAllCheckedIn(allCheckedInMerged);
     const activePanics = allIncidents.filter(i =>
       (i.status === "Open" || i.status === "In Progress") &&
