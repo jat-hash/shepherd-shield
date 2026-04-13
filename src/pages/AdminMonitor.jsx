@@ -494,14 +494,41 @@ export default function AdminMonitor() {
 
       </div>
 
-      {/* Assignments List */}
-      <div className="space-y-3">
-        {filteredAssignments.length === 0 ? (
-          <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-8 text-center">
-            <p className="text-slate-400">No assignments found</p>
-          </div>
-        ) : (
-          filteredAssignments.map(assignment => (
+      {/* Assignments List — grouped by service type */}
+      {(() => {
+        // Group by service_type (or 'Personal / No Assignment' for ghost/personal)
+        const groups = {};
+        filteredAssignments.forEach(a => {
+          const key = a._isPersonal ? 'Personal Check-in' : a._isGhost ? 'No Assignment Today' : (a.service_type || 'General');
+          if (!groups[key]) groups[key] = [];
+          groups[key].push(a);
+        });
+
+        const groupOrder = ['Sunday AM', 'Sunday PM', 'Tuesday Bible Study', 'Thursday Services', 'General', 'Personal Check-in', 'No Assignment Today'];
+        const sortedKeys = Object.keys(groups).sort((a, b) => {
+          const ai = groupOrder.indexOf(a);
+          const bi = groupOrder.indexOf(b);
+          return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+        });
+
+        if (filteredAssignments.length === 0) {
+          return (
+            <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-8 text-center">
+              <p className="text-slate-400">No assignments found</p>
+            </div>
+          );
+        }
+
+        return sortedKeys.map(groupKey => (
+          <div key={groupKey} className="space-y-3">
+            <div className="flex items-center gap-3">
+              <h2 className="text-sm font-semibold text-[#d4a843] uppercase tracking-wider">{groupKey}</h2>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-[#d4a843]/10 text-[#d4a843]">
+                {groups[groupKey].filter(a => a.checked_in && !a.checked_out).length} in · {groups[groupKey].filter(a => a.checked_out).length} out · {groups[groupKey].filter(a => !a.checked_in).length} pending
+              </span>
+              <div className="flex-1 h-px bg-[rgba(212,168,67,0.1)]" />
+            </div>
+            {groups[groupKey].map(assignment => (
             <div
               key={assignment.id}
               className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-4 hover:border-[#d4a843] transition-colors"
@@ -619,9 +646,10 @@ export default function AdminMonitor() {
                 </div>
               </div>
             </div>
-          ))
-        )}
-      </div>
+            ))}
+          </div>
+        ));
+      })()}
 
       {/* Equipment Checkouts Section */}
       <div>
