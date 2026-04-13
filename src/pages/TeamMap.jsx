@@ -96,6 +96,7 @@ function MapAutoFit({ points, userLocation }) {
 export default function TeamMap() {
   const [user, setUser] = useState(null);
   const [checkedInAssignments, setCheckedInAssignments] = useState([]);
+  const [checkedOutAssignments, setCheckedOutAssignments] = useState([]);
   const [allCheckedIn, setAllCheckedIn] = useState([]);
   const [panicIncidents, setPanicIncidents] = useState([]);
   const [showSidebar, setShowSidebar] = useState(false);
@@ -144,13 +145,15 @@ export default function TeamMap() {
     if (u) setUser(u);
 
     const today = new Date().toLocaleDateString('en-CA');
-    const [allAssignments, allIncidents, positions, personalCheckIns] = await Promise.all([
+    const [allAssignments, checkedOutList, allIncidents, positions, personalCheckIns] = await Promise.all([
       base44.entities.Assignment.filter({ checked_in: true, checked_out: false, service_date: today }, "-updated_date", 500),
+      base44.entities.Assignment.filter({ checked_out: true, service_date: today }, "-updated_date", 500),
       base44.entities.Incident.filter({ is_panic: true }, "-updated_date", 100),
       base44.entities.Position.list("-updated_date", 200),
       base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 200),
     ]);
     setAllPositions(positions);
+    setCheckedOutAssignments(checkedOutList || []);
 
     // Deduplicate personal check-ins by email, exclude people who already have a formal assignment
     const assignmentEmails = new Set(allAssignments.map(a => a.assigned_to_email));
@@ -193,7 +196,7 @@ export default function TeamMap() {
     cacheData('teammap', toCache).catch(() => {});
 
     setCheckedInAssignments(activeMembers);
-    setPanicIncidents(activePanics);
+    setCheckedOutAssignments(checkedOutList || []);
     setLoading(false);
   };
 
@@ -358,36 +361,47 @@ export default function TeamMap() {
 
       {/* Checked-in sidebar panel */}
       {showSidebar && (
-        <div className="absolute top-12 right-2 z-[1000] bg-[#141f3d]/95 border border-[rgba(212,168,67,0.2)] rounded-xl w-56 max-h-72 overflow-y-auto shadow-xl">
+        <div className="absolute top-12 right-2 z-[1000] bg-[#141f3d]/95 border border-[rgba(212,168,67,0.2)] rounded-xl w-64 max-h-80 overflow-y-auto shadow-xl">
           <div className="px-3 py-2 border-b border-[rgba(212,168,67,0.1)] flex items-center justify-between">
-            <span className="text-[#d4a843] text-xs font-bold uppercase tracking-wider">Checked In ({allCheckedIn.length})</span>
+            <span className="text-[#d4a843] text-xs font-bold uppercase tracking-wider">Team Status</span>
             <button onClick={() => setShowSidebar(false)} className="text-slate-500 hover:text-white text-xs">✕</button>
           </div>
-          {allCheckedIn.length === 0 ? (
-            <p className="text-slate-500 text-xs p-3">No one checked in</p>
-          ) : (
-            [...allCheckedIn]
-              .sort((a, b) => {
-                if (!userLocation) return 0;
-                const distA = a.check_in_latitude ? Math.hypot(a.check_in_latitude - userLocation[0], a.check_in_longitude - userLocation[1]) : Infinity;
-                const distB = b.check_in_latitude ? Math.hypot(b.check_in_latitude - userLocation[0], b.check_in_longitude - userLocation[1]) : Infinity;
-                return distA - distB;
-              })
-              .map((a) => (
-              <div key={a.id} className="px-3 py-2 border-b border-[rgba(255,255,255,0.04)] hover:bg-white/5">
-                <p className="text-white text-xs font-medium">{a.assigned_to_name}</p>
-                <p className="text-[#d4a843] text-[10px]">{a.position_name}</p>
-                <p className="text-slate-500 text-[10px]">
-                  {a.check_in_latitude ? '📍 GPS' : '⚠️ No GPS'} · {formatTime(a.check_in_time)}
-                </p>
-              </div>
-            ))
+
+          {/* Checked In */}
+          <div className="px-3 py-1.5">
+            <p className="text-emerald-400 text-[10px] font-bold uppercase tracking-wider mb-1">Checked In ({allCheckedIn.length})</p>
+            {allCheckedIn.length === 0 ? (
+              <p className="text-slate-500 text-xs pb-2">No one checked in</p>
+            ) : (
+              allCheckedIn.map((a) => (
+                <div key={a.id} className="py-1.5 border-b border-[rgba(255,255,255,0.04)] last:border-0">
+                  <p className="text-white text-xs font-medium">{a.assigned_to_name}</p>
+                  <p className="text-[#d4a843] text-[10px]">{a.position_name}</p>
+                  <p className="text-slate-500 text-[10px]">{a.check_in_latitude ? '📍 GPS' : '⚠️ No GPS'} · {formatTime(a.check_in_time)}</p>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Checked Out */}
+          {checkedOutAssignments.length > 0 && (
+            <div className="px-3 py-1.5 border-t border-[rgba(212,168,67,0.1)]">
+              <p className="text-blue-400 text-[10px] font-bold uppercase tracking-wider mb-1">Checked Out ({checkedOutAssignments.length})</p>
+              {checkedOutAssignments.map((a) => (
+                <div key={a.id} className="py-1.5 border-b border-[rgba(255,255,255,0.04)] last:border-0">
+                  <p className="text-slate-300 text-xs font-medium">{a.assigned_to_name}</p>
+                  <p className="text-[#d4a843] text-[10px]">{a.position_name}</p>
+                  <p className="text-slate-500 text-[10px]">✓ Out: {formatTime(a.check_out_time)}</p>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}
       {!showSidebar && (
+
         <button onClick={() => setShowSidebar(true)} className="absolute top-12 right-2 z-[1000] bg-[#141f3d]/95 border border-[rgba(212,168,67,0.2)] rounded-lg px-2 py-1 text-[#d4a843] text-xs font-bold shadow-xl">
-          👥 {allCheckedIn.length}
+          👥 {allCheckedIn.length} in · {checkedOutAssignments.length} out
         </button>
       )}
 
