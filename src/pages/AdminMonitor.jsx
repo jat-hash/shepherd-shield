@@ -412,17 +412,6 @@ export default function AdminMonitor() {
   const checkedInCount = filteredAssignments.filter(a => a.checked_in && !a.checked_out).length;
   const checkedOutCount = filteredAssignments.filter(a => a.checked_out).length;
   const notCheckedInCount = filteredAssignments.filter(a => !a.checked_in).length;
-  const stuckCount = assignments.filter(a => a.checked_in && a.checked_out).length;
-
-  const handleFixAllStuck = async () => {
-    const stuck = assignments.filter(a => a.checked_in && a.checked_out && !a._isPersonal && !a._isGhost);
-    if (stuck.length === 0) return;
-    await Promise.all(stuck.map(a =>
-      base44.entities.Assignment.update(a.id, { checked_in: false, checked_out: false, check_in_time: null, check_out_time: null })
-    ));
-    toast.success(`Reset ${stuck.length} stuck member(s) — they will now show on the map again`);
-    loadAssignments();
-  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 lg:ml-60 space-y-6">
@@ -438,23 +427,28 @@ export default function AdminMonitor() {
         </div>
       )}
 
-      {stuckCount > 0 && (
-        <div className="bg-red-900/30 border border-red-500/40 rounded-xl px-4 py-3 flex items-center justify-between gap-4">
-          <div className="text-red-300 text-sm">
-            ⚠️ <strong>{stuckCount} member(s)</strong> are marked both checked-in AND checked-out — they won't appear on the Team Map.
-          </div>
-          <Button size="sm" onClick={handleFixAllStuck} className="bg-red-600 hover:bg-red-500 text-white shrink-0">
-            Fix All
-          </Button>
-        </div>
-      )}
+
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
+        <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle className="w-5 h-5 text-emerald-500" />
+            <span className="text-emerald-400 text-sm font-medium">On Duty</span>
+          </div>
+          <p className="text-3xl font-bold text-white">{checkedInCount}</p>
+        </div>
+        <div className="bg-blue-900/20 border border-blue-500/30 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <XCircle className="w-5 h-5 text-blue-500" />
+            <span className="text-blue-400 text-sm font-medium">Checked Out</span>
+          </div>
+          <p className="text-3xl font-bold text-white">{checkedOutCount}</p>
+        </div>
         <div className="bg-orange-900/20 border border-orange-500/30 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-2">
             <Clock className="w-5 h-5 text-orange-500" />
-            <span className="text-orange-400 text-sm font-medium">Not Checked In</span>
+            <span className="text-orange-400 text-sm font-medium">Not In Yet</span>
           </div>
           <p className="text-3xl font-bold text-white">{notCheckedInCount}</p>
         </div>
