@@ -355,55 +355,48 @@ export default function TeamMap() {
             </Marker>
           ))}
         </MapContainer>
-      </div>
 
-
-
-      {/* Checked-in sidebar panel */}
-      {showSidebar && (
-        <div className="absolute top-12 right-2 z-[1000] bg-[#141f3d]/95 border border-[rgba(212,168,67,0.2)] rounded-xl w-64 max-h-80 overflow-y-auto shadow-xl">
-          <div className="px-3 py-2 border-b border-[rgba(212,168,67,0.1)] flex items-center justify-between">
-            <span className="text-[#d4a843] text-xs font-bold uppercase tracking-wider">Team Status</span>
-            <button onClick={() => setShowSidebar(false)} className="text-slate-500 hover:text-white text-xs">✕</button>
-          </div>
-
-          {/* Checked In */}
-          <div className="px-3 py-1.5">
-            <p className="text-emerald-400 text-[10px] font-bold uppercase tracking-wider mb-1">Checked In ({allCheckedIn.length})</p>
-            {allCheckedIn.length === 0 ? (
-              <p className="text-slate-500 text-xs pb-2">No one checked in</p>
-            ) : (
-              allCheckedIn.map((a) => (
-                <div key={a.id} className="py-1.5 border-b border-[rgba(255,255,255,0.04)] last:border-0">
-                  <p className="text-white text-xs font-medium">{a.assigned_to_name}</p>
-                  <p className="text-[#d4a843] text-[10px]">{a.position_name}</p>
-                  <p className="text-slate-500 text-[10px]">{a.check_in_latitude ? '📍 GPS' : '⚠️ No GPS'} · {formatTime(a.check_in_time)}</p>
-                </div>
-              ))
+        {/* Checked-in sidebar panel */}
+        {showSidebar && (
+          <div className="absolute top-3 right-14 z-[1000] bg-[#141f3d]/95 border border-[rgba(212,168,67,0.2)] rounded-xl w-64 max-h-80 overflow-y-auto shadow-xl">
+            <div className="px-3 py-2 border-b border-[rgba(212,168,67,0.1)] flex items-center justify-between">
+              <span className="text-[#d4a843] text-xs font-bold uppercase tracking-wider">Team Status</span>
+              <button onClick={() => setShowSidebar(false)} className="text-slate-500 hover:text-white text-xs">✕</button>
+            </div>
+            <div className="px-3 py-1.5">
+              <p className="text-emerald-400 text-[10px] font-bold uppercase tracking-wider mb-1">Checked In ({allCheckedIn.length})</p>
+              {allCheckedIn.length === 0 ? (
+                <p className="text-slate-500 text-xs pb-2">No one checked in</p>
+              ) : (
+                allCheckedIn.map((a) => (
+                  <div key={a.id} className="py-1.5 border-b border-[rgba(255,255,255,0.04)] last:border-0">
+                    <p className="text-white text-xs font-medium">{a.assigned_to_name}</p>
+                    <p className="text-[#d4a843] text-[10px]">{a.position_name}</p>
+                    <p className="text-slate-500 text-[10px]">{a.check_in_latitude ? '📍 GPS' : '⚠️ No GPS'} · {formatTime(a.check_in_time)}</p>
+                  </div>
+                ))
+              )}
+            </div>
+            {checkedOutAssignments.length > 0 && (
+              <div className="px-3 py-1.5 border-t border-[rgba(212,168,67,0.1)]">
+                <p className="text-blue-400 text-[10px] font-bold uppercase tracking-wider mb-1">Checked Out ({checkedOutAssignments.length})</p>
+                {checkedOutAssignments.map((a) => (
+                  <div key={a.id} className="py-1.5 border-b border-[rgba(255,255,255,0.04)] last:border-0">
+                    <p className="text-slate-300 text-xs font-medium">{a.assigned_to_name}</p>
+                    <p className="text-[#d4a843] text-[10px]">{a.position_name}</p>
+                    <p className="text-slate-500 text-[10px]">✓ Out: {formatTime(a.check_out_time)}</p>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
-
-          {/* Checked Out */}
-          {checkedOutAssignments.length > 0 && (
-            <div className="px-3 py-1.5 border-t border-[rgba(212,168,67,0.1)]">
-              <p className="text-blue-400 text-[10px] font-bold uppercase tracking-wider mb-1">Checked Out ({checkedOutAssignments.length})</p>
-              {checkedOutAssignments.map((a) => (
-                <div key={a.id} className="py-1.5 border-b border-[rgba(255,255,255,0.04)] last:border-0">
-                  <p className="text-slate-300 text-xs font-medium">{a.assigned_to_name}</p>
-                  <p className="text-[#d4a843] text-[10px]">{a.position_name}</p>
-                  <p className="text-slate-500 text-[10px]">✓ Out: {formatTime(a.check_out_time)}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-      {!showSidebar && (
-
-        <button onClick={() => setShowSidebar(true)} className="absolute top-12 right-2 z-[1000] bg-[#141f3d]/95 border border-[rgba(212,168,67,0.2)] rounded-lg px-2 py-1 text-[#d4a843] text-xs font-bold shadow-xl">
-          👥 {allCheckedIn.length} in · {checkedOutAssignments.length} out
-        </button>
-      )}
+        )}
+        {!showSidebar && (
+          <button onClick={() => setShowSidebar(true)} className="absolute top-3 right-14 z-[1000] bg-[#141f3d]/95 border border-[rgba(212,168,67,0.2)] rounded-lg px-2 py-1 text-[#d4a843] text-xs font-bold shadow-xl">
+            👥 {allCheckedIn.length} in · {checkedOutAssignments.length} out
+          </button>
+        )}
+      </div>
 
       {/* Legend */}
       <div className="bg-[#141f3d] border-t border-[rgba(212,168,67,0.15)] px-4 py-2 flex items-center gap-5 shrink-0">
