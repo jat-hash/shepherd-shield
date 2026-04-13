@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-const LEADER_NAME_PATTERNS = ['pacheco', 'james lim', 'wilbert ryan'];
+const LEADER_NAME_PATTERNS = ['pacheco', 'james lim', 'wilbert ryan', 'jorge trevino', 'jorge'];
 const LEADER_ROLES = ['security_chief', 'security chief', 'chief'];
 
 Deno.serve(async (req) => {
