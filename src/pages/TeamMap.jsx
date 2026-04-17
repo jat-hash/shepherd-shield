@@ -143,7 +143,7 @@ export default function TeamMap() {
     const u = await base44.auth.me().catch(() => null);
     if (u) setUser(u);
 
-    const today = new Date().toLocaleDateString('en-CA');
+    const today = new Date().toISOString().slice(0, 10);
     const [allAssignments, allIncidents, positions, personalCheckIns] = await Promise.all([
       base44.entities.Assignment.filter({ checked_in: true, checked_out: false, service_date: today }, "-updated_date", 500),
       base44.entities.Incident.filter({ is_panic: true }, "-updated_date", 100),
