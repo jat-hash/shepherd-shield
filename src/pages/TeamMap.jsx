@@ -457,26 +457,27 @@ export default function TeamMap() {
                 return distA - distB;
               })
               .map((a) => {
-              const userWithEmail = allUsers.find(u => u.email === a.assigned_to_email);
-              const photoUrl = userWithEmail?.profile_photo || userWithEmail?.data?.profile_photo;
-              return (
-              <div key={a.id} className="px-3 py-2 border-b border-[rgba(255,255,255,0.04)] hover:bg-white/5 flex items-center gap-2">
-                {photoUrl ? (
-                  <img src={photoUrl} alt={a.assigned_to_name} className="w-6 h-6 rounded-full object-cover border border-[#d4a843]" />
-                ) : (
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#d4a843] to-[#b8902a] flex items-center justify-center text-[#0a1128] text-[9px] font-bold border border-[#d4a843]">
-                    {(a.assigned_to_name || '?').charAt(0).toUpperCase()}
+                const userWithEmail = allUsers.find(u => u.email === a.assigned_to_email);
+                const photoUrl = userWithEmail?.profile_photo || userWithEmail?.data?.profile_photo;
+                return (
+                  <div key={a.id} className="px-3 py-2 border-b border-[rgba(255,255,255,0.04)] hover:bg-white/5 flex items-center gap-2">
+                    {photoUrl ? (
+                      <img src={photoUrl} alt={a.assigned_to_name} className="w-6 h-6 rounded-full object-cover border border-[#d4a843]" />
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#d4a843] to-[#b8902a] flex items-center justify-center text-[#0a1128] text-[9px] font-bold border border-[#d4a843]">
+                        {(a.assigned_to_name || '?').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-xs font-medium truncate">{a.assigned_to_name}</p>
+                      <p className="text-[#d4a843] text-[10px] truncate">{a.position_name}</p>
+                      <p className="text-slate-500 text-[10px]">
+                        {a.check_in_latitude ? '📍 GPS' : '⚠️ No GPS'} · {formatTime(a.check_in_time)}
+                      </p>
+                    </div>
                   </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-xs font-medium truncate">{a.assigned_to_name}</p>
-                  <p className="text-[#d4a843] text-[10px] truncate">{a.position_name}</p>
-                  <p className="text-slate-500 text-[10px]">
-                    {a.check_in_latitude ? '📍 GPS' : '⚠️ No GPS'} · {formatTime(a.check_in_time)}
-                  </p>
-                </div>
-              </div>
-            );})}
+                );
+              })}
         </div>
       )}
       {!showSidebar && (
