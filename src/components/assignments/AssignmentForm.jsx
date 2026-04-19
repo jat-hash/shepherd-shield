@@ -97,8 +97,8 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
     }
     
     setSaving(false);
-    onSaved?.();
     onClose();
+    onSaved?.();
   };
 
   const handleUserSelect = (email) => {
