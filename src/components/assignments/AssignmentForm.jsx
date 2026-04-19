@@ -106,6 +106,18 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
     setForm({ ...form, assigned_to_email: email, assigned_to_name: u?.data?.display_name || u?.display_name || u?.full_name || email });
   };
 
+  const SERVICE_DEFAULTS = {
+    "Sunday AM":           { start_time: "10:15", end_time: "11:45" },
+    "Sunday PM":           { start_time: "18:15", end_time: "19:45" },
+    "Tuesday Bible Study": { start_time: "19:45", end_time: "20:15" },
+    "Thursday Services":   { start_time: "19:15", end_time: "20:45" },
+  };
+
+  const handleServiceTypeSelect = (v) => {
+    const defaults = SERVICE_DEFAULTS[v] || {};
+    setForm(f => ({ ...f, service_type: v, supervisor: "Wilbert Ryan", ...defaults }));
+  };
+
   const handlePositionSelect = (positionName) => {
     const pos = positions.find(p => p.name === positionName);
     if (pos) {
@@ -182,7 +194,7 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
 
           <div>
             <Label className="text-slate-300 text-xs">Service</Label>
-            <Select value={form.service_type} onValueChange={v => setForm({ ...form, service_type: v })}>
+            <Select value={form.service_type} onValueChange={handleServiceTypeSelect}>
               <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white mt-1"><SelectValue placeholder="Select service type" /></SelectTrigger>
               <SelectContent className="bg-[#1a2744] border-slate-700">
                 <SelectItem value="Sunday AM" className="text-white">Sunday AM</SelectItem>
