@@ -187,12 +187,20 @@ export default function AdminMonitor() {
   useEffect(() => {
     if (user?.role === 'admin') {
       loadAssignments();
-      // Load live locations
-      base44.entities.LiveLocation.filter({ is_active: true }).then(setLiveLocations).catch(() => {});
+      // Load live locations - fetch ALL first to debug
+      base44.entities.LiveLocation.list().then(all => {
+        console.log('All LiveLocation records:', all);
+        const active = all.filter(ll => ll.is_active !== false);
+        console.log('Active LiveLocations:', active);
+        setLiveLocations(active);
+      }).catch(err => console.error('LiveLocation fetch error:', err));
       // Auto-refresh every 30 seconds
       const interval = setInterval(() => {
         loadAssignments();
-        base44.entities.LiveLocation.filter({ is_active: true }).then(setLiveLocations).catch(() => {});
+        base44.entities.LiveLocation.list().then(all => {
+          const active = all.filter(ll => ll.is_active !== false);
+          setLiveLocations(active);
+        }).catch(() => {});
       }, 30000);
       return () => clearInterval(interval);
     }
