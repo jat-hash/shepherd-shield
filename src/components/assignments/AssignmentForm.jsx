@@ -162,6 +162,7 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="bg-[#1a2744] border-slate-700 text-white w-[calc(100vw-2rem)] max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -316,8 +317,9 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
           </div>
         </DialogFooter>
       </DialogContent>
+    </Dialog>
 
-      {/* New Position Dialog */}
+      {/* New Position Dialog - outside main dialog to avoid nesting issues */}
       <Dialog open={showNewPosition} onOpenChange={setShowNewPosition}>
         <DialogContent className="bg-[#1a2744] border-slate-700 text-white w-[calc(100vw-2rem)] max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -369,6 +371,6 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Dialog>
+    </>
   );
 }
