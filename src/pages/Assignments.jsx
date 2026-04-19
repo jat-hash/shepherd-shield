@@ -147,7 +147,7 @@ export default function Assignments() {
       </div>
 
       {isAdmin && schedulerView && (
-        <ShiftScheduler onSaved={loadData} />
+        <ShiftScheduler onSaved={loadData} initialMonth={currentMonth} onMonthChange={setCurrentMonth} />
       )}
 
       {!schedulerView && (

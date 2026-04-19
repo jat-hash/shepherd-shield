@@ -39,8 +39,13 @@ const statusIcon = (status) => {
   return <XCircle className="w-3 h-3 text-red-400" />;
 };
 
-export default function ShiftScheduler({ onSaved }) {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+export default function ShiftScheduler({ onSaved, initialMonth, onMonthChange }) {
+  const [currentMonth, setCurrentMonth] = useState(initialMonth || new Date());
+
+  const handleMonthChange = (newMonth) => {
+    setCurrentMonth(newMonth);
+    onMonthChange?.(newMonth);
+  };
   const [assignments, setAssignments] = useState([]);
   const [positions, setPositions] = useState([]);
   const [users, setUsers] = useState([]);
@@ -135,11 +140,11 @@ export default function ShiftScheduler({ onSaved }) {
 
         {/* Month Nav */}
         <div className="flex items-center justify-between bg-[#1a2744] rounded-xl p-3 border border-[rgba(212,168,67,0.1)]">
-          <Button onClick={() => setCurrentMonth(new Date(year, month - 1))} variant="ghost" size="icon" className="text-slate-400 hover:text-[#d4a843]">
+          <Button onClick={() => handleMonthChange(new Date(year, month - 1))} variant="ghost" size="icon" className="text-slate-400 hover:text-[#d4a843]">
             <ChevronLeft className="w-5 h-5" />
           </Button>
           <h2 className="text-base font-bold text-white">{monthName}</h2>
-          <Button onClick={() => setCurrentMonth(new Date(year, month + 1))} variant="ghost" size="icon" className="text-slate-400 hover:text-[#d4a843]">
+          <Button onClick={() => handleMonthChange(new Date(year, month + 1))} variant="ghost" size="icon" className="text-slate-400 hover:text-[#d4a843]">
             <ChevronRight className="w-5 h-5" />
           </Button>
         </div>
