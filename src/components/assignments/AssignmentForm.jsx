@@ -40,25 +40,27 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
   }, []);
 
   useEffect(() => {
+    if (!open) return;
+    const defaultForm = {
+      position_name: "",
+      service_date: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })(),
+      service_type: "",
+      start_time: "09:00",
+      end_time: "12:00",
+      assigned_to_email: "",
+      assigned_to_name: "",
+      supervisor: "",
+      radio_channel: "",
+      status: "Pending",
+      area_responsibilities: "",
+      notes: "",
+    };
     if (editData) {
-      setForm({ ...form, ...editData });
-      setSelectedResponsibilities(editData.area_responsibilities?.split(", ") || []);
+      setForm({ ...defaultForm, ...editData });
+      setSelectedResponsibilities(editData.area_responsibilities ? editData.area_responsibilities.split(", ").filter(Boolean) : []);
       setReminders(editData.reminder_minutes ? [{ id: 1, minutes: editData.reminder_minutes }] : []);
     } else {
-      setForm({
-        position_name: "",
-        service_date: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })(),
-        service_type: "",
-        start_time: "09:00",
-        end_time: "12:00",
-        assigned_to_email: "",
-        assigned_to_name: "",
-        supervisor: "",
-        radio_channel: "",
-        status: "Pending",
-        area_responsibilities: "",
-        notes: "",
-      });
+      setForm(defaultForm);
       setSelectedResponsibilities([]);
       setReminders([]);
     }
