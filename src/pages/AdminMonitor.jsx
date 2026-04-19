@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { CheckCircle, XCircle, Clock, Edit2, Search, Trash2, Bell, Send, MessageSquare, WifiOff, Wrench, RefreshCw } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Edit2, Search, Trash2, Bell, Send, MessageSquare, WifiOff, Wrench, RefreshCw, Plus } from "lucide-react";
 import { cacheData, getCachedData, savePendingCheckIn, syncPendingCheckIns } from "@/lib/offlineStorage";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,7 @@ export default function AdminMonitor() {
   // Recalculated fresh on each load inside loadAssignments
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [equipmentCheckouts, setEquipmentCheckouts] = useState([]);
+  const [newAssignmentOpen, setNewAssignmentOpen] = useState(false);
 
   useEffect(() => {
     if (authUser) {
@@ -427,15 +428,25 @@ export default function AdminMonitor() {
           <h1 className="text-2xl font-bold text-white">Admin Monitor</h1>
           <p className="text-slate-400 text-sm mt-1">Real-time check-in/check-out tracking</p>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={loadAssignments}
-          className="border-[rgba(212,168,67,0.3)] text-[#d4a843] hover:bg-[#d4a843]/10 gap-2"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            onClick={() => setNewAssignmentOpen(true)}
+            className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold gap-1"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Add Assignment</span>
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={loadAssignments}
+            className="border-[rgba(212,168,67,0.3)] text-[#d4a843] hover:bg-[#d4a843]/10 gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span className="hidden sm:inline">Refresh</span>
+          </Button>
+        </div>
       </div>
 
       {isOffline && (
@@ -545,6 +556,14 @@ export default function AdminMonitor() {
                 {groups[groupKey].filter(a => a.checked_in && !a.checked_out).length} in · {groups[groupKey].filter(a => a.checked_out).length} out · {groups[groupKey].filter(a => !a.checked_in).length} pending
               </span>
               <div className="flex-1 h-px bg-[rgba(212,168,67,0.1)]" />
+              {!['Personal Check-in', 'No Assignment Today'].includes(groupKey) && (
+                <button
+                  onClick={() => { setEditingAssignment({ service_type: groupKey, service_date: new Date().toISOString().slice(0,10) }); setEditDialogOpen(true); }}
+                  className="flex items-center gap-1 text-[10px] text-[#d4a843] hover:text-[#e0bb5e] shrink-0"
+                >
+                  <Plus className="w-3 h-3" /> Add
+                </button>
+              )}
             </div>
             {groups[groupKey].map(assignment => (
             <div
@@ -564,22 +583,18 @@ export default function AdminMonitor() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs sm:text-sm mb-3">
                     <div>
                       <span className="text-slate-500">Position: </span>
                       <span className="text-white">{assignment.position_name}</span>
                     </div>
                     <div>
                       <span className="text-slate-500">Date: </span>
-                      <span className="text-white">
-                        {formatDate(assignment.service_date)}
-                      </span>
+                      <span className="text-white">{formatDate(assignment.service_date)}</span>
                     </div>
                     <div>
                       <span className="text-slate-500">Time: </span>
-                      <span className="text-white">
-                        {assignment.start_time} - {assignment.end_time}
-                      </span>
+                      <span className="text-white">{assignment.start_time} - {assignment.end_time}</span>
                     </div>
                     <div>
                       <span className="text-slate-500">Channel: </span>
@@ -588,8 +603,8 @@ export default function AdminMonitor() {
                   </div>
 
                   {/* Check-in Status */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-3 flex-wrap text-xs sm:text-sm">
                       {assignment.checked_in && (
                         <div className="flex items-center gap-2">
                           <CheckCircle className="w-4 h-4 text-emerald-500" />
@@ -633,11 +648,11 @@ export default function AdminMonitor() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-row sm:flex-col gap-2 shrink-0">
                   <Button
                     size="sm"
                     onClick={() => handleEdit(assignment)}
-                    className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]"
+                    className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] px-2 sm:px-3"
                   >
                     <Edit2 className="w-4 h-4" />
                   </Button>
@@ -645,7 +660,7 @@ export default function AdminMonitor() {
                     size="sm"
                     onClick={() => handleCheckInToggle(assignment)}
                     variant="outline"
-                    className={`${
+                    className={`px-2 sm:px-3 ${
                       !assignment.checked_in
                         ? "border-emerald-500 text-emerald-400 hover:bg-emerald-500/10"
                         : !assignment.checked_out
@@ -653,13 +668,7 @@ export default function AdminMonitor() {
                         : "border-slate-500 text-slate-400 hover:bg-slate-500/10"
                     }`}
                   >
-                    {!assignment.checked_in ? (
-                      <>In</>
-                    ) : !assignment.checked_out ? (
-                      <>Out</>
-                    ) : (
-                      <>Reset</>
-                    )}
+                    {!assignment.checked_in ? "In" : !assignment.checked_out ? "Out" : "Reset"}
                   </Button>
                 </div>
               </div>
@@ -714,25 +723,20 @@ export default function AdminMonitor() {
       </div>
 
       {/* Edit Assignment Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-[#1a2744] border-[rgba(212,168,67,0.2)]">
-          <DialogHeader>
-            <DialogTitle className="text-white">Edit Assignment</DialogTitle>
-          </DialogHeader>
-          <AssignmentForm
-            editData={editingAssignment}
-            onSuccess={() => {
-              setEditDialogOpen(false);
-              setEditingAssignment(null);
-              loadAssignments();
-            }}
-            onCancel={() => {
-              setEditDialogOpen(false);
-              setEditingAssignment(null);
-            }}
-          />
-        </DialogContent>
-      </Dialog>
+      <AssignmentForm
+        open={editDialogOpen}
+        onClose={() => { setEditDialogOpen(false); setEditingAssignment(null); }}
+        onSaved={() => { setEditDialogOpen(false); setEditingAssignment(null); loadAssignments(); }}
+        editData={editingAssignment}
+      />
+
+      {/* New Assignment Dialog */}
+      <AssignmentForm
+        open={newAssignmentOpen}
+        onClose={() => setNewAssignmentOpen(false)}
+        onSaved={() => { setNewAssignmentOpen(false); loadAssignments(); }}
+        editData={null}
+      />
 
       {/* Send Notification Dialog */}
       <Dialog open={notifyDialog} onOpenChange={setNotifyDialog}>
