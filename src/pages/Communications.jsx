@@ -268,11 +268,14 @@ export default function Communications() {
   };
 
   const handleSelectDM = (dmChannel, otherUser) => {
-    setActiveChannel({
+    const newActiveChannel = {
       name: dmChannel,
       type: "dm",
       displayName: otherUser.data?.display_name || otherUser.display_name || otherUser.full_name || otherUser.email
-    });
+    };
+    
+    setActiveChannel(newActiveChannel);
+    setChannel(dmChannel);
     
     if (!dmChannels.includes(dmChannel)) {
       setDmChannels(prev => [...prev, dmChannel]);
@@ -448,7 +451,11 @@ export default function Communications() {
             value={newMsg}
             onChange={handleTyping}
             onKeyDown={handleKeyDown}
-            placeholder={`Message ${activeChannel.type === "dm" ? activeChannel.displayName : activeChannel.name}...`}
+            placeholder={activeChannel.type === "dm" 
+              ? `Message ${activeChannel.displayName}...` 
+              : activeChannel.name === "All Team" 
+                ? "Message all team members..." 
+                : `Message ${activeChannel.name}...`}
             className="flex-1 bg-[#0a1128] border-slate-700 text-white placeholder:text-slate-500"
           />
           <Button
