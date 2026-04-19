@@ -726,30 +726,21 @@ export default function AdminMonitor() {
         )}
       </div>
 
-      {/* Edit / New Assignment Dialog — AssignmentForm has its own Dialog */}
+      {/* Single unified Assignment Dialog */}
       <AssignmentForm
-        open={editDialogOpen}
-        editData={editingAssignment}
+        open={editDialogOpen || newAssignmentOpen}
+        editData={newAssignmentOpen ? null : editingAssignment}
         onSaved={() => {
           setEditDialogOpen(false);
+          setNewAssignmentOpen(false);
           setEditingAssignment(null);
           loadAssignments();
         }}
         onClose={() => {
           setEditDialogOpen(false);
+          setNewAssignmentOpen(false);
           setEditingAssignment(null);
         }}
-      />
-
-      {/* New Assignment Dialog */}
-      <AssignmentForm
-        open={newAssignmentOpen}
-        editData={null}
-        onSaved={() => {
-          setNewAssignmentOpen(false);
-          loadAssignments();
-        }}
-        onClose={() => setNewAssignmentOpen(false)}
       />
 
       {/* Send Notification Dialog */}
