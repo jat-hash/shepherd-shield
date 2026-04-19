@@ -186,7 +186,7 @@ export default function Assignments() {
             const renderAssignment = (a) => (
               <button
                 key={a.id}
-                onClick={() => isAdmin && (setEditData(a), setFormOpen(true))}
+                onClick={() => { if (isAdmin) { setEditData(a); setFormOpen(true); } }}
                 className={`flex items-center gap-1.5 bg-[#0a1128] rounded px-2 py-1.5 border border-transparent transition-all text-left ${isAdmin ? "hover:border-[#d4a843]/30 hover:bg-[#d4a843]/10 cursor-pointer" : "cursor-default"}`}
               >
                 {statusIcon(a.status)}
