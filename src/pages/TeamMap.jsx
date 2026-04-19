@@ -477,7 +477,8 @@ export default function TeamMap() {
                     </div>
                   </div>
                 );
-              })}
+              })
+          )}
         </div>
       )}
       {!showSidebar && (
