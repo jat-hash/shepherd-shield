@@ -49,6 +49,7 @@ export default function AdminMonitor() {
   const [notifySendSMS, setNotifySendSMS] = useState(false);
   const [notifyPhoneNumber, setNotifyPhoneNumber] = useState("");
   const [allUsers, setAllUsers] = useState([]);
+  const [liveLocations, setLiveLocations] = useState([]);
   // Recalculated fresh on each load inside loadAssignments
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [equipmentCheckouts, setEquipmentCheckouts] = useState([]);
@@ -186,8 +187,13 @@ export default function AdminMonitor() {
   useEffect(() => {
     if (user?.role === 'admin') {
       loadAssignments();
+      // Load live locations
+      base44.entities.LiveLocation.filter({ is_active: true }).then(setLiveLocations).catch(() => {});
       // Auto-refresh every 30 seconds
-      const interval = setInterval(() => loadAssignments(), 30000);
+      const interval = setInterval(() => {
+        loadAssignments();
+        base44.entities.LiveLocation.filter({ is_active: true }).then(setLiveLocations).catch(() => {});
+      }, 30000);
       return () => clearInterval(interval);
     }
   }, [user]);
@@ -211,6 +217,9 @@ export default function AdminMonitor() {
     if (!user) return;
     const unsubA = base44.entities.Assignment.subscribe(() => loadAssignments());
     const unsubP = base44.entities.PersonalCheckIn.subscribe(() => loadAssignments());
+    const unsubL = base44.entities.LiveLocation.subscribe(() => {
+      base44.entities.LiveLocation.filter({ is_active: true }).then(setLiveLocations).catch(() => {});
+    });
     const unsubE = base44.entities.Equipment.subscribe((event) => {
       // When equipment is checked out, auto-create a PersonalCheckIn for that user
       if (event.type === 'update' && event.data?.checked_out && event.data?.checked_out_by) {
@@ -241,7 +250,7 @@ export default function AdminMonitor() {
       base44.entities.Equipment.filter({ checked_out: true }, '-checked_out_at', 200)
         .then(setEquipmentCheckouts).catch(() => {});
     });
-    return () => { unsubA(); unsubP(); unsubE(); };
+    return () => { unsubA(); unsubP(); unsubL(); unsubE(); };
   }, [user]);
 
   useEffect(() => {
@@ -420,6 +429,9 @@ export default function AdminMonitor() {
   const checkedInCount = filteredAssignments.filter(a => a.checked_in && !a.checked_out).length;
   const checkedOutCount = filteredAssignments.filter(a => a.checked_out).length;
   const notCheckedInCount = filteredAssignments.filter(a => !a.checked_in).length;
+  
+  // Build online status map from live locations
+  const onlineEmails = new Set(liveLocations.map(ll => ll.user_email?.toLowerCase()));
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 lg:ml-60 space-y-6">
@@ -458,7 +470,7 @@ export default function AdminMonitor() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle className="w-5 h-5 text-emerald-500" />
@@ -481,6 +493,22 @@ export default function AdminMonitor() {
             <span className="text-orange-400 text-sm font-medium">Not Checked In</span>
           </div>
           <p className="text-3xl font-bold text-white">{notCheckedInCount}</p>
+        </div>
+
+        <div className="bg-green-900/20 border border-green-500/30 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <WifiOff className="w-5 h-5 text-green-500" />
+            <span className="text-green-400 text-sm font-medium">Online</span>
+          </div>
+          <p className="text-3xl font-bold text-white">{liveLocations.length}</p>
+        </div>
+
+        <div className="bg-slate-900/20 border border-slate-500/30 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <WifiOff className="w-5 h-5 text-slate-500" />
+            <span className="text-slate-400 text-sm font-medium">Offline</span>
+          </div>
+          <p className="text-3xl font-bold text-white">{allUsers.filter(u => !onlineEmails.has(u.email?.toLowerCase())).length}</p>
         </div>
       </div>
 
@@ -609,6 +637,12 @@ export default function AdminMonitor() {
                   {/* Check-in Status */}
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-3 flex-wrap text-xs sm:text-sm">
+                      <div className="flex items-center gap-2">
+                        <WifiOff className={`w-4 h-4 ${onlineEmails.has((assignment.assigned_to_email || '').toLowerCase()) ? 'text-green-500' : 'text-slate-500'}`} />
+                        <span className={onlineEmails.has((assignment.assigned_to_email || '').toLowerCase()) ? 'text-green-400' : 'text-slate-400'}>
+                          {onlineEmails.has((assignment.assigned_to_email || '').toLowerCase()) ? 'Online' : 'Offline'}
+                        </span>
+                      </div>
                       {assignment.checked_in && (
                         <div className="flex items-center gap-2">
                           <CheckCircle className="w-4 h-4 text-emerald-500" />
