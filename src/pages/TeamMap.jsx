@@ -394,8 +394,7 @@ export default function TeamMap() {
                 </div>
               </Popup>
             </Marker>
-            );
-          })}
+          );})}
 
           {/* Current user location */}
           {userLocation && (
@@ -477,9 +476,7 @@ export default function TeamMap() {
                   </p>
                 </div>
               </div>
-              );
-            ))
-          )}
+            );})}
         </div>
       )}
       {!showSidebar && (
