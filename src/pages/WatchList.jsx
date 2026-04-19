@@ -129,7 +129,7 @@ export default function WatchList() {
 
       {/* Add/Edit Form */}
       <Dialog open={formOpen} onOpenChange={(open) => { setFormOpen(open); if (!open) { setEditingPerson(null); setForm({ full_name: "", status: "Monitor", description: "", notes: "", photo: "" }); } }}>
-        <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-md">
+        <DialogContent className="bg-[#1a2744] border-slate-700 text-white w-[calc(100vw-2rem)] max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="text-[#d4a843]">{editingPerson ? "Edit Watch List Entry" : "Add to Watch List"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
@@ -162,9 +162,9 @@ export default function WatchList() {
               <Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" rows={2} />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setFormOpen(false)} className="text-slate-400">Cancel</Button>
-            <Button onClick={handleSave} disabled={saving || !form.full_name} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
+          <DialogFooter className="flex gap-2">
+            <Button variant="ghost" onClick={() => setFormOpen(false)} className="flex-1 sm:flex-none text-slate-400">Cancel</Button>
+            <Button onClick={handleSave} disabled={saving || !form.full_name} className="flex-1 sm:flex-none bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
               {saving ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
@@ -173,7 +173,7 @@ export default function WatchList() {
 
       {/* Detail View */}
       <Dialog open={!!detailPerson} onOpenChange={() => setDetailPerson(null)}>
-        <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-md">
+        <DialogContent className="bg-[#1a2744] border-slate-700 text-white w-[calc(100vw-2rem)] max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="text-[#d4a843]">{detailPerson?.full_name}</DialogTitle></DialogHeader>
           {detailPerson && (
             <div className="space-y-4">

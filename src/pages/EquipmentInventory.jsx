@@ -288,7 +288,7 @@ export default function EquipmentInventory() {
 
       {/* Add Form */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-[#1a2744] border-slate-700 text-white w-[calc(100vw-2rem)] max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="text-[#d4a843]">Add Equipment</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
@@ -351,9 +351,9 @@ export default function EquipmentInventory() {
               <Textarea value={form.maintenance_notes} onChange={e => setForm({ ...form, maintenance_notes: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" rows={2} />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setFormOpen(false)} className="text-slate-400">Cancel</Button>
-            <Button onClick={handleSave} disabled={saving || !form.name} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
+          <DialogFooter className="flex gap-2">
+            <Button variant="ghost" onClick={() => setFormOpen(false)} className="flex-1 sm:flex-none text-slate-400">Cancel</Button>
+            <Button onClick={handleSave} disabled={saving || !form.name} className="flex-1 sm:flex-none bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
               {saving ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
@@ -369,7 +369,7 @@ export default function EquipmentInventory() {
 
       {/* Detail */}
       <Dialog open={!!detailItem} onOpenChange={() => { setDetailItem(null); setEditMode(false); }}>
-        <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-[#1a2744] border-slate-700 text-white w-[calc(100vw-2rem)] max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#d4a843] flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">

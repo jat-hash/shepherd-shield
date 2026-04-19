@@ -151,7 +151,7 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-[#1a2744] border-slate-700 text-white w-[calc(100vw-2rem)] max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-[#d4a843]">{editData ? "Edit" : "New"} Assignment</DialogTitle>
         </DialogHeader>
@@ -277,30 +277,28 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
           </div>
         </div>
 
-        <DialogFooter className="mt-4 flex items-center justify-between w-full">
-          <div>
-            {editData?.id && (
-              <Button
-                variant="ghost"
-                onClick={async () => {
-                  if (!confirm("Delete this assignment?")) return;
-                  setDeleting(true);
-                  await base44.entities.Assignment.delete(editData.id);
-                  setDeleting(false);
-                  onSaved?.();
-                  onClose();
-                }}
-                disabled={deleting}
-                className="text-red-400 hover:text-red-300 hover:bg-red-900/20 gap-1"
-              >
-                <Trash2 className="w-4 h-4" />
-                {deleting ? "Deleting..." : "Delete"}
-              </Button>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose} className="border-[#d4a843] text-[#0a1128] hover:bg-[#e0bb5e]">Cancel</Button>
-            <Button onClick={handleSave} disabled={saving || !form.position_name || !form.assigned_to_email} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
+        <DialogFooter className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:justify-between w-full">
+          {editData?.id && (
+            <Button
+              variant="ghost"
+              onClick={async () => {
+                if (!confirm("Delete this assignment?")) return;
+                setDeleting(true);
+                await base44.entities.Assignment.delete(editData.id);
+                setDeleting(false);
+                onSaved?.();
+                onClose();
+              }}
+              disabled={deleting}
+              className="text-red-400 hover:text-red-300 hover:bg-red-900/20 gap-1 sm:mr-auto"
+            >
+              <Trash2 className="w-4 h-4" />
+              {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          )}
+          <div className="flex gap-2 sm:ml-auto">
+            <Button variant="outline" onClick={onClose} className="flex-1 sm:flex-none border-[#d4a843] text-[#0a1128] hover:bg-[#e0bb5e]">Cancel</Button>
+            <Button onClick={handleSave} disabled={saving || !form.position_name || !form.assigned_to_email} className="flex-1 sm:flex-none bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
               {saving ? "Saving..." : "Save"}
             </Button>
           </div>
@@ -309,7 +307,7 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
 
       {/* New Position Dialog */}
       <Dialog open={showNewPosition} onOpenChange={setShowNewPosition}>
-        <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-md">
+        <DialogContent className="bg-[#1a2744] border-slate-700 text-white w-[calc(100vw-2rem)] max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#d4a843]">Create New Position</DialogTitle>
           </DialogHeader>

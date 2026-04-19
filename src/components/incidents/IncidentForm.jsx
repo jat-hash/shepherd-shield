@@ -94,7 +94,7 @@ export default function IncidentForm({ open, onClose, onSaved }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-[#1a2744] border-slate-700 text-white w-[calc(100vw-2rem)] max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-[#d4a843]">New Incident Report</DialogTitle>
         </DialogHeader>
@@ -105,7 +105,7 @@ export default function IncidentForm({ open, onClose, onSaved }) {
             <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" placeholder="Brief incident title" />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label className="text-slate-300 text-xs">Category</Label>
               <Select value={form.category} onValueChange={v => setForm({ ...form, category: v })}>
@@ -180,9 +180,9 @@ export default function IncidentForm({ open, onClose, onSaved }) {
           </div>
         </div>
 
-        <DialogFooter className="mt-4">
-          <Button variant="ghost" onClick={onClose} className="text-slate-400">Cancel</Button>
-          <Button onClick={handleSave} disabled={saving || !form.title || !form.category || !form.severity || !form.location || !form.description} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
+        <DialogFooter className="mt-4 flex gap-2">
+          <Button variant="ghost" onClick={onClose} className="flex-1 sm:flex-none text-slate-400">Cancel</Button>
+          <Button onClick={handleSave} disabled={saving || !form.title || !form.category || !form.severity || !form.location || !form.description} className="flex-1 sm:flex-none bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
             {saving ? "Submitting..." : "Submit Report"}
           </Button>
         </DialogFooter>
