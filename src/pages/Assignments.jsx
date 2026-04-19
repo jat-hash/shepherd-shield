@@ -19,6 +19,7 @@ export default function Assignments() {
 
   useEffect(() => {
     if (authUser) setCurrentUser(authUser);
+    else base44.auth.me().then(setCurrentUser).catch(() => {});
   }, [authUser]);
 
   useEffect(() => {
@@ -139,7 +140,7 @@ export default function Assignments() {
           )}
           {isAdmin && !schedulerView && (
             <Button onClick={() => { setEditData(null); setFormOpen(true); }} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold text-xs sm:text-sm gap-1 h-8 sm:h-10 px-2 sm:px-4">
-              <Plus className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Create</span>
+              <Plus className="w-3.5 h-3.5" /> Create
             </Button>
           )}
         </div>
@@ -280,11 +281,28 @@ export default function Assignments() {
                     </>
                   ) : (
                     /* Non-Sunday days */
-                    <div className="flex flex-wrap gap-2">
-                      {dayAssignments.length === 0 && dayEvents.length === 0 && (
-                        <span className="text-xs text-slate-600 self-center">No assignments</span>
+                    <div className="space-y-1">
+                      {(date.getDay() === 2 || date.getDay() === 4) && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                            {date.getDay() === 2 ? "Tuesday Bible Study" : "Thursday Services"}
+                          </span>
+                          {isAdmin && (
+                            <button
+                              onClick={() => { setEditData({ service_date: dateStr, service_type: date.getDay() === 2 ? "Tuesday Bible Study" : "Thursday Services" }); setFormOpen(true); }}
+                              className="text-[10px] text-[#d4a843] hover:text-[#e0bb5e] flex items-center gap-0.5"
+                            >
+                              <Plus className="w-3 h-3" /> Add
+                            </button>
+                          )}
+                        </div>
                       )}
-                      {dayAssignments.map(renderAssignment)}
+                      <div className="flex flex-wrap gap-2">
+                        {dayAssignments.length === 0 && dayEvents.length === 0 && (
+                          <span className="text-xs text-slate-600 self-center">No assignments</span>
+                        )}
+                        {dayAssignments.map(renderAssignment)}
+                      </div>
                     </div>
                   )}
                 </div>
