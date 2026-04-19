@@ -432,16 +432,17 @@ export default function AdminMonitor() {
           <Button
             size="sm"
             onClick={() => setNewAssignmentOpen(true)}
-            className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold gap-1"
+            className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold gap-1 whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Add Assignment</span>
+            <span className="sm:hidden">Add</span>
           </Button>
           <Button
             size="sm"
             variant="outline"
             onClick={loadAssignments}
-            className="border-[rgba(212,168,67,0.3)] text-[#d4a843] hover:bg-[#d4a843]/10 gap-2"
+            className="border-[rgba(212,168,67,0.3)] text-[#d4a843] hover:bg-[#d4a843]/10 gap-1 whitespace-nowrap"
           >
             <RefreshCw className="w-4 h-4" />
             <span className="hidden sm:inline">Refresh</span>
@@ -558,8 +559,11 @@ export default function AdminMonitor() {
               <div className="flex-1 h-px bg-[rgba(212,168,67,0.1)]" />
               {!['Personal Check-in', 'No Assignment Today'].includes(groupKey) && (
                 <button
-                  onClick={() => { setEditingAssignment({ service_type: groupKey, service_date: new Date().toISOString().slice(0,10) }); setEditDialogOpen(true); }}
-                  className="flex items-center gap-1 text-[10px] text-[#d4a843] hover:text-[#e0bb5e] shrink-0"
+                  onClick={() => {
+                    setEditingAssignment({ service_type: groupKey, service_date: new Date().toISOString().slice(0,10) });
+                    setEditDialogOpen(true);
+                  }}
+                  className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-[#d4a843]/10 text-[#d4a843] hover:bg-[#d4a843]/20 shrink-0 font-medium"
                 >
                   <Plus className="w-3 h-3" /> Add
                 </button>
@@ -722,20 +726,30 @@ export default function AdminMonitor() {
         )}
       </div>
 
-      {/* Edit Assignment Dialog */}
+      {/* Edit / New Assignment Dialog — AssignmentForm has its own Dialog */}
       <AssignmentForm
         open={editDialogOpen}
-        onClose={() => { setEditDialogOpen(false); setEditingAssignment(null); }}
-        onSaved={() => { setEditDialogOpen(false); setEditingAssignment(null); loadAssignments(); }}
         editData={editingAssignment}
+        onSaved={() => {
+          setEditDialogOpen(false);
+          setEditingAssignment(null);
+          loadAssignments();
+        }}
+        onClose={() => {
+          setEditDialogOpen(false);
+          setEditingAssignment(null);
+        }}
       />
 
       {/* New Assignment Dialog */}
       <AssignmentForm
         open={newAssignmentOpen}
-        onClose={() => setNewAssignmentOpen(false)}
-        onSaved={() => { setNewAssignmentOpen(false); loadAssignments(); }}
         editData={null}
+        onSaved={() => {
+          setNewAssignmentOpen(false);
+          loadAssignments();
+        }}
+        onClose={() => setNewAssignmentOpen(false)}
       />
 
       {/* Send Notification Dialog */}
