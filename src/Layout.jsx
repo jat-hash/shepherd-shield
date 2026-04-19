@@ -279,7 +279,7 @@ export default function Layout({ children, currentPageName }) {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 pb-6 lg:ml-56 lg:overflow-auto w-full">
+      <main className="flex-1 pb-6 lg:ml-56 overflow-x-hidden w-full">
         {children}
       </main>
       <nav className="hidden lg:flex fixed left-0 top-[57px] bottom-0 w-56 bg-[#141f3d] border-r border-[rgba(212,168,67,0.15)] flex-col py-4 z-[1001] overflow-y-auto">
