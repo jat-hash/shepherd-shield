@@ -118,7 +118,7 @@ export default function Assignments() {
   };
 
   return (
-    <div className="px-3 py-4 lg:px-6 lg:py-6 space-y-4 max-w-full overflow-hidden">
+    <div className="px-3 py-4 lg:px-6 lg:py-6 space-y-4 w-full box-border">
       {isOffline && (
         <div className="flex items-center gap-2 bg-orange-900/40 border border-orange-500/30 rounded-lg px-3 py-2 text-orange-300 text-xs">
           <WifiOff className="w-3.5 h-3.5 shrink-0" />
@@ -153,7 +153,7 @@ export default function Assignments() {
       {!schedulerView && (
       <>
       {/* Month Navigation */}
-      <div className="flex items-center justify-between bg-[#1a2744] rounded-xl p-3 border border-[rgba(212,168,67,0.1)]">
+      <div className="flex items-center justify-between bg-[#1a2744] rounded-xl p-3 border border-[rgba(212,168,67,0.1)] w-full">
         <Button onClick={goToPreviousMonth} variant="ghost" size="icon" className="text-slate-400 hover:text-[#d4a843]">
           <ChevronLeft className="w-5 h-5" />
         </Button>
@@ -187,12 +187,12 @@ export default function Assignments() {
               <button
                 key={a.id}
                 onClick={() => isAdmin && (setEditData(a), setFormOpen(true))}
-                className={`flex items-center gap-1.5 bg-[#0a1128] rounded px-2 py-1.5 border border-transparent transition-all text-left min-w-0 max-w-full ${isAdmin ? "hover:border-[#d4a843]/30 hover:bg-[#d4a843]/10 cursor-pointer" : "cursor-default"}`}
+                className={`flex items-center gap-1.5 bg-[#0a1128] rounded px-2 py-1.5 border border-transparent transition-all text-left ${isAdmin ? "hover:border-[#d4a843]/30 hover:bg-[#d4a843]/10 cursor-pointer" : "cursor-default"}`}
               >
                 {statusIcon(a.status)}
-                <div className="min-w-0">
-                  <p className="text-xs text-white font-medium truncate">{a.position_name}</p>
-                  <p className="text-[10px] text-slate-400 truncate">{a.assigned_to_name} · {a.start_time}</p>
+                <div>
+                  <p className="text-xs text-white font-medium">{a.position_name}</p>
+                  <p className="text-[10px] text-slate-400">{a.assigned_to_name} · {a.start_time}</p>
                 </div>
               </button>
             );
@@ -213,7 +213,7 @@ export default function Assignments() {
                 </div>
 
                 {/* Items */}
-                <div className="flex-1 min-w-0 space-y-2">
+                <div className="flex-1 space-y-2">
                   {/* Events */}
                   {dayEvents.length > 0 && (
                     <div className="flex flex-wrap gap-2">
