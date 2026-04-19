@@ -25,17 +25,45 @@ Deno.serve(async (req) => {
 
     if (!action) return Response.json({ status: 'no_action' });
 
-    // Create personal check-in when checking in to assignment
+    // Create personal check-in and live location when checking in to assignment
     if (action === 'in') {
       const today = new Date().toISOString().split('T')[0];
+      const now = new Date().toISOString();
+      
       await base44.asServiceRole.entities.PersonalCheckIn.create({
         user_email: data.assigned_to_email,
         user_name: data.assigned_to_name,
         check_in_date: today,
-        check_in_time: data.check_in_time || new Date().toISOString(),
+        check_in_time: data.check_in_time || now,
         latitude: data.check_in_latitude,
         longitude: data.check_in_longitude,
       });
+      
+      // Create or update live location
+      const existingLive = await base44.asServiceRole.entities.LiveLocation.filter({ user_email: data.assigned_to_email });
+      const locData = {
+        user_email: data.assigned_to_email,
+        user_name: data.assigned_to_name,
+        latitude: data.check_in_latitude,
+        longitude: data.check_in_longitude,
+        accuracy: 0,
+        last_updated: now,
+        is_active: true,
+      };
+      
+      if (existingLive.length > 0) {
+        await base44.asServiceRole.entities.LiveLocation.update(existingLive[0].id, locData);
+      } else {
+        await base44.asServiceRole.entities.LiveLocation.create(locData);
+      }
+    }
+    
+    // Mark live location as inactive when checking out
+    if (action === 'out') {
+      const existingLive = await base44.asServiceRole.entities.LiveLocation.filter({ user_email: data.assigned_to_email });
+      if (existingLive.length > 0) {
+        await base44.asServiceRole.entities.LiveLocation.update(existingLive[0].id, { is_active: false, last_updated: new Date().toISOString() });
+      }
     }
 
     await base44.asServiceRole.functions.invoke('notifyLeaders', {

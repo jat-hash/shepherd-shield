@@ -432,12 +432,6 @@ export default function AdminMonitor() {
   
   // Build online status map from live locations
   const onlineEmails = new Set(liveLocations.map(ll => ll.user_email?.toLowerCase()));
-  
-  // Debug: log live locations to verify data
-  useEffect(() => {
-    console.log('Live locations:', liveLocations);
-    console.log('Online emails:', Array.from(onlineEmails));
-  }, [liveLocations]);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 lg:ml-60 space-y-6">
