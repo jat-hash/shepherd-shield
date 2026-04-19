@@ -22,7 +22,16 @@ export default function PersonalCheckIn({ user }) {
   useEffect(() => {
     const onOnline = async () => {
       setIsOffline(false);
-      if (user) await syncPendingPersonalCheckIns(base44);
+      if (user) {
+        await syncPendingPersonalCheckIns(base44);
+        // Sync cached live location when coming back online
+        const state = await getPersonalCheckInState();
+        if (state?.checkedIn && state?.liveLocationId && state?.lastLocation) {
+          try {
+            await base44.entities.LiveLocation.update(state.liveLocationId, state.lastLocation);
+          } catch (e) { /* silent */ }
+        }
+      }
     };
     const onOffline = () => setIsOffline(true);
     window.addEventListener("online", onOnline);
@@ -92,11 +101,15 @@ export default function PersonalCheckIn({ user }) {
           last_updated: new Date().toISOString(),
           is_active: true,
         };
-        try {
-          if (liveId) {
+        // Always cache locally first
+        await savePersonalCheckInState({ checkedIn: true, recordId, liveLocationId: liveId, checkInTime, lastLocation: locationData });
+        
+        // Try to sync to server if online
+        if (navigator.onLine && liveId) {
+          try {
             await base44.entities.LiveLocation.update(liveId, locationData);
-          }
-        } catch (e) { /* silent */ }
+          } catch (e) { /* silent */ }
+        }
       },
       () => {},
       { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
