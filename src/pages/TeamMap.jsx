@@ -137,6 +137,10 @@ export default function TeamMap() {
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
+  useEffect(() => {
+    base44.functions.invoke("listUsers").then(res => setAllUsers(res?.data?.users || [])).catch(() => {});
+  }, []);
+
   const loadData = async () => {
     setLoading(true);
 
@@ -364,8 +368,11 @@ export default function TeamMap() {
           <FlyToMe trigger={flyToMeTrigger} userLocation={userLocation} />
 
           {/* Checked-in members */}
-          {checkedInAssignments.map(a => (
-            <Marker key={a.id} position={[a.check_in_latitude, a.check_in_longitude]} icon={createMemberIcon(a.assigned_to_name)}>
+          {checkedInAssignments.map(a => {
+            const userWithEmail = allUsers.find(u => u.email === a.assigned_to_email);
+            const photoUrl = userWithEmail?.profile_photo || userWithEmail?.data?.profile_photo;
+            return (
+            <Marker key={a.id} position={[a.check_in_latitude, a.check_in_longitude]} icon={createMemberIcon(a.assigned_to_name, photoUrl)}>
               <Popup>
                 <div style={{ background: "#1a2744", color: "white", padding: "10px", borderRadius: "8px", minWidth: "160px", border: "1px solid rgba(212,168,67,0.2)" }}>
                   <p style={{ fontWeight: "bold", fontSize: "13px", margin: "0 0 4px" }}>{a.assigned_to_name}</p>
@@ -387,7 +394,8 @@ export default function TeamMap() {
                 </div>
               </Popup>
             </Marker>
-          ))}
+            );
+          })}
 
           {/* Current user location */}
           {userLocation && (

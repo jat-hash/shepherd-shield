@@ -53,38 +53,6 @@ export default function Profile() {
     
     setUploading(true);
     try {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const base64 = event.target.result;
-        await base44.auth.updateMe({ profile_photo: base64 });
-        setProfilePhoto(base64);
-        toast.success("Profile photo updated");
-        setUploading(false);
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      toast.error("Failed to upload photo");
-      setUploading(false);
-    }
-  };
-
-  const handleRemovePhoto = async () => {
-    await base44.auth.updateMe({ profile_photo: null });
-    setProfilePhoto(null);
-    toast.success("Profile photo removed");
-  };
-
-  const handlePhotoUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    if (!file.type.startsWith('image/')) {
-      toast.error("Please select an image file");
-      return;
-    }
-    
-    setUploading(true);
-    try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       await base44.auth.updateMe({ profile_photo: file_url });
       setProfilePhoto(file_url);
@@ -101,7 +69,6 @@ export default function Profile() {
   const handleRemovePhoto = async () => {
     await base44.auth.updateMe({ profile_photo: null });
     setProfilePhoto(null);
-    setUser(prev => ({ ...prev, profile_photo: null }));
     toast.success("Profile photo removed");
   };
 
