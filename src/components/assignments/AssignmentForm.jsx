@@ -49,7 +49,7 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
       end_time: "12:00",
       assigned_to_email: "",
       assigned_to_name: "",
-      supervisor: "",
+      supervisor: "Wilbert Ryan",
       radio_channel: "",
       status: "Pending",
       area_responsibilities: "",
