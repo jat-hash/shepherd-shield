@@ -37,6 +37,7 @@ export default function useOfflineData(storeName, fetchFn, deps = []) {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
   useEffect(() => {
