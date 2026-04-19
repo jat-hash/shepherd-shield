@@ -153,7 +153,7 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="bg-[#1a2744] border-slate-700 text-white w-[calc(100vw-2rem)] max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-[#d4a843]">{editData ? "Edit" : "New"} Assignment</DialogTitle>
+          <DialogTitle className="text-[#d4a843]">{editData?.id ? "Edit" : "New"} Assignment</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">

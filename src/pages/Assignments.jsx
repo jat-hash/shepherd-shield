@@ -30,7 +30,7 @@ export default function Assignments() {
     return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
   }, []);
 
-  const isAdmin = currentUser?.role === "admin";
+  const isAdmin = (authUser?.role === "admin") || (currentUser?.role === "admin");
 
   const { data: assignments, loading: loadingA, reload: reloadA } = useOfflineData(
     "assignments",
@@ -118,7 +118,7 @@ export default function Assignments() {
   };
 
   return (
-    <div className="px-3 py-4 lg:px-6 lg:py-6 space-y-4 w-full box-border">
+    <div className="px-3 py-4 lg:px-6 lg:py-6 space-y-4" style={{maxWidth: '100%', overflowX: 'hidden'}}>
       {isOffline && (
         <div className="flex items-center gap-2 bg-orange-900/40 border border-orange-500/30 rounded-lg px-3 py-2 text-orange-300 text-xs">
           <WifiOff className="w-3.5 h-3.5 shrink-0" />
