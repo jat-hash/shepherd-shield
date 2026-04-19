@@ -121,16 +121,16 @@ export default function Dashboard() {
     return () => window.removeEventListener("app:refresh", onRefresh);
   }, [reload]);
 
-  if (!userLoaded || (loading && !assignments.length && user)) {
+  if (!userLoaded) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex items-center justify-center min-h-screen bg-[#0a1128]">
         <div className="w-8 h-8 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-3 py-4 lg:px-4 lg:py-6 lg:ml-60 space-y-4">
+    <div className="max-w-2xl mx-auto px-3 py-4 lg:px-4 lg:py-6 space-y-4">
       {!navigator.onLine && (
         <div className="flex items-center gap-2 bg-orange-900/40 border border-orange-500/30 rounded-lg px-3 py-2 text-orange-300 text-xs">
           <WifiOff className="w-3.5 h-3.5 shrink-0" />
