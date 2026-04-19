@@ -1,0 +1,42 @@
+{
+  "name": "LiveLocation",
+  "type": "object",
+  "title": "Live Location",
+  "description": "Real-time GPS locations of checked-in team members",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the user"
+    },
+    "latitude": {
+      "type": "number"
+    },
+    "longitude": {
+      "type": "number"
+    },
+    "accuracy": {
+      "type": "number",
+      "description": "GPS accuracy in meters"
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the location was last updated"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "True if user is currently checked in"
+    }
+  },
+  "required": [
+    "user_email",
+    "user_name",
+    "latitude",
+    "longitude"
+  ]
+}

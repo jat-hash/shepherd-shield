@@ -144,13 +144,18 @@ export default function TeamMap() {
     if (u) setUser(u);
 
     const today = new Date().toISOString().slice(0, 10);
-    const [allAssignments, allIncidents, positions, personalCheckIns] = await Promise.all([
+    const [allAssignments, allIncidents, positions, personalCheckIns, liveLocations] = await Promise.all([
       base44.entities.Assignment.filter({ service_date: today }, "-updated_date", 500),
       base44.entities.Incident.filter({ is_panic: true }, "-updated_date", 100),
       base44.entities.Position.list("-updated_date", 200),
       base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 200),
+      base44.entities.LiveLocation.filter({ is_active: true }, "-last_updated", 200),
     ]);
     setAllPositions(positions);
+
+    // Build map of live locations by email (most recent GPS)
+    const liveByEmail = {};
+    liveLocations.forEach(l => { liveByEmail[(l.user_email || '').toLowerCase()] = l; });
 
     // Build map of personal check-ins by email (most recent, not checked out)
     const personalByEmail = {};
@@ -161,47 +166,79 @@ export default function TeamMap() {
         if (!personalByEmail[p.user_email]) personalByEmail[p.user_email] = p;
       });
 
-    // Enrich formal assignments: include both formally-checked-in and personally-checked-in
+    // Helper: get best GPS for a user (live > personal > assignment)
+    const getBestGPS = (email, assignment) => {
+      const live = liveByEmail[(email || '').toLowerCase()];
+      if (live?.latitude && live?.longitude) return { lat: live.latitude, lng: live.longitude, source: 'live' };
+      const personal = personalByEmail[(email || '').toLowerCase()];
+      if (personal?.latitude && personal?.longitude) return { lat: personal.latitude, lng: personal.longitude, source: 'personal' };
+      if (assignment?.check_in_latitude && assignment?.check_in_longitude) return { lat: assignment.check_in_latitude, lng: assignment.check_in_longitude, source: 'checkin' };
+      return null;
+    };
+
+    // Include all checked-in assignments + anyone with a live/personal check-in
     const enrichedAssignments = allAssignments
       .filter(a => {
-        // Include if formally checked in (not checked out)
         if (a.checked_in && !a.checked_out) return true;
-        // Also include if they have a personal check-in (not yet checked in formally)
         const personal = personalByEmail[(a.assigned_to_email || '').toLowerCase()];
-        if (!a.checked_in && personal) return true;
-        return false;
+        const live = liveByEmail[(a.assigned_to_email || '').toLowerCase()];
+        return !!(personal || live);
       })
       .map(a => {
-        const personal = personalByEmail[(a.assigned_to_email || '').toLowerCase()];
-        // Use personal GPS if assignment has no GPS
-        if (!a.check_in_latitude && personal) {
-          return {
-            ...a,
-            checked_in: true,
-            check_in_time: a.check_in_time || personal.check_in_time,
-            check_in_latitude: personal.latitude,
-            check_in_longitude: personal.longitude,
-          };
-        }
-        return a;
-      });
+        const gps = getBestGPS(a.assigned_to_email, a);
+        if (!gps) return null;
+        return {
+          ...a,
+          checked_in: true,
+          check_in_latitude: gps.lat,
+          check_in_longitude: gps.lng,
+          _gps_source: gps.source,
+        };
+      })
+      .filter(Boolean);
 
     // Personal check-ins for people with NO formal assignment today
     const assignmentEmails = new Set(allAssignments.map(a => (a.assigned_to_email || '').toLowerCase()));
-    const normalizedPersonal = Object.values(personalByEmail)
-      .filter(p => !assignmentEmails.has((p.user_email || '').toLowerCase()))
-      .map(p => ({
-        id: p.id,
-        assigned_to_name: p.user_name,
-        position_name: "Personal Check-in",
-        service_date: p.check_in_date,
-        check_in_time: p.check_in_time,
-        check_in_latitude: p.latitude,
-        check_in_longitude: p.longitude,
-        checked_in: true,
-        checked_out: false,
-        _isPersonal: true,
-      }));
+
+    // Also include people with live location but no formal assignment
+    const liveOnlyEmails = Object.values(liveByEmail)
+      .filter(l => !assignmentEmails.has((l.user_email || '').toLowerCase()));
+
+    const normalizedPersonal = [
+      ...Object.values(personalByEmail)
+        .filter(p => !assignmentEmails.has((p.user_email || '').toLowerCase()))
+        .map(p => {
+          const live = liveByEmail[(p.user_email || '').toLowerCase()];
+          return {
+            id: p.id,
+            assigned_to_name: p.user_name,
+            assigned_to_email: p.user_email,
+            position_name: "Personal Check-in",
+            service_date: p.check_in_date,
+            check_in_time: p.check_in_time,
+            check_in_latitude: live?.latitude || p.latitude,
+            check_in_longitude: live?.longitude || p.longitude,
+            checked_in: true,
+            checked_out: false,
+            _isPersonal: true,
+          };
+        }),
+      // Live-only (no personal check-in, no assignment)
+      ...liveOnlyEmails
+        .filter(l => !Object.values(personalByEmail).some(p => (p.user_email || '').toLowerCase() === (l.user_email || '').toLowerCase()))
+        .map(l => ({
+          id: l.id,
+          assigned_to_name: l.user_name,
+          assigned_to_email: l.user_email,
+          position_name: "On Site",
+          check_in_time: l.last_updated,
+          check_in_latitude: l.latitude,
+          check_in_longitude: l.longitude,
+          checked_in: true,
+          checked_out: false,
+          _isPersonal: true,
+        })),
+    ];
 
     const allCheckedInMerged = [...enrichedAssignments, ...normalizedPersonal];
     const activeMembers = allCheckedInMerged.filter(a =>
@@ -230,7 +267,8 @@ export default function TeamMap() {
     const unsub = base44.entities.Assignment.subscribe(() => loadData());
     const unsub2 = base44.entities.Incident.subscribe(() => loadData());
     const unsub3 = base44.entities.PersonalCheckIn.subscribe(() => loadData());
-    return () => { unsub(); unsub2(); unsub3(); };
+    const unsub4 = base44.entities.LiveLocation.subscribe(() => loadData());
+    return () => { unsub(); unsub2(); unsub3(); unsub4(); };
   }, []);
 
   const allPoints = [

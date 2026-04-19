@@ -13,9 +13,11 @@ export default function PersonalCheckIn({ user }) {
   const [checkedIn, setCheckedIn] = useState(false);
   const [checkInTime, setCheckInTime] = useState(null);
   const [recordId, setRecordId] = useState(null);
+  const [liveLocationId, setLiveLocationId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const watchIdRef = useState(null);
 
   useEffect(() => {
     const onOnline = async () => {
@@ -49,6 +51,13 @@ export default function PersonalCheckIn({ user }) {
             setCheckedIn(true);
             setCheckInTime(open.check_in_time);
             setRecordId(open.id);
+            // Resume live tracking if we have a live location record
+            const existingLive = await base44.entities.LiveLocation.filter({ user_email: user.email, is_active: true }).catch(() => []);
+            if (existingLive.length > 0) {
+              setLiveLocationId(existingLive[0].id);
+              const userName = user.display_name || user.full_name || user.email;
+              startLiveTracking(existingLive[0].id, userName);
+            }
             await savePersonalCheckInState({ checkedIn: true, recordId: open.id, checkInTime: open.check_in_time });
           } else if (!local?.checkedIn) {
             setCheckedIn(false);
@@ -66,11 +75,44 @@ export default function PersonalCheckIn({ user }) {
     new Promise((resolve) => {
       if (!navigator.geolocation) return resolve({});
       navigator.geolocation.getCurrentPosition(
-        (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+        (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: pos.coords.accuracy }),
         () => resolve({}),
-        { timeout: 5000 }
+        { timeout: 5000, enableHighAccuracy: true }
       );
     });
+
+  const startLiveTracking = async (liveId, userName) => {
+    if (!navigator.geolocation) return;
+    const id = navigator.geolocation.watchPosition(
+      async (pos) => {
+        const locationData = {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          last_updated: new Date().toISOString(),
+          is_active: true,
+        };
+        try {
+          if (liveId) {
+            await base44.entities.LiveLocation.update(liveId, locationData);
+          }
+        } catch (e) { /* silent */ }
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
+    );
+    watchIdRef[0] = id;
+  };
+
+  const stopLiveTracking = async (liveId) => {
+    if (watchIdRef[0] != null) {
+      navigator.geolocation.clearWatch(watchIdRef[0]);
+      watchIdRef[0] = null;
+    }
+    if (liveId) {
+      try { await base44.entities.LiveLocation.update(liveId, { is_active: false }); } catch (e) { /* silent */ }
+    }
+  };
 
   const handleCheckIn = async () => {
     setWorking(true);
@@ -87,7 +129,21 @@ export default function PersonalCheckIn({ user }) {
     if (navigator.onLine) {
       const rec = await base44.entities.PersonalCheckIn.create(data);
       setRecordId(rec.id);
-      await savePersonalCheckInState({ checkedIn: true, recordId: rec.id, checkInTime: now.toISOString() });
+
+      // Create or update live location record
+      const userName = user.display_name || user.full_name || user.email;
+      const existingLive = await base44.entities.LiveLocation.filter({ user_email: user.email }).catch(() => []);
+      let liveId;
+      if (existingLive.length > 0) {
+        await base44.entities.LiveLocation.update(existingLive[0].id, { ...loc, user_name: userName, last_updated: now.toISOString(), is_active: true });
+        liveId = existingLive[0].id;
+      } else {
+        const liveRec = await base44.entities.LiveLocation.create({ user_email: user.email, user_name: userName, ...loc, last_updated: now.toISOString(), is_active: true });
+        liveId = liveRec.id;
+      }
+      setLiveLocationId(liveId);
+      await savePersonalCheckInState({ checkedIn: true, recordId: rec.id, liveLocationId: liveId, checkInTime: now.toISOString() });
+      startLiveTracking(liveId, userName);
     } else {
       await savePendingPersonalCheckIn({ type: "check_in", data });
       await savePersonalCheckInState({ checkedIn: true, recordId: null, checkInTime: now.toISOString() });
@@ -108,6 +164,9 @@ export default function PersonalCheckIn({ user }) {
     } else {
       await savePendingPersonalCheckIn({ type: "check_out", recordId, data: { check_out_time: now.toISOString() } });
     }
+
+    await stopLiveTracking(liveLocationId);
+    setLiveLocationId(null);
 
     await savePersonalCheckInState({ checkedIn: false });
     setCheckedIn(false);
