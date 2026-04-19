@@ -161,18 +161,32 @@ export default function TeamMap() {
         if (!personalByEmail[p.user_email]) personalByEmail[p.user_email] = p;
       });
 
-    // Enrich formal assignments with personal GPS if assignment has no GPS
+    // Enrich formal assignments: include both formally-checked-in and personally-checked-in
     const enrichedAssignments = allAssignments
-      .filter(a => a.checked_in && !a.checked_out)
+      .filter(a => {
+        // Include if formally checked in (not checked out)
+        if (a.checked_in && !a.checked_out) return true;
+        // Also include if they have a personal check-in (not yet checked in formally)
+        const personal = personalByEmail[(a.assigned_to_email || '').toLowerCase()];
+        if (!a.checked_in && personal) return true;
+        return false;
+      })
       .map(a => {
-        if (!a.check_in_latitude && personalByEmail[a.assigned_to_email]) {
-          const p = personalByEmail[a.assigned_to_email];
-          return { ...a, check_in_latitude: p.latitude, check_in_longitude: p.longitude };
+        const personal = personalByEmail[(a.assigned_to_email || '').toLowerCase()];
+        // Use personal GPS if assignment has no GPS
+        if (!a.check_in_latitude && personal) {
+          return {
+            ...a,
+            checked_in: true,
+            check_in_time: a.check_in_time || personal.check_in_time,
+            check_in_latitude: personal.latitude,
+            check_in_longitude: personal.longitude,
+          };
         }
         return a;
       });
 
-    // Personal check-ins for people with NO formal assignment today (or not yet checked in formally)
+    // Personal check-ins for people with NO formal assignment today
     const assignmentEmails = new Set(allAssignments.map(a => (a.assigned_to_email || '').toLowerCase()));
     const normalizedPersonal = Object.values(personalByEmail)
       .filter(p => !assignmentEmails.has((p.user_email || '').toLowerCase()))
