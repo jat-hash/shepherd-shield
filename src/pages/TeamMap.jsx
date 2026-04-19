@@ -106,6 +106,7 @@ export default function TeamMap() {
   const [user, setUser] = useState(null);
   const [checkedInAssignments, setCheckedInAssignments] = useState([]);
   const [allCheckedIn, setAllCheckedIn] = useState([]);
+  const [allTeamMembers, setAllTeamMembers] = useState([]);
   const [panicIncidents, setPanicIncidents] = useState([]);
   const [showSidebar, setShowSidebar] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -210,6 +211,33 @@ export default function TeamMap() {
         };
       })
       .filter(Boolean);
+
+    // Build list of ALL team members (checked-in + not checked-in)
+    const allTeamMembersList = allUsers.map(u => {
+      const email = (u.email || '').toLowerCase();
+      const assignment = allAssignments.find(a => (a.assigned_to_email || '').toLowerCase() === email);
+      const personal = personalByEmail[email];
+      const live = liveByEmail[email];
+      const gps = live?.latitude ? { lat: live.latitude, lng: live.longitude, source: 'live' } :
+                  personal?.latitude ? { lat: personal.latitude, lng: personal.longitude, source: 'personal' } :
+                  assignment?.check_in_latitude ? { lat: assignment.check_in_latitude, lng: assignment.check_in_longitude, source: 'checkin' } :
+                  null;
+      
+      return {
+        id: u.id,
+        assigned_to_name: u.full_name || u.display_name || u.email,
+        assigned_to_email: u.email,
+        position_name: assignment?.position_name || (gps ? "On Site" : "Not Checked In"),
+        check_in_time: assignment?.check_in_time || personal?.check_in_time || live?.last_updated,
+        check_in_latitude: gps?.lat,
+        check_in_longitude: gps?.lng,
+        checked_in: !!(assignment?.checked_in && !assignment?.checked_out) || !!gps,
+        checked_out: assignment?.checked_out || false,
+        profile_photo: u.profile_photo || u.data?.profile_photo,
+        _isPersonal: !assignment,
+      };
+    });
+    setAllTeamMembers(allTeamMembersList);
 
     // Personal check-ins for people with NO formal assignment today
     const assignmentEmails = new Set(allAssignments.map(a => (a.assigned_to_email || '').toLowerCase()));
@@ -321,7 +349,7 @@ export default function TeamMap() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 text-xs text-slate-400">
             <Users className="w-3.5 h-3.5 text-[#d4a843]" />
-            <span>{checkedInAssignments.length} checked in</span>
+            <span>{allTeamMembers.filter(m => m.checked_in).length}/{allTeamMembers.length} on site</span>
           </div>
           <button onClick={loadData} className="text-slate-500 hover:text-white p-1">
             <RefreshCw className="w-3.5 h-3.5" />
@@ -367,26 +395,27 @@ export default function TeamMap() {
           <MapAutoFit points={allPoints} userLocation={userLocation} />
           <FlyToMe trigger={flyToMeTrigger} userLocation={userLocation} />
 
-          {/* Checked-in members */}
-          {checkedInAssignments.map(a => {
-            const userWithEmail = allUsers.find(u => u.email === a.assigned_to_email);
-            const photoUrl = userWithEmail?.profile_photo || userWithEmail?.data?.profile_photo;
+          {/* All team members with GPS */}
+          {allTeamMembers.filter(m => m.check_in_latitude && m.check_in_longitude).map(m => {
+            const photoUrl = m.profile_photo;
             return (
-            <Marker key={a.id} position={[a.check_in_latitude, a.check_in_longitude]} icon={createMemberIcon(a.assigned_to_name, photoUrl)}>
+            <Marker key={m.id} position={[m.check_in_latitude, m.check_in_longitude]} icon={createMemberIcon(m.assigned_to_name, photoUrl)}>
               <Popup>
                 <div style={{ background: "#1a2744", color: "white", padding: "10px", borderRadius: "8px", minWidth: "160px", border: "1px solid rgba(212,168,67,0.2)" }}>
-                  <p style={{ fontWeight: "bold", fontSize: "13px", margin: "0 0 4px" }}>{a.assigned_to_name}</p>
-                  <p style={{ color: "#d4a843", fontSize: "11px", margin: "0 0 2px" }}>{a.position_name}</p>
-                  <p style={{ color: "#10b981", fontSize: "11px", margin: "0 0 2px" }}>✓ Checked in at {formatTime(a.check_in_time)}</p>
-                  {a.check_in_latitude && <p style={{ color: "#94a3b8", fontSize: "10px", margin: "0" }}>📍 {a.check_in_latitude.toFixed(5)}, {a.check_in_longitude.toFixed(5)}</p>}
-                  {user?.role === "admin" && (
+                  <p style={{ fontWeight: "bold", fontSize: "13px", margin: "0 0 4px" }}>{m.assigned_to_name}</p>
+                  <p style={{ color: "#d4a843", fontSize: "11px", margin: "0 0 2px" }}>{m.position_name}</p>
+                  <p style={{ color: m.checked_in ? "#10b981" : "#94a3b8", fontSize: "11px", margin: "0 0 2px" }}>
+                    {m.checked_in ? `✓ Checked in at ${formatTime(m.check_in_time)}` : '○ Not checked in'}
+                  </p>
+                  {m.check_in_latitude && <p style={{ color: "#94a3b8", fontSize: "10px", margin: "0" }}>📍 {m.check_in_latitude.toFixed(5)}, {m.check_in_longitude.toFixed(5)}</p>}
+                  {user?.role === "admin" && m._isPersonal !== true && (
                     <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
                       <button 
-                        onClick={() => { setSelectedMember(a); setEditForm({ position_name: a.position_name, assigned_to_name: a.assigned_to_name, start_time: a.start_time, end_time: a.end_time, status: a.status }); setEditDialogOpen(true); setConfirmDelete(false); }}
+                        onClick={() => { setSelectedMember(m); setEditForm({ position_name: m.position_name, assigned_to_name: m.assigned_to_name, start_time: m.start_time, end_time: m.end_time, status: m.status }); setEditDialogOpen(true); setConfirmDelete(false); }}
                         style={{ color: "#d4a843", fontSize: "10px", textDecoration: "underline", background: "none", border: "none", cursor: "pointer" }}
                       >✏️ Edit</button>
                       <button 
-                        onClick={() => { setSelectedMember(a); setEditDialogOpen(true); setConfirmDelete(true); setEditForm({}); }}
+                        onClick={() => { setSelectedMember(m); setEditDialogOpen(true); setConfirmDelete(true); setEditForm({}); }}
                         style={{ color: "#f87171", fontSize: "10px", textDecoration: "underline", background: "none", border: "none", cursor: "pointer" }}
                       >🗑 Delete</button>
                     </div>
@@ -446,10 +475,10 @@ export default function TeamMap() {
             <span className="text-[#d4a843] text-xs font-bold uppercase tracking-wider">Checked In ({allCheckedIn.length})</span>
             <button onClick={() => setShowSidebar(false)} className="text-slate-500 hover:text-white text-xs">✕</button>
           </div>
-          {allCheckedIn.length === 0 ? (
-            <p className="text-slate-500 text-xs p-3">No one checked in</p>
+          {allTeamMembers.length === 0 ? (
+            <p className="text-slate-500 text-xs p-3">No team members</p>
           ) : (
-            [...allCheckedIn]
+            [...allTeamMembers]
               .sort((a, b) => {
                 if (!userLocation) return 0;
                 const distA = a.check_in_latitude ? Math.hypot(a.check_in_latitude - userLocation[0], a.check_in_longitude - userLocation[1]) : Infinity;
@@ -457,8 +486,7 @@ export default function TeamMap() {
                 return distA - distB;
               })
               .map((a) => {
-                const userWithEmail = allUsers.find(u => u.email === a.assigned_to_email);
-                const photoUrl = userWithEmail?.profile_photo || userWithEmail?.data?.profile_photo;
+                const photoUrl = a.profile_photo;
                 return (
                   <div key={a.id} className="px-3 py-2 border-b border-[rgba(255,255,255,0.04)] hover:bg-white/5 flex items-center gap-2">
                     {photoUrl ? (
@@ -471,8 +499,9 @@ export default function TeamMap() {
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-xs font-medium truncate">{a.assigned_to_name}</p>
                       <p className="text-[#d4a843] text-[10px] truncate">{a.position_name}</p>
-                      <p className="text-slate-500 text-[10px]">
-                        {a.check_in_latitude ? '📍 GPS' : '⚠️ No GPS'} · {formatTime(a.check_in_time)}
+                      <p className={`text-[10px] ${a.checked_in ? 'text-green-400' : 'text-slate-500'}`}>
+                        {a.checked_in ? (a.check_in_latitude ? '📍 GPS' : '✓ Checked in') : '○ Not checked in'}
+                        {a.check_in_time && ` · ${formatTime(a.check_in_time)}`}
                       </p>
                     </div>
                   </div>
@@ -483,7 +512,7 @@ export default function TeamMap() {
       )}
       {!showSidebar && (
         <button onClick={() => setShowSidebar(true)} className="absolute top-12 right-2 z-[1000] bg-[#141f3d]/95 border border-[rgba(212,168,67,0.2)] rounded-lg px-2 py-1 text-[#d4a843] text-xs font-bold shadow-xl">
-          👥 {allCheckedIn.length}
+          👥 {allTeamMembers.filter(m => m.checked_in).length}/{allTeamMembers.length}
         </button>
       )}
 
@@ -491,7 +520,11 @@ export default function TeamMap() {
       <div className="bg-[#141f3d] border-t border-[rgba(212,168,67,0.15)] px-4 py-2 flex items-center gap-5 shrink-0">
         <div className="flex items-center gap-2 text-xs text-slate-400">
           <div className="w-5 h-5 rounded-full bg-[#1a2744] border-2 border-[#d4a843] flex items-center justify-center text-[8px] font-bold text-[#d4a843]">AB</div>
-          Checked-in member
+          Team member (with GPS)
+        </div>
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          <div className="w-5 h-5 rounded-full bg-green-600 border-2 border-white flex items-center justify-center text-[10px]">✓</div>
+          Checked in
         </div>
         <div className="flex items-center gap-2 text-xs text-slate-400">
           <div className="w-5 h-5 rounded-full bg-red-600 border-2 border-white flex items-center justify-center text-[10px]">🚨</div>
