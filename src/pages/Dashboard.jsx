@@ -12,6 +12,7 @@ import SafetyCheckInPanel from "@/components/dashboard/SafetyCheckInPanel";
 import { WifiOff, MapPin, X, Bell } from "lucide-react";
 import RadioCheckInScanner from "@/components/dashboard/RadioCheckInScanner";
 import PersonalCheckIn from "@/components/dashboard/PersonalCheckIn";
+import QuickEquipmentCheckIn from "@/components/dashboard/QuickEquipmentCheckIn";
 
 export default function Dashboard() {
   const { user: authUser } = useAuth();
@@ -192,6 +193,7 @@ export default function Dashboard() {
 
       <PersonalCheckIn user={user} />
       <RadioCheckInScanner user={user} />
+      <QuickEquipmentCheckIn />
 
       <div className="space-y-3">
         <h2 className="text-sm uppercase tracking-widest text-[#d4a843] font-semibold">Next Assignment</h2>
