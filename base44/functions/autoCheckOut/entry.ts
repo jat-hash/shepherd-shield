@@ -57,10 +57,13 @@ Deno.serve(async (req) => {
           base44, assignment.assigned_to_email, "Check In Now", 30 * 60 * 1000
         );
         if (!alerted) {
+          const radioMsg = assignment.radio_channel
+            ? ` Pick up your radio on Channel ${assignment.radio_channel}.`
+            : "";
           await notify(base44, {
             user_email: assignment.assigned_to_email,
             title: "Check In Now",
-            message: `Your ${assignment.service_type || 'service'} assignment starts in 5 minutes. Please check in via the app.`,
+            message: `Your ${assignment.service_type || 'service'} assignment (${assignment.position_name}) starts in 5 minutes. Please check in via the app.${radioMsg}`,
             type: "assignment_reminder",
             assignment_id: assignment.id
           });
@@ -68,16 +71,19 @@ Deno.serve(async (req) => {
         }
       }
 
-      // ── B. Service started but still not checked in ─────────────────────────
+      // ── B. Service started but still not checked in (alert every 30 min) ───
       if (!assignment.checked_in && now >= startDateTime && now < endDateTime) {
         const alerted = await alreadyNotified(
           base44, assignment.assigned_to_email, "You Haven't Checked In", 30 * 60 * 1000
         );
         if (!alerted) {
+          const radioMsg = assignment.radio_channel
+            ? ` Make sure to pick up your radio on Channel ${assignment.radio_channel}.`
+            : "";
           await notify(base44, {
             user_email: assignment.assigned_to_email,
             title: "You Haven't Checked In",
-            message: `Your ${assignment.service_type || 'service'} assignment has started. Please check in and return your radio to the correct channel.`,
+            message: `Your ${assignment.service_type || 'service'} assignment (${assignment.position_name}) has started. Please check in now.${radioMsg}`,
             type: "assignment_reminder",
             assignment_id: assignment.id
           });
