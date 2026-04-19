@@ -1,76 +1,145 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+// Helper: parse a service_date + time string into a Date object
+function parseServiceTime(date, time) {
+  const [h, m] = time.split(":").map(Number);
+  return new Date(`${date}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`);
+}
+
+// Helper: check if a notification was already sent recently (within windowMs)
+async function alreadyNotified(base44, userEmail, title, windowMs) {
+  const existing = await base44.asServiceRole.entities.Notification.filter({
+    user_email: userEmail,
+    title
+  });
+  const now = Date.now();
+  return existing?.some(n => (now - new Date(n.created_date).getTime()) < windowMs);
+}
+
+// Helper: create a notification
+async function notify(base44, { user_email, title, message, type, assignment_id }) {
+  await base44.asServiceRole.entities.Notification.create({
+    user_email,
+    title,
+    message,
+    type: type || "general",
+    ...(assignment_id ? { assignment_id } : {}),
+    read: false
+  });
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const now = new Date();
+    const today = now.toISOString().split("T")[0];
 
-    // ── 1. Auto check-out assignments 1 hour past end time ──────────────────
-    const assignments = await base44.asServiceRole.entities.Assignment.filter({
-      checked_in: true,
-      checked_out: false
+    // ── Fetch all today's assignments ──────────────────────────────────────────
+    const todayAssignments = await base44.asServiceRole.entities.Assignment.filter({
+      service_date: today
     });
 
     let autoCheckedOut = 0;
 
-    for (const assignment of assignments) {
-      if (!assignment.service_date || !assignment.end_time) continue;
+    for (const assignment of todayAssignments) {
+      if (!assignment.service_date || !assignment.start_time || !assignment.end_time) continue;
 
-      const [endHour, endMin] = assignment.end_time.split(":").map(Number);
-      const endDateTime = new Date(`${assignment.service_date}T${String(endHour).padStart(2,'0')}:${String(endMin).padStart(2,'0')}:00`);
-      const oneHourAfterEnd = new Date(endDateTime.getTime() + 60 * 60 * 1000);
+      const startDateTime = parseServiceTime(assignment.service_date, assignment.start_time);
+      const endDateTime = parseServiceTime(assignment.service_date, assignment.end_time);
+
+      const fiveMinBeforeStart = new Date(startDateTime.getTime() - 5 * 60 * 1000);
       const fortyFiveMinAfterEnd = new Date(endDateTime.getTime() + 45 * 60 * 1000);
+      const oneHourAfterEnd = new Date(endDateTime.getTime() + 60 * 60 * 1000);
 
-      if (now > oneHourAfterEnd) {
-        // Auto check-out
+      // ── A. 5-min pre-service alert: not checked in yet ─────────────────────
+      if (!assignment.checked_in && now >= fiveMinBeforeStart && now < startDateTime) {
+        const alerted = await alreadyNotified(
+          base44, assignment.assigned_to_email, "Check In Now", 30 * 60 * 1000
+        );
+        if (!alerted) {
+          await notify(base44, {
+            user_email: assignment.assigned_to_email,
+            title: "Check In Now",
+            message: `Your ${assignment.service_type || 'service'} assignment starts in 5 minutes. Please check in via the app.`,
+            type: "assignment_reminder",
+            assignment_id: assignment.id
+          });
+          console.log(`5-min check-in alert sent to ${assignment.assigned_to_name}`);
+        }
+      }
+
+      // ── B. Service started but still not checked in ─────────────────────────
+      if (!assignment.checked_in && now >= startDateTime && now < endDateTime) {
+        const alerted = await alreadyNotified(
+          base44, assignment.assigned_to_email, "You Haven't Checked In", 30 * 60 * 1000
+        );
+        if (!alerted) {
+          await notify(base44, {
+            user_email: assignment.assigned_to_email,
+            title: "You Haven't Checked In",
+            message: `Your ${assignment.service_type || 'service'} assignment has started. Please check in and return your radio to the correct channel.`,
+            type: "assignment_reminder",
+            assignment_id: assignment.id
+          });
+          console.log(`Missed check-in alert sent to ${assignment.assigned_to_name}`);
+        }
+      }
+
+      // ── C. 45-min past end: alert to check out & return radio ──────────────
+      if (assignment.checked_in && !assignment.checked_out && now > fortyFiveMinAfterEnd && now <= oneHourAfterEnd) {
+        const alerted = await alreadyNotified(
+          base44, assignment.assigned_to_email, "Please Check Out", 60 * 60 * 1000
+        );
+        if (!alerted) {
+          const radioMsg = assignment.radio_channel
+            ? ` Please also return your radio (Channel ${assignment.radio_channel}).`
+            : " Please also return any radios assigned to you.";
+          await notify(base44, {
+            user_email: assignment.assigned_to_email,
+            title: "Please Check Out",
+            message: `Your ${assignment.service_type || 'service'} assignment has ended.${radioMsg}`,
+            type: "assignment_reminder",
+            assignment_id: assignment.id
+          });
+          console.log(`45-min checkout reminder sent to ${assignment.assigned_to_name}`);
+        }
+      }
+
+      // ── D. Auto check-out 1 hour past end time ─────────────────────────────
+      if (assignment.checked_in && !assignment.checked_out && now > oneHourAfterEnd) {
         await base44.asServiceRole.entities.Assignment.update(assignment.id, {
           checked_out: true,
           check_out_time: oneHourAfterEnd.toISOString()
         });
         autoCheckedOut++;
-        console.log(`Auto checked out: ${assignment.assigned_to_name} from ${assignment.position_name}`);
-      } else if (now > fortyFiveMinAfterEnd) {
-        // Alert — haven't checked out yet at 45 min past end
-        // Only notify once: check if we already sent this alert by looking for an existing notification
-        const existing = await base44.asServiceRole.entities.Notification.filter({
-          user_email: assignment.assigned_to_email,
-          assignment_id: assignment.id,
-          type: "assignment_reminder",
-          title: "Please Check Out"
-        });
 
-        if (!existing || existing.length === 0) {
-          await base44.asServiceRole.entities.Notification.create({
-            user_email: assignment.assigned_to_email,
-            title: "Please Check Out",
-            message: `Your ${assignment.service_type || 'service'} assignment ended. Please check out from the app.`,
-            type: "assignment_reminder",
-            assignment_id: assignment.id,
-            read: false
-          });
-          console.log(`Sent checkout reminder to ${assignment.assigned_to_name}`);
+        // Also notify about radio return if they had one
+        if (assignment.radio_channel) {
+          const alerted = await alreadyNotified(
+            base44, assignment.assigned_to_email, "Return Your Radio", 2 * 60 * 60 * 1000
+          );
+          if (!alerted) {
+            await notify(base44, {
+              user_email: assignment.assigned_to_email,
+              title: "Return Your Radio",
+              message: `You've been auto checked out from ${assignment.service_type || 'service'}. Please return your radio (Channel ${assignment.radio_channel}) immediately.`,
+              type: "assignment_reminder",
+              assignment_id: assignment.id
+            });
+          }
         }
+
+        console.log(`Auto checked out: ${assignment.assigned_to_name} from ${assignment.position_name}`);
       }
     }
 
     // ── 2. Alert for unreturned equipment 1 hour past service end ────────────
-    // Find checked-out equipment
-    const equipment = await base44.asServiceRole.entities.Equipment.filter({
-      checked_out: true
-    });
+    const equipment = await base44.asServiceRole.entities.Equipment.filter({ checked_out: true });
 
-    // Get today's assignments to know when service ended
-    const today = now.toISOString().split("T")[0];
-    const todayAssignments = await base44.asServiceRole.entities.Assignment.filter({
-      service_date: today
-    });
-
-    // Find the latest end time among today's assignments
     let latestServiceEnd = null;
     for (const a of todayAssignments) {
       if (!a.end_time) continue;
-      const [h, m] = a.end_time.split(":").map(Number);
-      const endDT = new Date(`${today}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`);
+      const endDT = parseServiceTime(today, a.end_time);
       if (!latestServiceEnd || endDT > latestServiceEnd) latestServiceEnd = endDT;
     }
 
@@ -81,33 +150,19 @@ Deno.serve(async (req) => {
         for (const item of equipment) {
           if (!item.checked_out_by) continue;
 
-          // Find the user email for the person who checked out the equipment
           const users = await base44.asServiceRole.entities.User.filter({ full_name: item.checked_out_by });
           const userEmail = users?.[0]?.email;
           if (!userEmail) continue;
 
-          // Only notify once
-          const existing = await base44.asServiceRole.entities.Notification.filter({
-            user_email: userEmail,
-            type: "general",
-            title: "Return Equipment"
-          });
-
-          // Check if notification was already sent in last 2 hours (avoid spam)
-          const recentAlert = existing?.find(n => {
-            const created = new Date(n.created_date);
-            return (now - created) < 2 * 60 * 60 * 1000;
-          });
-
-          if (!recentAlert) {
-            await base44.asServiceRole.entities.Notification.create({
+          const alerted = await alreadyNotified(base44, userEmail, "Return Equipment", 2 * 60 * 60 * 1000);
+          if (!alerted) {
+            await notify(base44, {
               user_email: userEmail,
               title: "Return Equipment",
               message: `Please return "${item.name}" — service has ended and equipment should be checked back in.`,
-              type: "general",
-              read: false
+              type: "general"
             });
-            console.log(`Sent equipment return alert to ${item.checked_out_by} for ${item.name}`);
+            console.log(`Equipment return alert sent to ${item.checked_out_by} for ${item.name}`);
           }
         }
       }
