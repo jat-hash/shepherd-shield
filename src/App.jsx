@@ -80,6 +80,7 @@ class ErrorBoundary extends React.Component {
 
 import NotificationProvider from '@/components/notifications/NotificationProvider';
 import PWAInstaller from '@/components/PWAInstaller';
+import WakeLock from '@/components/WakeLock';
 import PocketMode from '@/components/PocketMode';
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
 import { Toaster } from 'sonner';
@@ -182,6 +183,9 @@ const AuthenticatedApp = () => {
     return (
       <ErrorBoundary>
         <NotificationProvider>
+          <ErrorBoundary>
+            <WakeLock />
+          </ErrorBoundary>
           <ErrorBoundary>
             <ServiceWorkerRegister />
           </ErrorBoundary>
