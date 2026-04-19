@@ -12,7 +12,16 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cacheData, getCachedData } from "@/lib/offlineStorage";
 
-function createMemberIcon(name) {
+function createMemberIcon(name, photoUrl) {
+  if (photoUrl) {
+    return L.divIcon({
+      className: "",
+      html: `<div style="width:36px;height:36px;border-radius:50%;overflow:hidden;border:2.5px solid #d4a843;box-shadow:0 2px 10px rgba(212,168,67,0.4);"><img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;" alt="${name}" /></div>`,
+      iconSize: [36, 36],
+      iconAnchor: [18, 18],
+      popupAnchor: [0, -18],
+    });
+  }
   const initials = name ? name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "?";
   return L.divIcon({
     className: "",
@@ -108,6 +117,7 @@ export default function TeamMap() {
   const [userLocation, setUserLocation] = useState(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [flyToMeTrigger, setFlyToMeTrigger] = useState(0);
+  const [allUsers, setAllUsers] = useState([]);
 
   useEffect(() => {
     const handleOnline = () => { setIsOffline(false); loadData(); };

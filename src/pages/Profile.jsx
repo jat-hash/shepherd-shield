@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { LogOut, Shield, Users, RefreshCw, FileText, Edit2, Bell } from "lucide-react";
+import { LogOut, Shield, Users, RefreshCw, FileText, Edit2, Bell, Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -18,9 +18,15 @@ export default function Profile() {
   const [newDisplayName, setNewDisplayName] = useState("");
   const [editingPhone, setEditingPhone] = useState(false);
   const [newPhone, setNewPhone] = useState("");
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
-    if (authUser) setUser(authUser);
+    if (authUser) {
+      setUser(authUser);
+      setProfilePhoto(authUser.profile_photo || null);
+    }
   }, [authUser]);
 
   const handleUpdateDisplayName = async () => {
@@ -34,6 +40,69 @@ export default function Profile() {
     setUser(prev => ({ ...prev, phone_number: newPhone.trim() }));
     toast.success("Phone number updated");
     setEditingPhone(false);
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please select an image file");
+      return;
+    }
+    
+    setUploading(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = event.target.result;
+        await base44.auth.updateMe({ profile_photo: base64 });
+        setProfilePhoto(base64);
+        toast.success("Profile photo updated");
+        setUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      toast.error("Failed to upload photo");
+      setUploading(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    await base44.auth.updateMe({ profile_photo: null });
+    setProfilePhoto(null);
+    toast.success("Profile photo removed");
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please select an image file");
+      return;
+    }
+    
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      await base44.auth.updateMe({ profile_photo: file_url });
+      setProfilePhoto(file_url);
+      setUser(prev => ({ ...prev, profile_photo: file_url }));
+      toast.success("Profile photo updated");
+    } catch (error) {
+      toast.error("Failed to upload photo");
+      console.error(error);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    await base44.auth.updateMe({ profile_photo: null });
+    setProfilePhoto(null);
+    setUser(prev => ({ ...prev, profile_photo: null }));
+    toast.success("Profile photo removed");
   };
 
   const handleNotificationToggle = async (field, value) => {
@@ -57,9 +126,49 @@ export default function Profile() {
   return (
     <div className="w-full px-3 py-4 lg:px-4 lg:py-6 space-y-4 sm:space-y-6">
       {/* Profile Header */}
-      <div className="bg-[#1a2744] rounded-2xl border border-[rgba(212,168,67,0.1)] p-4 sm:p-6 text-center">
-        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#d4a843] to-[#b8902a] flex items-center justify-center text-[#0a1128] text-2xl sm:text-3xl font-bold mx-auto mb-3 sm:mb-4">
-         {(displayUser?.data?.display_name || displayUser?.display_name || displayUser?.full_name || displayUser?.email || '?').charAt(0).toUpperCase()}
+      <div className="bg-[#1a2744] rounded-2xl border border-[rgba(212,168,67,0.1)] p-4 sm:p-6 text-center relative">
+        <div className="relative inline-block mb-3 sm:mb-4">
+          {profilePhoto ? (
+            <div className="relative">
+              <img
+                src={profilePhoto}
+                alt="Profile"
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-[#d4a843]"
+              />
+              <button
+                onClick={handleRemovePhoto}
+                className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+                title="Remove photo"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ) : (
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#d4a843] to-[#b8902a] flex items-center justify-center text-[#0a1128] text-2xl sm:text-3xl font-bold border-2 border-[#d4a843]">
+              {(displayUser?.data?.display_name || displayUser?.display_name || displayUser?.full_name || displayUser?.email || '?').charAt(0).toUpperCase()}
+            </div>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoUpload}
+            className="hidden"
+          />
+          {!uploading && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#d4a843] text-[#0a1128] flex items-center justify-center hover:bg-[#e0bb5e] transition-colors border-2 border-[#1a2744]"
+              title={profilePhoto ? "Change photo" : "Add photo"}
+            >
+              {profilePhoto ? <Edit2 className="w-3 h-3" /> : <Camera className="w-3 h-3" />}
+            </button>
+          )}
+          {uploading && (
+            <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-slate-600 flex items-center justify-center border-2 border-[#1a2744]">
+              <div className="w-4 h-4 border-2 border-[#0a1128] border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
         </div>
         
         {/* Display Name */}

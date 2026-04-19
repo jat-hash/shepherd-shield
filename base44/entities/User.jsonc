@@ -23,6 +23,10 @@
       "type": "string",
       "description": "Phone number for SMS notifications (format: +1234567890)"
     },
+    "profile_photo": {
+      "type": "string",
+      "description": "URL to the user's profile photo"
+    },
     "notifications_email": {
       "type": "boolean",
       "default": true,

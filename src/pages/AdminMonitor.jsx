@@ -613,6 +613,25 @@ export default function AdminMonitor() {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
+                    {(() => {
+                      const userWithEmail = allUsers.find(u => u.email === assignment.assigned_to_email);
+                      const photoUrl = userWithEmail?.profile_photo || userWithEmail?.data?.profile_photo;
+                      if (photoUrl) {
+                        return (
+                          <img
+                            src={photoUrl}
+                            alt={assignment.assigned_to_name}
+                            className="w-8 h-8 rounded-full object-cover border border-[#d4a843]"
+                          />
+                        );
+                      } else {
+                        return (
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#d4a843] to-[#b8902a] flex items-center justify-center text-[#0a1128] text-xs font-bold border border-[#d4a843]">
+                            {(assignment.assigned_to_name || '?').charAt(0).toUpperCase()}
+                          </div>
+                        );
+                      }
+                    })()}
                     <h3 className="text-white font-semibold">{assignment.assigned_to_name}</h3>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
                       assignment.status === 'Confirmed' ? 'bg-emerald-500/20 text-emerald-400' :
