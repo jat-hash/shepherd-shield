@@ -56,7 +56,10 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
       notes: "",
     };
     if (editData) {
-      setForm({ ...defaultForm, ...editData });
+      // Apply service type defaults for new assignments (no id yet) that have a pre-set service_type
+      const serviceDefaults = (!editData.id && editData.service_type) ? (SERVICE_DEFAULTS[editData.service_type] || {}) : {};
+      const supervisorDefault = (!editData.id && editData.service_type) ? { supervisor: "Wilbert Ryan" } : {};
+      setForm({ ...defaultForm, ...editData, ...serviceDefaults, ...supervisorDefault });
       setSelectedResponsibilities(editData.area_responsibilities ? editData.area_responsibilities.split(", ").filter(Boolean) : []);
       setReminders(editData.reminder_minutes ? [{ id: 1, minutes: editData.reminder_minutes }] : []);
     } else {
