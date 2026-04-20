@@ -9,11 +9,10 @@ function parseServiceTime(date, time) {
 // Helper: check if a notification was already sent recently (within windowMs)
 async function alreadyNotified(base44, userEmail, title, windowMs) {
   const existing = await base44.asServiceRole.entities.Notification.filter({
-    user_email: userEmail,
-    title
+    user_email: userEmail
   });
   const now = Date.now();
-  return existing?.some(n => (now - new Date(n.created_date).getTime()) < windowMs);
+  return existing?.some(n => n.title === title && (now - new Date(n.created_date).getTime()) < windowMs);
 }
 
 // Helper: create a notification
