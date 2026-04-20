@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -118,6 +118,12 @@ export default function TeamMap() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [flyToMeTrigger, setFlyToMeTrigger] = useState(0);
   const [allUsers, setAllUsers] = useState([]);
+  const debounceTimerRef = useRef(null);
+
+  // Load allUsers once on mount — doesn't need to refresh with map data
+  useEffect(() => {
+    base44.functions.invoke("listUsers").then(res => setAllUsers(res?.data?.users || [])).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const handleOnline = () => { setIsOffline(false); loadData(); };
@@ -137,12 +143,8 @@ export default function TeamMap() {
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
-  useEffect(() => {
-    base44.functions.invoke("listUsers").then(res => setAllUsers(res?.data?.users || [])).catch(() => {});
-  }, []);
-
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
 
     if (!navigator.onLine) {
       const cached = await getCachedData('teammap').catch(() => []);
@@ -154,17 +156,17 @@ export default function TeamMap() {
       return;
     }
 
-    const u = await base44.auth.me().catch(() => null);
-    if (u) setUser(u);
-
     const today = new Date().toISOString().slice(0, 10);
-    const [allAssignments, allIncidents, positions, personalCheckIns, liveLocations] = await Promise.all([
+    // Run auth + all DB queries fully in parallel
+    const [u, allAssignments, allIncidents, positions, personalCheckIns, liveLocations] = await Promise.all([
+      base44.auth.me().catch(() => null),
       base44.entities.Assignment.filter({ service_date: today }, "-updated_date", 500),
       base44.entities.Incident.filter({ is_panic: true }, "-updated_date", 100),
       base44.entities.Position.list("-updated_date", 200),
       base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 200),
       base44.entities.LiveLocation.filter({ is_active: true }, "-last_updated", 200),
     ]);
+    if (u) setUser(u);
     setAllPositions(positions);
 
     // Build map of live locations by email (most recent GPS)
@@ -274,16 +276,25 @@ export default function TeamMap() {
     setCheckedInAssignments(activeMembers);
     setPanicIncidents(activePanics);
     setLoading(false);
-  };
+  }, []);
+
+  // Debounced silent reload — prevents rapid-fire reloads, doesn't show spinner
+  const debouncedLoadData = useCallback(() => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => loadData(true), 2000);
+  }, [loadData]);
 
   useEffect(() => {
     loadData();
-    const unsub = base44.entities.Assignment.subscribe(() => loadData());
-    const unsub2 = base44.entities.Incident.subscribe(() => loadData());
-    const unsub3 = base44.entities.PersonalCheckIn.subscribe(() => loadData());
-    const unsub4 = base44.entities.LiveLocation.subscribe(() => loadData());
-    return () => { unsub(); unsub2(); unsub3(); unsub4(); };
-  }, []);
+    const unsub = base44.entities.Assignment.subscribe(debouncedLoadData);
+    const unsub2 = base44.entities.Incident.subscribe(debouncedLoadData);
+    const unsub3 = base44.entities.PersonalCheckIn.subscribe(debouncedLoadData);
+    const unsub4 = base44.entities.LiveLocation.subscribe(debouncedLoadData);
+    return () => {
+      unsub(); unsub2(); unsub3(); unsub4();
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, [loadData, debouncedLoadData]);
 
   const allPoints = [
     ...checkedInAssignments.map(a => [a.check_in_latitude, a.check_in_longitude]),
