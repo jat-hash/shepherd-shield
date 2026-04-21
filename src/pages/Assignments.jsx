@@ -34,7 +34,10 @@ export default function Assignments() {
   // Scroll today's date to top on mount
   useEffect(() => {
     if (todayRef.current) {
-      setTimeout(() => todayRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+      setTimeout(() => {
+        todayRef.current.scrollIntoView({ behavior: "instant", block: "start" });
+        window.scrollBy(0, -60); // Adjust for header height
+      }, 50);
     }
   }, []);
 
