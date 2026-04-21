@@ -12,7 +12,7 @@ export default function Assignments() {
   const { user: authUser } = useAuth();
   const [formOpen, setFormOpen] = useState(false);
   const [editData, setEditData] = useState(null);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(() => new Date());
   const [schedulerView, setSchedulerView] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);

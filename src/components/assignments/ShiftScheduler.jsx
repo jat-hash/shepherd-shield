@@ -40,7 +40,7 @@ const statusIcon = (status) => {
 };
 
 export default function ShiftScheduler({ onSaved, initialMonth, onMonthChange }) {
-  const [currentMonth, setCurrentMonth] = useState(initialMonth || new Date());
+   const [currentMonth, setCurrentMonth] = useState(() => initialMonth || new Date());
 
   const handleMonthChange = (newMonth) => {
     setCurrentMonth(newMonth);
@@ -161,11 +161,11 @@ export default function ShiftScheduler({ onSaved, initialMonth, onMonthChange })
                          ref={provided.innerRef}
                          {...provided.draggableProps}
                          {...provided.dragHandleProps}
-                         className={`flex items-center gap-2 bg-[#0a1128] rounded px-2 py-1 text-xs text-white cursor-grab active:cursor-grabbing transition-all flex-1 ${snapshot.isDragging ? "opacity-70 scale-105 shadow-lg border border-[#d4a843]/40" : "border border-[rgba(212,168,67,0.1)]"}`}
+                         className={`flex items-center gap-2 bg-[#0a1128] rounded px-2 py-1 text-xs text-white cursor-grab active:cursor-grabbing transition-all ${snapshot.isDragging ? "opacity-70 scale-105 shadow-lg border border-[#d4a843]/40" : "border border-[rgba(212,168,67,0.1)]"}`}
                        >
                          <GripVertical className="w-3 h-3 text-slate-600 shrink-0" />
-                         <span className="text-[10px] whitespace-nowrap ml-auto">{u.data?.display_name || u.display_name || u.full_name || u.email.split("@")[0]}</span>
                          <User className="w-3 h-3 text-[#d4a843] shrink-0" />
+                         <span className="text-[10px] whitespace-nowrap flex-1 text-right">{u.data?.display_name || u.display_name || u.full_name || u.email.split("@")[0]}</span>
                        </div>
                      )}
                    </Draggable>
