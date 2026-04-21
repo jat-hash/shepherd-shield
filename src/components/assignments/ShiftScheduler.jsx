@@ -148,36 +148,10 @@ export default function ShiftScheduler({ onSaved, initialMonth, onMonthChange })
           </Button>
         </div>
 
-        {/* Officers Panel — horizontal scrollable on mobile */}
-        <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-3">
-          <p className="text-[10px] uppercase tracking-widest text-[#d4a843] font-bold mb-2">Officers — drag to assign</p>
-          <Droppable droppableId="officers-panel" isDropDisabled={true} direction="horizontal">
-            {(provided) => (
-              <div ref={provided.innerRef} {...provided.droppableProps} className="flex gap-1.5 overflow-x-auto pb-2">
-                {users.map((u, i) => (
-                   <Draggable key={u.email} draggableId={u.email} index={i}>
-                     {(provided, snapshot) => (
-                       <div
-                         ref={provided.innerRef}
-                         {...provided.draggableProps}
-                         {...provided.dragHandleProps}
-                         className={`flex items-center gap-2 bg-[#0a1128] rounded px-3 py-1.5 text-xs text-white cursor-grab active:cursor-grabbing transition-all ${snapshot.isDragging ? "opacity-70 scale-105 shadow-lg border border-[#d4a843]/40" : "border border-[rgba(212,168,67,0.1)]"}`}
-                       >
-                         <GripVertical className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-                         <span className="text-[11px] whitespace-nowrap">{u.data?.display_name || u.display_name || u.full_name || u.email.split("@")[0]}</span>
-                         <User className="w-3.5 h-3.5 text-[#d4a843] shrink-0" />
-                       </div>
-                     )}
-                   </Draggable>
-                 ))}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </div>
-
-        {/* Scheduler Grid */}
-        <div className="space-y-3">
+        {/* Scheduler Grid + Officers Panel */}
+        <div className="flex gap-4">
+          {/* Scheduler Grid */}
+          <div className="flex-1 space-y-3">
           {serviceDates.length === 0 && (
             <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-6 text-center text-slate-400 text-sm">
               No service days this month
@@ -245,15 +219,44 @@ export default function ShiftScheduler({ onSaved, initialMonth, onMonthChange })
               </div>
             );
           })}
-        </div>
-      </div>
+          </div>
 
-      <AssignmentForm
-        open={formOpen}
-        onClose={() => { setFormOpen(false); setEditData(null); }}
-        onSaved={() => { loadAll(); onSaved?.(); }}
-        editData={editData}
-      />
-    </DragDropContext>
-  );
-}
+          {/* Officers Panel — vertical on right */}
+          <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-3 w-48 shrink-0 h-fit sticky top-0">
+           <p className="text-[10px] uppercase tracking-widest text-[#d4a843] font-bold mb-2">Officers</p>
+           <Droppable droppableId="officers-panel" isDropDisabled={true} direction="vertical">
+             {(provided) => (
+               <div ref={provided.innerRef} {...provided.droppableProps} className="flex flex-col gap-1.5">
+                 {users.map((u, i) => (
+                    <Draggable key={u.email} draggableId={u.email} index={i}>
+                       {(provided, snapshot) => (
+                         <div
+                           ref={provided.innerRef}
+                           {...provided.draggableProps}
+                           {...provided.dragHandleProps}
+                           className={`flex items-center gap-2 bg-[#0a1128] rounded px-3 py-1.5 text-xs text-white cursor-grab active:cursor-grabbing transition-all ${snapshot.isDragging ? "opacity-70 scale-105 shadow-lg border border-[#d4a843]/40" : "border border-[rgba(212,168,67,0.1)]"}`}
+                         >
+                           <GripVertical className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                           <span className="text-[11px] whitespace-nowrap truncate">{u.data?.display_name || u.display_name || u.full_name || u.email.split("@")[0]}</span>
+                           <User className="w-3.5 h-3.5 text-[#d4a843] shrink-0" />
+                         </div>
+                       )}
+                     </Draggable>
+                   ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </div>
+          </div>
+          </div>
+
+          <AssignmentForm
+          open={formOpen}
+          onClose={() => { setFormOpen(false); setEditData(null); }}
+          onSaved={() => { loadAll(); onSaved?.(); }}
+          editData={editData}
+          />
+          </DragDropContext>
+          );
+          }
