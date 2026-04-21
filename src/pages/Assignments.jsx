@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Plus, CheckCircle, Clock, XCircle, ChevronLeft, ChevronRight, Calendar, WifiOff, LayoutGrid } from "lucide-react";
@@ -16,6 +16,7 @@ export default function Assignments() {
   const [schedulerView, setSchedulerView] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const todayRef = useRef(null);
 
   useEffect(() => {
     if (authUser) setCurrentUser(authUser);
@@ -28,6 +29,13 @@ export default function Assignments() {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
     return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
+  }, []);
+
+  // Scroll today's date to top on mount
+  useEffect(() => {
+    if (todayRef.current) {
+      setTimeout(() => todayRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+    }
   }, []);
 
   const isAdmin = (authUser?.role === "admin") || (currentUser?.role === "admin");
@@ -200,6 +208,7 @@ export default function Assignments() {
             return (
               <div
                 key={i}
+                ref={isToday ? todayRef : null}
                 className={`flex gap-3 bg-[#1a2744] rounded-lg border p-3 min-w-0 ${isToday ? "border-[#d4a843]/40" : "border-[rgba(212,168,67,0.1)]"}`}
               >
                 {/* Date label */}
