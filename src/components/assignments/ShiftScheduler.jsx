@@ -112,7 +112,6 @@ export default function ShiftScheduler({ onSaved, initialMonth, onMonthChange })
         status: "Pending",
       });
       toast.success(`${user.data?.display_name || user.display_name || user.full_name} assigned to ${positionName}`);
-      await loadAll();
       onSaved?.();
     } catch (e) {
       toast.error("Failed to create assignment");
@@ -156,21 +155,20 @@ export default function ShiftScheduler({ onSaved, initialMonth, onMonthChange })
             {(provided) => (
               <div ref={provided.innerRef} {...provided.droppableProps} className="flex flex-wrap gap-1.5">
                 {users.map((u, i) => (
-                  <Draggable key={u.email} draggableId={u.email} index={i}>
-                    {(provided, snapshot) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                        className={`flex items-center gap-1 bg-[#0a1128] rounded px-2 py-1 text-xs text-white cursor-grab active:cursor-grabbing transition-all ${snapshot.isDragging ? "opacity-70 scale-105 shadow-lg border border-[#d4a843]/40" : "border border-[rgba(212,168,67,0.1)]"}`}
-                      >
-                        <GripVertical className="w-3 h-3 text-slate-600 shrink-0" />
-                        <User className="w-3 h-3 text-[#d4a843] shrink-0" />
-                        <span className="text-[10px] whitespace-nowrap">{u.data?.display_name || u.display_name || u.full_name || u.email.split("@")[0]}</span>
-                      </div>
-                    )}
-                  </Draggable>
-                ))}
+                   <Draggable key={u.email} draggableId={u.email} index={i}>
+                     {(provided, snapshot) => (
+                       <div
+                         ref={provided.innerRef}
+                         {...provided.draggableProps}
+                         className={`flex items-center gap-2 bg-[#0a1128] rounded px-2 py-1 text-xs text-white cursor-grab active:cursor-grabbing transition-all flex-1 ${snapshot.isDragging ? "opacity-70 scale-105 shadow-lg border border-[#d4a843]/40" : "border border-[rgba(212,168,67,0.1)]"}`}
+                       >
+                         <GripVertical {...provided.dragHandleProps} className="w-3 h-3 text-slate-600 shrink-0" />
+                         <span className="text-[10px] whitespace-nowrap ml-auto">{u.data?.display_name || u.display_name || u.full_name || u.email.split("@")[0]}</span>
+                         <User className="w-3 h-3 text-[#d4a843] shrink-0" />
+                       </div>
+                     )}
+                   </Draggable>
+                 ))}
                 {provided.placeholder}
               </div>
             )}
