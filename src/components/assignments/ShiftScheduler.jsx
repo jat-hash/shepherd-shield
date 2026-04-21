@@ -160,9 +160,9 @@ export default function ShiftScheduler({ onSaved, initialMonth, onMonthChange })
         </div>
 
         {/* Scheduler Grid + Officers Panel */}
-        <div className="flex gap-4">
+        <div className="flex gap-4 h-[calc(100vh-300px)]">
           {/* Scheduler Grid */}
-          <div className="flex-1 space-y-3">
+          <div className="flex-1 space-y-3 overflow-y-auto pr-2">
           {serviceDates.length === 0 && (
             <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-6 text-center text-slate-400 text-sm">
               No service days this month
@@ -233,7 +233,7 @@ export default function ShiftScheduler({ onSaved, initialMonth, onMonthChange })
           </div>
 
           {/* Officers Panel — vertical on right */}
-          <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-3 w-48 shrink-0 h-fit sticky top-0">
+          <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-3 w-48 shrink-0 h-fit sticky top-4">
            <p className="text-[10px] uppercase tracking-widest text-[#d4a843] font-bold mb-2">Officers</p>
            <Droppable droppableId="officers-panel" isDropDisabled={true} direction="vertical">
              {(provided) => (
