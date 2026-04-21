@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { ChevronLeft, ChevronRight, User, GripVertical, X, CheckCircle, Clock, XCircle } from "lucide-react";
@@ -41,18 +41,29 @@ const statusIcon = (status) => {
 
 export default function ShiftScheduler({ onSaved, initialMonth, onMonthChange }) {
    const [currentMonth, setCurrentMonth] = useState(() => initialMonth || new Date());
+   const todayRef = useRef(null);
 
-  const handleMonthChange = (newMonth) => {
-    setCurrentMonth(newMonth);
-    onMonthChange?.(newMonth);
-  };
-  const [assignments, setAssignments] = useState([]);
-  const [positions, setPositions] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [editData, setEditData] = useState(null);
-  const [formOpen, setFormOpen] = useState(false);
-  const [dropping, setDropping] = useState(false);
+   const handleMonthChange = (newMonth) => {
+     setCurrentMonth(newMonth);
+     onMonthChange?.(newMonth);
+   };
+   const [assignments, setAssignments] = useState([]);
+   const [positions, setPositions] = useState([]);
+   const [users, setUsers] = useState([]);
+   const [loading, setLoading] = useState(true);
+   const [editData, setEditData] = useState(null);
+   const [formOpen, setFormOpen] = useState(false);
+   const [dropping, setDropping] = useState(false);
+
+   // Scroll today's date to top on mount
+   useEffect(() => {
+     if (todayRef.current) {
+       setTimeout(() => {
+         todayRef.current.scrollIntoView({ behavior: "instant", block: "start" });
+         window.scrollBy(0, -60);
+       }, 50);
+     }
+   }, []);
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
@@ -166,7 +177,7 @@ export default function ShiftScheduler({ onSaved, initialMonth, onMonthChange })
             const dayLabel = date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 
             return (
-              <div key={dateStr} className={`bg-[#1a2744] rounded-xl border p-3 ${isToday ? "border-[#d4a843]/40" : "border-[rgba(212,168,67,0.1)]"}`}>
+              <div ref={isToday ? todayRef : null} key={dateStr} className={`bg-[#1a2744] rounded-xl border p-3 ${isToday ? "border-[#d4a843]/40" : "border-[rgba(212,168,67,0.1)]"}`}>
                 <p className={`text-xs font-bold mb-2 ${isToday ? "text-[#d4a843]" : "text-slate-300"}`}>{dayLabel}</p>
                 <div className="space-y-3">
                   {serviceTypes.map(svcType => (
