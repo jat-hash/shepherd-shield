@@ -146,7 +146,7 @@ export default function ShiftScheduler({ onSaved, initialMonth, onMonthChange })
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
 
         {/* Month Nav */}
         <div className="flex items-center justify-between bg-[#1a2744] rounded p-1 border border-[rgba(212,168,67,0.1)]">
