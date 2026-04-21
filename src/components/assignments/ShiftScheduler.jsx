@@ -229,12 +229,9 @@ export default function ShiftScheduler({ onSaved, initialMonth, onMonthChange })
                                         </button>
                                       </div>
                                     ))}
-                                    {snapshot.isDraggingOver && (
-                                      <div className="text-[10px] text-[#d4a843]/60 italic">Drop here</div>
-                                    )}
-                                    {cellAssignments.length === 0 && !snapshot.isDraggingOver && (
-                                      <span className="text-[10px] text-slate-700">—</span>
-                                    )}
+                                    {cellAssignments.length === 0 && (
+                                       <span className="text-[10px] text-slate-700">—</span>
+                                     )}
                                   </div>
                                   {provided.placeholder}
                                 </div>
