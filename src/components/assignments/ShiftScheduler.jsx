@@ -149,20 +149,20 @@ export default function ShiftScheduler({ onSaved, initialMonth, onMonthChange })
       <div className="flex flex-col gap-4">
 
         {/* Month Nav */}
-        <div className="flex items-center justify-between bg-[#1a2744] rounded-lg p-2 border border-[rgba(212,168,67,0.1)]">
-          <Button onClick={() => handleMonthChange(new Date(year, month - 1))} variant="ghost" size="icon" className="text-slate-400 hover:text-[#d4a843]">
-            <ChevronLeft className="w-5 h-5" />
+        <div className="flex items-center justify-between bg-[#1a2744] rounded p-1 border border-[rgba(212,168,67,0.1)]">
+          <Button onClick={() => handleMonthChange(new Date(year, month - 1))} variant="ghost" size="icon" className="text-slate-400 hover:text-[#d4a843] h-7 w-7">
+            <ChevronLeft className="w-4 h-4" />
           </Button>
-          <h2 className="text-sm font-bold text-white">{monthName}</h2>
-          <Button onClick={() => handleMonthChange(new Date(year, month + 1))} variant="ghost" size="icon" className="text-slate-400 hover:text-[#d4a843]">
-            <ChevronRight className="w-5 h-5" />
+          <h2 className="text-xs font-bold text-white">{monthName}</h2>
+          <Button onClick={() => handleMonthChange(new Date(year, month + 1))} variant="ghost" size="icon" className="text-slate-400 hover:text-[#d4a843] h-7 w-7">
+            <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
 
         {/* Scheduler Grid + Officers Panel */}
-        <div className="flex gap-3 h-[calc(100vh-240px)]">
+        <div className="flex gap-2 h-[calc(100vh-220px)]">
           {/* Scheduler Grid */}
-          <div className="flex-1 space-y-2 overflow-y-auto pr-2">
+          <div className="flex-1 space-y-1 overflow-y-auto pr-1">
           {serviceDates.length === 0 && (
             <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-6 text-center text-slate-400 text-sm">
               No service days this month
@@ -177,13 +177,13 @@ export default function ShiftScheduler({ onSaved, initialMonth, onMonthChange })
             const dayLabel = date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 
             return (
-              <div ref={isToday ? todayRef : null} key={dateStr} className={`bg-[#1a2744] rounded-lg border p-2 ${isToday ? "border-[#d4a843]/40" : "border-[rgba(212,168,67,0.1)]"}`}>
-                <p className={`text-[11px] font-bold mb-1 ${isToday ? "text-[#d4a843]" : "text-slate-300"}`}>{dayLabel}</p>
-                <div className="space-y-2">
+              <div ref={isToday ? todayRef : null} key={dateStr} className={`bg-[#1a2744] rounded border p-1.5 ${isToday ? "border-[#d4a843]/40" : "border-[rgba(212,168,67,0.1)]"}`}>
+                <p className={`text-[10px] font-bold mb-0.5 ${isToday ? "text-[#d4a843]" : "text-slate-300"}`}>{dayLabel}</p>
+                <div className="space-y-1">
                   {serviceTypes.map(svcType => (
                     <div key={svcType}>
-                      <p className="text-[9px] uppercase tracking-widest text-slate-500 mb-1">{svcType}</p>
-                      <div className="space-y-1">
+                      <p className="text-[8px] uppercase tracking-wide text-slate-500 mb-0.5">{svcType}</p>
+                      <div className="space-y-0.5">
                         {positions.length === 0 ? (
                           <p className="text-[10px] text-slate-600">No positions defined</p>
                         ) : positions.map(pos => {
@@ -195,9 +195,9 @@ export default function ShiftScheduler({ onSaved, initialMonth, onMonthChange })
                                 <div
                                    ref={provided.innerRef}
                                    {...provided.droppableProps}
-                                   className={`rounded-lg px-2 py-1 min-h-[32px] border transition-all ${snapshot.isDraggingOver ? "bg-[#d4a843]/10 border-[#d4a843]/40" : "bg-[#0a1128]/60 border-transparent"}`}
+                                   className={`rounded px-1.5 py-0.5 min-h-[28px] border transition-all ${snapshot.isDraggingOver ? "bg-[#d4a843]/10 border-[#d4a843]/40" : "bg-[#0a1128]/60 border-transparent"}`}
                                  >
-                                  <span className="text-[9px] text-slate-500 block mb-0.5 truncate">{pos.name}</span>
+                                   <span className="text-[8px] text-slate-500 block mb-0.5 truncate">{pos.name}</span>
                                   <div className="flex flex-wrap gap-1">
                                     {cellAssignments.map(a => (
                                       <div
@@ -233,11 +233,11 @@ export default function ShiftScheduler({ onSaved, initialMonth, onMonthChange })
           </div>
 
           {/* Officers Panel — vertical on right */}
-          <div className="bg-[#1a2744] rounded-lg border border-[rgba(212,168,67,0.1)] p-2 w-44 shrink-0 h-fit sticky top-4">
-            <p className="text-[9px] uppercase tracking-widest text-[#d4a843] font-bold mb-1.5">Officers</p>
+          <div className="bg-[#1a2744] rounded border border-[rgba(212,168,67,0.1)] p-1.5 w-40 shrink-0 h-fit sticky top-2">
+            <p className="text-[8px] uppercase tracking-wide text-[#d4a843] font-bold mb-1">Officers</p>
             <Droppable droppableId="officers-panel" isDropDisabled={true} direction="vertical">
               {(provided) => (
-                <div ref={provided.innerRef} {...provided.droppableProps} className="flex flex-col gap-1">
+                <div ref={provided.innerRef} {...provided.droppableProps} className="flex flex-col gap-0.5">
                  {users.map((u, i) => (
                     <Draggable key={u.email} draggableId={u.email} index={i}>
                        {(provided, snapshot) => (
@@ -245,11 +245,11 @@ export default function ShiftScheduler({ onSaved, initialMonth, onMonthChange })
                              ref={provided.innerRef}
                              {...provided.draggableProps}
                              {...provided.dragHandleProps}
-                             className={`flex items-center gap-1 bg-[#0a1128] rounded px-2 py-1 text-xs text-white cursor-grab active:cursor-grabbing transition-all ${snapshot.isDragging ? "opacity-70 scale-105 shadow-lg border border-[#d4a843]/40" : "border border-[rgba(212,168,67,0.1)]"}`}
+                             className={`flex items-center gap-0.5 bg-[#0a1128] rounded px-1 py-0.5 text-xs text-white cursor-grab active:cursor-grabbing transition-all ${snapshot.isDragging ? "opacity-70 scale-105 shadow-lg border border-[#d4a843]/40" : "border border-[rgba(212,168,67,0.1)]"}`}
                            >
-                             <GripVertical className="w-3 h-3 text-slate-600 shrink-0" />
-                             <span className="text-[10px] whitespace-nowrap truncate">{u.data?.display_name || u.display_name || u.full_name || u.email.split("@")[0]}</span>
-                             <User className="w-3 h-3 text-[#d4a843] shrink-0" />
+                             <GripVertical className="w-2.5 h-2.5 text-slate-600 shrink-0" />
+                             <span className="text-[8px] whitespace-nowrap truncate">{u.data?.display_name || u.display_name || u.full_name || u.email.split("@")[0]}</span>
+                             <User className="w-2.5 h-2.5 text-[#d4a843] shrink-0" />
                          </div>
                        )}
                      </Draggable>
