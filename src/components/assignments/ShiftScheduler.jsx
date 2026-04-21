@@ -153,7 +153,7 @@ export default function ShiftScheduler({ onSaved, initialMonth, onMonthChange })
           <p className="text-[10px] uppercase tracking-widest text-[#d4a843] font-bold mb-2">Officers — drag to assign</p>
           <Droppable droppableId="officers-panel" isDropDisabled={true} direction="horizontal">
             {(provided) => (
-              <div ref={provided.innerRef} {...provided.droppableProps} className="flex flex-wrap gap-1.5">
+              <div ref={provided.innerRef} {...provided.droppableProps} className="flex gap-1.5 overflow-x-auto pb-2">
                 {users.map((u, i) => (
                    <Draggable key={u.email} draggableId={u.email} index={i}>
                      {(provided, snapshot) => (
