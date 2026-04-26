@@ -5,7 +5,6 @@ const HUB_LAT = 47.0637;
 const HUB_LON = -122.2525;
 const VICINITY_MILES = 2;
 
-// Helper: calculate distance in miles between two GPS coordinates (Haversine)
 function distanceMiles(lat1, lon1, lat2, lon2) {
   const R = 3958.8;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -16,25 +15,20 @@ function distanceMiles(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-// Helper: parse a service_date + time string into a Date object
 function parseServiceTime(date, time) {
   const [h, m] = time.split(":").map(Number);
   return new Date(`${date}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`);
 }
 
-// Helper: check if a notification was already sent recently (within windowMs)
 async function alreadyNotified(base44, userEmail, title, windowMs) {
   const existing = await base44.asServiceRole.entities.Notification.filter({ user_email: userEmail });
   const now = Date.now();
   return existing?.some(n => n.title === title && (now - new Date(n.created_date).getTime()) < windowMs);
 }
 
-// Helper: create a notification
 async function notify(base44, { user_email, title, message, type, assignment_id }) {
   await base44.asServiceRole.entities.Notification.create({
-    user_email,
-    title,
-    message,
+    user_email, title, message,
     type: type || "general",
     ...(assignment_id ? { assignment_id } : {}),
     read: false
@@ -47,27 +41,36 @@ Deno.serve(async (req) => {
     const now = new Date();
     const today = now.toISOString().split("T")[0];
 
-    // ── 1. GPS-based check-in/out for ALL users with live location ────────────
-    // This is purely proximity-based — no assignment or time restrictions.
-    const allLocations = await base44.asServiceRole.entities.LiveLocation.list();
+    // ── 1. GPS-based check-in/out for assignments ─────────────────────────────
+    // Source of truth: LiveLocation records.
+    // is_active=true + within 2mi → check in assignment
+    // is_active=true + outside 2mi → check out assignment (user has left)
+    // is_active=false → user manually checked out, don't touch
 
+    const allLocations = await base44.asServiceRole.entities.LiveLocation.filter({ is_active: true });
     let autoCheckedIn = 0;
     let autoCheckedOut = 0;
 
     for (const loc of allLocations) {
       if (!loc.user_email || !loc.latitude || !loc.longitude) continue;
 
+      // Skip stale locations (not updated in 30 minutes)
+      const lastUpdated = loc.last_updated ? new Date(loc.last_updated) : null;
+      if (lastUpdated && (now - lastUpdated) > 30 * 60 * 1000) {
+        console.log(`Skipping stale location for ${loc.user_name} (${Math.round((now - lastUpdated) / 60000)} min old)`);
+        continue;
+      }
+
       const dist = distanceMiles(loc.latitude, loc.longitude, HUB_LAT, HUB_LON);
       const isNear = dist <= VICINITY_MILES;
 
-      // Find today's assignments for this user that are not fully settled
       const userAssignments = await base44.asServiceRole.entities.Assignment.filter({
         assigned_to_email: loc.user_email,
         service_date: today
       });
 
       for (const assignment of userAssignments) {
-        // ── Check IN: user is near and not yet checked in ──
+        // ── Auto check IN ──────────────────────────────────────────────────
         if (isNear && !assignment.checked_in) {
           await base44.asServiceRole.entities.Assignment.update(assignment.id, {
             checked_in: true,
@@ -77,7 +80,7 @@ Deno.serve(async (req) => {
           });
           autoCheckedIn++;
 
-          const alerted = await alreadyNotified(base44, loc.user_email, "Auto Checked In", 60 * 60 * 1000);
+          const alerted = await alreadyNotified(base44, loc.user_email, "Auto Checked In", 4 * 60 * 60 * 1000);
           if (!alerted) {
             await notify(base44, {
               user_email: loc.user_email,
@@ -87,10 +90,11 @@ Deno.serve(async (req) => {
               assignment_id: assignment.id
             });
           }
-          console.log(`Auto checked IN: ${loc.user_name} (${dist.toFixed(2)} mi)`);
+          console.log(`Auto checked IN: ${loc.user_name} for ${assignment.position_name} (${dist.toFixed(2)} mi)`);
         }
 
-        // ── Check OUT: user has left and is checked in but not out ──
+        // ── Auto check OUT ─────────────────────────────────────────────────
+        // Only check out if they're actively sharing location but have left the area
         if (!isNear && assignment.checked_in && !assignment.checked_out) {
           await base44.asServiceRole.entities.Assignment.update(assignment.id, {
             checked_out: true,
@@ -98,14 +102,13 @@ Deno.serve(async (req) => {
           });
           autoCheckedOut++;
 
-          // Notify about radio return if applicable
           if (assignment.radio_channel) {
             const alerted = await alreadyNotified(base44, loc.user_email, "Return Your Radio", 2 * 60 * 60 * 1000);
             if (!alerted) {
               await notify(base44, {
                 user_email: loc.user_email,
                 title: "Return Your Radio",
-                message: `You've been auto checked out from ${assignment.service_type || 'service'}. Please return your radio (Channel ${assignment.radio_channel}).`,
+                message: `You've been auto checked out from ${assignment.position_name}. Please return your radio (Channel ${assignment.radio_channel}).`,
                 type: "assignment_reminder",
                 assignment_id: assignment.id
               });
@@ -119,60 +122,23 @@ Deno.serve(async (req) => {
             type: "assignment_reminder",
             assignment_id: assignment.id
           });
-          console.log(`Auto checked OUT: ${loc.user_name} (${dist.toFixed(2)} mi away)`);
-        }
-      }
-
-      // ── PersonalCheckIn: handle users with no assignments today ──
-      // Check in: near + no open personal check-in today
-      if (isNear) {
-        const openCheckIns = await base44.asServiceRole.entities.PersonalCheckIn.filter({
-          user_email: loc.user_email,
-          check_in_date: today
-        });
-        const hasOpen = openCheckIns?.some(c => !c.check_out_time);
-        if (!hasOpen) {
-          await base44.asServiceRole.entities.PersonalCheckIn.create({
-            user_email: loc.user_email,
-            user_name: loc.user_name || loc.user_email,
-            check_in_date: today,
-            check_in_time: now.toISOString(),
-            latitude: loc.latitude,
-            longitude: loc.longitude
-          });
-          console.log(`Personal check-in created for ${loc.user_name}`);
-        }
-      }
-
-      // Check out: left + has open personal check-in
-      if (!isNear) {
-        const openCheckIns = await base44.asServiceRole.entities.PersonalCheckIn.filter({
-          user_email: loc.user_email,
-          check_in_date: today
-        });
-        for (const ci of openCheckIns) {
-          if (!ci.check_out_time) {
-            await base44.asServiceRole.entities.PersonalCheckIn.update(ci.id, {
-              check_out_time: now.toISOString()
-            });
-            console.log(`Personal check-out recorded for ${loc.user_name}`);
-          }
+          console.log(`Auto checked OUT: ${loc.user_name} from ${assignment.position_name} (${dist.toFixed(2)} mi away)`);
         }
       }
     }
 
-    // ── 2. Assignment alerts (for users without GPS) ──────────────────────────
+    // ── 2. Assignment alerts & hard fallback for users WITHOUT active GPS ──────
     const todayAssignments = await base44.asServiceRole.entities.Assignment.filter({ service_date: today });
     const activeUserEmails = new Set(allLocations.map(l => l.user_email));
 
     for (const assignment of todayAssignments) {
       if (!assignment.service_date || !assignment.start_time || !assignment.end_time) continue;
-      // Skip if this user has live GPS (handled above)
-      if (activeUserEmails.has(assignment.assigned_to_email)) continue;
+      if (activeUserEmails.has(assignment.assigned_to_email)) continue; // GPS handles these
 
       const startDateTime = parseServiceTime(assignment.service_date, assignment.start_time);
       const endDateTime = parseServiceTime(assignment.service_date, assignment.end_time);
       const fiveMinBeforeStart = new Date(startDateTime.getTime() - 5 * 60 * 1000);
+      const oneHourAfterEnd = new Date(endDateTime.getTime() + 60 * 60 * 1000);
 
       // 5-min pre-service alert
       if (!assignment.checked_in && now >= fiveMinBeforeStart && now < startDateTime) {
@@ -186,7 +152,6 @@ Deno.serve(async (req) => {
             type: "assignment_reminder",
             assignment_id: assignment.id
           });
-          console.log(`5-min check-in alert sent to ${assignment.assigned_to_name}`);
         }
       }
 
@@ -202,12 +167,10 @@ Deno.serve(async (req) => {
             type: "assignment_reminder",
             assignment_id: assignment.id
           });
-          console.log(`Missed check-in alert sent to ${assignment.assigned_to_name}`);
         }
       }
 
-      // Hard auto check-out 1 hour after service end (no GPS fallback)
-      const oneHourAfterEnd = new Date(endDateTime.getTime() + 60 * 60 * 1000);
+      // Hard auto check-out 1 hour after service end (no GPS)
       if (assignment.checked_in && !assignment.checked_out && now > oneHourAfterEnd) {
         await base44.asServiceRole.entities.Assignment.update(assignment.id, {
           checked_out: true,
@@ -218,7 +181,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── 3. Alert for unreturned equipment 1 hour past latest service end ──────
+    // ── 3. Alert for unreturned equipment ─────────────────────────────────────
     const equipment = await base44.asServiceRole.entities.Equipment.filter({ checked_out: true });
     let latestServiceEnd = null;
     for (const a of todayAssignments) {
@@ -242,7 +205,6 @@ Deno.serve(async (req) => {
               message: `Please return "${item.name}" — service has ended and equipment should be checked back in.`,
               type: "general"
             });
-            console.log(`Equipment return alert sent to ${item.checked_out_by} for ${item.name}`);
           }
         }
       }
