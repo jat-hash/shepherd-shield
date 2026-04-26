@@ -1,5 +1,21 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+// Church hub coordinates: 21224 Orting Kapowsin Hwy E, Graham, WA 98338
+const HUB_LAT = 47.0637;
+const HUB_LON = -122.2525;
+const VICINITY_MILES = 2;
+
+// Helper: calculate distance in miles between two GPS coordinates (Haversine)
+function distanceMiles(lat1, lon1, lat2, lon2) {
+  const R = 3958.8; // Earth radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
 // Helper: parse a service_date + time string into a Date object
 function parseServiceTime(date, time) {
   const [h, m] = time.split(":").map(Number);
@@ -50,6 +66,36 @@ Deno.serve(async (req) => {
       const fortyFiveMinAfterEnd = new Date(endDateTime.getTime() + 45 * 60 * 1000);
       const oneHourAfterEnd = new Date(endDateTime.getTime() + 60 * 60 * 1000);
 
+      // ── Auto check-in: if within service window, not yet checked in, and within 2 miles of hub ──
+      if (!assignment.checked_in && now >= fiveMinBeforeStart && now <= endDateTime) {
+        // Look up live location for this user
+        const liveLocations = await base44.asServiceRole.entities.LiveLocation.filter({
+          user_email: assignment.assigned_to_email,
+          is_active: true
+        });
+        const loc = liveLocations?.[0];
+        if (loc?.latitude && loc?.longitude) {
+          const dist = distanceMiles(loc.latitude, loc.longitude, HUB_LAT, HUB_LON);
+          if (dist <= VICINITY_MILES) {
+            await base44.asServiceRole.entities.Assignment.update(assignment.id, {
+              checked_in: true,
+              check_in_time: now.toISOString(),
+              check_in_latitude: loc.latitude,
+              check_in_longitude: loc.longitude
+            });
+            await notify(base44, {
+              user_email: assignment.assigned_to_email,
+              title: "Auto Checked In",
+              message: `You've been automatically checked in to ${assignment.position_name} — you're within ${VICINITY_MILES} miles of the church.`,
+              type: "assignment_reminder",
+              assignment_id: assignment.id
+            });
+            console.log(`Auto checked in: ${assignment.assigned_to_name} (${dist.toFixed(2)} mi from hub)`);
+            assignment.checked_in = true; // update local state to skip further check-in alerts below
+          }
+        }
+      }
+
       // ── A. 5-min pre-service alert: not checked in yet ─────────────────────
       if (!assignment.checked_in && now >= fiveMinBeforeStart && now < startDateTime) {
         const alerted = await alreadyNotified(
@@ -90,51 +136,53 @@ Deno.serve(async (req) => {
         }
       }
 
-      // ── C. 45-min past end: alert to check out & return radio ──────────────
-      if (assignment.checked_in && !assignment.checked_out && now > fortyFiveMinAfterEnd && now <= oneHourAfterEnd) {
-        const alerted = await alreadyNotified(
-          base44, assignment.assigned_to_email, "Please Check Out", 60 * 60 * 1000
-        );
-        if (!alerted) {
-          const radioMsg = assignment.radio_channel
-            ? ` Please also return your radio (Channel ${assignment.radio_channel}).`
-            : " Please also return any radios assigned to you.";
-          await notify(base44, {
-            user_email: assignment.assigned_to_email,
-            title: "Please Check Out",
-            message: `Your ${assignment.service_type || 'service'} assignment has ended.${radioMsg}`,
-            type: "assignment_reminder",
-            assignment_id: assignment.id
-          });
-          console.log(`45-min checkout reminder sent to ${assignment.assigned_to_name}`);
-        }
-      }
+      // ── C. Auto check-out 45 min past end time (if still within 2 miles) or 1 hour hard cutoff ──
+      if (assignment.checked_in && !assignment.checked_out && now > fortyFiveMinAfterEnd) {
+        let shouldAutoCheckOut = false;
 
-      // ── D. Auto check-out 1 hour past end time ─────────────────────────────
-      if (assignment.checked_in && !assignment.checked_out && now > oneHourAfterEnd) {
-        await base44.asServiceRole.entities.Assignment.update(assignment.id, {
-          checked_out: true,
-          check_out_time: oneHourAfterEnd.toISOString()
+        // Check GPS — auto check-out if they've left the 2-mile vicinity
+        const liveLocations = await base44.asServiceRole.entities.LiveLocation.filter({
+          user_email: assignment.assigned_to_email,
+          is_active: true
         });
-        autoCheckedOut++;
-
-        // Also notify about radio return if they had one
-        if (assignment.radio_channel) {
-          const alerted = await alreadyNotified(
-            base44, assignment.assigned_to_email, "Return Your Radio", 2 * 60 * 60 * 1000
-          );
-          if (!alerted) {
-            await notify(base44, {
-              user_email: assignment.assigned_to_email,
-              title: "Return Your Radio",
-              message: `You've been auto checked out from ${assignment.service_type || 'service'}. Please return your radio (Channel ${assignment.radio_channel}) immediately.`,
-              type: "assignment_reminder",
-              assignment_id: assignment.id
-            });
+        const loc = liveLocations?.[0];
+        if (loc?.latitude && loc?.longitude) {
+          const dist = distanceMiles(loc.latitude, loc.longitude, HUB_LAT, HUB_LON);
+          if (dist > VICINITY_MILES) {
+            shouldAutoCheckOut = true;
+            console.log(`GPS auto checkout: ${assignment.assigned_to_name} is ${dist.toFixed(2)} mi away`);
           }
+        } else if (now > oneHourAfterEnd) {
+          // No GPS data — fall back to hard 1-hour cutoff
+          shouldAutoCheckOut = true;
+          console.log(`Hard cutoff auto checkout: ${assignment.assigned_to_name} (no GPS)`);
         }
 
-        console.log(`Auto checked out: ${assignment.assigned_to_name} from ${assignment.position_name}`);
+        if (shouldAutoCheckOut) {
+          await base44.asServiceRole.entities.Assignment.update(assignment.id, {
+            checked_out: true,
+            check_out_time: now.toISOString()
+          });
+          autoCheckedOut++;
+
+          // Also notify about radio return if they had one
+          if (assignment.radio_channel) {
+            const alerted = await alreadyNotified(
+              base44, assignment.assigned_to_email, "Return Your Radio", 2 * 60 * 60 * 1000
+            );
+            if (!alerted) {
+              await notify(base44, {
+                user_email: assignment.assigned_to_email,
+                title: "Return Your Radio",
+                message: `You've been auto checked out from ${assignment.service_type || 'service'}. Please return your radio (Channel ${assignment.radio_channel}) immediately.`,
+                type: "assignment_reminder",
+                assignment_id: assignment.id
+              });
+            }
+          }
+
+          console.log(`Auto checked out: ${assignment.assigned_to_name} from ${assignment.position_name}`);
+        }
       }
     }
 
