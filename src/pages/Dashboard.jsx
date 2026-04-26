@@ -11,7 +11,6 @@ import NotifyTeamButton from "@/components/dashboard/NotifyTeamButton";
 import SafetyCheckInPanel from "@/components/dashboard/SafetyCheckInPanel";
 import { WifiOff, MapPin, X, Bell } from "lucide-react";
 import RadioCheckInScanner from "@/components/dashboard/RadioCheckInScanner";
-import PersonalCheckIn from "@/components/dashboard/PersonalCheckIn";
 import QuickEquipmentCheckIn from "@/components/dashboard/QuickEquipmentCheckIn";
 
 export default function Dashboard() {
@@ -191,7 +190,6 @@ export default function Dashboard() {
 
       <SpecialEventsDropdown />
 
-      <PersonalCheckIn user={user} />
       <RadioCheckInScanner user={user} />
       <QuickEquipmentCheckIn />
 
