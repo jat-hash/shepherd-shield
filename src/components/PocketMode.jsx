@@ -2,6 +2,9 @@ import { useEffect } from "react";
 
 export default function PocketMode() {
   useEffect(() => {
+    // Only run on mobile devices
+    if (!/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) return;
+
     const overlay = document.createElement("div");
     overlay.id = "pocket-overlay";
     Object.assign(overlay.style, {
@@ -14,15 +17,32 @@ export default function PocketMode() {
       opacity: "0",
       zIndex: "999999",
       pointerEvents: "none",
-      transition: "opacity 0.3s ease",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      transition: "opacity 0.5s ease",
     });
+
+    // Tap to dismiss label
+    const label = document.createElement("div");
+    Object.assign(label.style, {
+      color: "rgba(255,255,255,0.3)",
+      fontSize: "14px",
+      fontFamily: "sans-serif",
+      userSelect: "none",
+    });
+    label.textContent = "Tap to unlock";
+    overlay.appendChild(label);
     document.body.appendChild(overlay);
 
     let pocketActive = false;
+    let activateTimer = null;
+    let lockedByUser = false;
 
     function enablePocketMode() {
       if (pocketActive) return;
       pocketActive = true;
+      lockedByUser = false;
       overlay.style.opacity = "1";
       overlay.style.pointerEvents = "all";
     }
@@ -30,64 +50,75 @@ export default function PocketMode() {
     function disablePocketMode() {
       if (!pocketActive) return;
       pocketActive = false;
+      lockedByUser = false;
       overlay.style.opacity = "0";
       overlay.style.pointerEvents = "none";
     }
 
-    // --- Modern Proximity Sensor API ---
-    let proximitySensor = null;
-    if ("ProximitySensor" in window) {
-      try {
-        proximitySensor = new window.ProximitySensor({ frequency: 5 });
-        proximitySensor.addEventListener("reading", () => {
-          if (proximitySensor.near) enablePocketMode();
-          else disablePocketMode();
-        });
-        proximitySensor.start();
-      } catch (e) {
-        proximitySensor = null;
+    // Tap to unlock
+    overlay.addEventListener("click", disablePocketMode);
+    overlay.addEventListener("touchend", (e) => {
+      e.preventDefault();
+      disablePocketMode();
+    });
+
+    // --- Visibility API: when tab hidden (screen off or app backgrounded) ---
+    const handleVisibility = () => {
+      if (document.hidden) {
+        enablePocketMode();
+      } else {
+        // Small delay before unlocking to avoid flicker on quick screen-on
+        setTimeout(disablePocketMode, 500);
       }
-    }
-
-    // --- Legacy deviceproximity (Firefox) ---
-    const handleLegacyProximity = (e) => {
-      if (e.near || e.value < 5) enablePocketMode();
-      else disablePocketMode();
     };
-    window.addEventListener("deviceproximity", handleLegacyProximity);
-    window.addEventListener("userproximity", handleLegacyProximity);
+    document.addEventListener("visibilitychange", handleVisibility);
 
-    // --- Face-down orientation fallback ---
-    // beta ~180 or ~-180 = face down. Use absolute value approach.
-    let orientationTimer = null;
+    // --- Device orientation: face-down detection ---
+    // gamma = left/right tilt, beta = front/back tilt
+    // When face-down: |beta| approaches 180 (or near -180)
     const handleOrientation = (e) => {
-      // Only use orientation if no proximity sensor available
-      if (proximitySensor) return;
-      const faceDown = Math.abs(e.beta) > 150;
-      if (faceDown) {
-        // Require sustained face-down for 1.5s to avoid false positives
-        if (!orientationTimer) {
-          orientationTimer = setTimeout(() => enablePocketMode(), 1500);
+      if (lockedByUser) return;
+
+      // Face down: beta close to ±180
+      const beta = e.beta ?? 0;
+      const isFaceDown = Math.abs(beta) > 150;
+
+      if (isFaceDown) {
+        if (!activateTimer) {
+          activateTimer = setTimeout(() => {
+            enablePocketMode();
+          }, 1000); // 1 second sustained face-down
         }
       } else {
-        if (orientationTimer) {
-          clearTimeout(orientationTimer);
-          orientationTimer = null;
+        if (activateTimer) {
+          clearTimeout(activateTimer);
+          activateTimer = null;
         }
-        disablePocketMode();
+        // Only auto-dismiss if not manually locked
+        if (!lockedByUser) {
+          disablePocketMode();
+        }
       }
     };
-    window.addEventListener("deviceorientation", handleOrientation);
 
-    // --- Tap anywhere on overlay to dismiss ---
-    overlay.addEventListener("click", disablePocketMode);
+    // Request orientation permission on iOS 13+
+    if (typeof DeviceOrientationEvent !== "undefined" &&
+        typeof DeviceOrientationEvent.requestPermission === "function") {
+      DeviceOrientationEvent.requestPermission()
+        .then((state) => {
+          if (state === "granted") {
+            window.addEventListener("deviceorientation", handleOrientation);
+          }
+        })
+        .catch(() => {});
+    } else {
+      window.addEventListener("deviceorientation", handleOrientation);
+    }
 
     return () => {
-      if (proximitySensor) proximitySensor.stop();
-      window.removeEventListener("deviceproximity", handleLegacyProximity);
-      window.removeEventListener("userproximity", handleLegacyProximity);
+      document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("deviceorientation", handleOrientation);
-      if (orientationTimer) clearTimeout(orientationTimer);
+      if (activateTimer) clearTimeout(activateTimer);
       overlay.remove();
     };
   }, []);
