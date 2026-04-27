@@ -75,10 +75,11 @@ export default function AdminMonitor() {
       return;
     }
     try {
-      const [todayAssignments, todayPersonalCheckIns, checkedOutEquipment] = await Promise.all([
+      const [todayAssignments, todayPersonalCheckIns, checkedOutEquipment, allLiveLocations] = await Promise.all([
         base44.entities.Assignment.filter({ service_date: today }, "-start_time", 200),
         base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 200),
         base44.entities.Equipment.filter({ checked_out: true }, "-checked_out_at", 200),
+        base44.entities.LiveLocation.list(),
       ]);
       setEquipmentCheckouts(checkedOutEquipment || []);
 
@@ -92,10 +93,33 @@ export default function AdminMonitor() {
         console.warn("Could not load user list:", e.message);
       }
 
+      // Mark users with recent GPS (within 4 hours) as live
+      const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
+      const recentLocations = (allLiveLocations || []).filter(ll => ll.last_updated && new Date(ll.last_updated) > fourHoursAgo);
+      setLiveLocations(recentLocations);
+
       // Build a map of personal check-ins by email for merging (case-insensitive)
       const personalByEmail = {};
       todayPersonalCheckIns.forEach(p => {
         if (p.user_email) personalByEmail[p.user_email.toLowerCase()] = p;
+      });
+
+      // Also treat users with recent GPS as personally checked in (auto-synthesize)
+      recentLocations.forEach(ll => {
+        if (!ll.user_email) return;
+        const key = ll.user_email.toLowerCase();
+        if (!personalByEmail[key]) {
+          personalByEmail[key] = {
+            user_email: ll.user_email,
+            user_name: ll.user_name,
+            check_in_date: today,
+            check_in_time: ll.last_updated,
+            check_out_time: null,
+            latitude: ll.latitude,
+            longitude: ll.longitude,
+            _fromGPS: true,
+          };
+        }
       });
 
       // Merge personal check-in status INTO assignments where the person checked in personally
@@ -120,20 +144,39 @@ export default function AdminMonitor() {
       const assignmentEmails = new Set(enrichedAssignments.map(a => (a.assigned_to_email || '').toLowerCase()));
 
       // Only include personal check-ins for people WITHOUT a formal assignment today
+      // Include both real PersonalCheckIn records AND GPS-synthesized ones
+      const allPersonalSources = [
+        ...todayPersonalCheckIns,
+        ...recentLocations
+          .filter(ll => ll.user_email && !todayPersonalCheckIns.some(p => p.user_email?.toLowerCase() === ll.user_email?.toLowerCase()))
+          .map(ll => ({
+            id: `gps-${ll.user_email}`,
+            user_email: ll.user_email,
+            user_name: ll.user_name,
+            check_in_date: today,
+            check_in_time: ll.last_updated,
+            check_out_time: null,
+            latitude: ll.latitude,
+            longitude: ll.longitude,
+            _fromGPS: true,
+          }))
+      ];
+
       // Deduplicate by email - keep only the first (most recent, sorted by time desc) record per person
       const seenPersonalEmails = new Set();
-      const normalizedPersonal = todayPersonalCheckIns
+      const normalizedPersonal = allPersonalSources
         .filter(p => !assignmentEmails.has((p.user_email || '').toLowerCase()))
         .filter(p => {
-          if (seenPersonalEmails.has(p.user_email)) return false;
-          seenPersonalEmails.add(p.user_email);
+          const key = (p.user_email || '').toLowerCase();
+          if (seenPersonalEmails.has(key)) return false;
+          seenPersonalEmails.add(key);
           return true;
         })
         .map(p => ({
           id: p.id,
           assigned_to_name: p.user_name,
           assigned_to_email: p.user_email,
-          position_name: "Personal Check-in",
+          position_name: p._fromGPS ? "In Area (GPS)" : "Personal Check-in",
           service_date: p.check_in_date,
           start_time: "",
           end_time: "",
@@ -145,6 +188,7 @@ export default function AdminMonitor() {
           check_in_latitude: p.latitude,
           check_in_longitude: p.longitude,
           _isPersonal: true,
+          _fromGPS: !!p._fromGPS,
         }));
 
       // Build set of all emails represented
