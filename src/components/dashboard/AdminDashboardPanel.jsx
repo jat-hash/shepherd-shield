@@ -41,11 +41,9 @@ export default function AdminDashboardPanel({ allUsers = [] }) {
     const todayLocal = new Date();
     const today = `${todayLocal.getFullYear()}-${String(todayLocal.getMonth() + 1).padStart(2, '0')}-${String(todayLocal.getDate()).padStart(2, '0')}`;
 
-    const [assignments, personalCheckIns, liveLocations] = await Promise.all([
-      base44.entities.Assignment.filter({ service_date: today }, "-start_time", 200),
-      base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 100),
-      base44.entities.LiveLocation.list("-last_updated", 100),
-    ]);
+    const assignments = await base44.entities.Assignment.filter({ service_date: today }, "-start_time", 200);
+    const personalCheckIns = await base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 100);
+    const liveLocations = await base44.entities.LiveLocation.list("-last_updated", 100);
 
     const eightHoursAgo = new Date(Date.now() - 8 * 60 * 60 * 1000);
     const recentLive = liveLocations.filter(l => l.last_updated && new Date(l.last_updated) > eightHoursAgo);
