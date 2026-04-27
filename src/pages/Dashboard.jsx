@@ -9,9 +9,11 @@ import SOPQuickAccess from "@/components/dashboard/SOPQuickAccess";
 import SpecialEventsDropdown from "@/components/dashboard/SpecialEventsDropdown";
 import NotifyTeamButton from "@/components/dashboard/NotifyTeamButton";
 import SafetyCheckInPanel from "@/components/dashboard/SafetyCheckInPanel";
-import { WifiOff, MapPin, X, Bell } from "lucide-react";
+import { WifiOff, MapPin, X, Bell, AlertTriangle } from "lucide-react";
 import RadioCheckInScanner from "@/components/dashboard/RadioCheckInScanner";
 import QuickEquipmentCheckIn from "@/components/dashboard/QuickEquipmentCheckIn";
+import PersonalCheckIn from "@/components/dashboard/PersonalCheckIn";
+import AdminDashboardPanel from "@/components/dashboard/AdminDashboardPanel";
 
 export default function Dashboard() {
   const { user: authUser } = useAuth();
@@ -80,6 +82,8 @@ export default function Dashboard() {
 
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeAlerts, setActiveAlerts] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
 
   const reloadTimeout = useRef(null);
   const reload = useCallback(() => {
@@ -109,6 +113,24 @@ export default function Dashboard() {
 
   useEffect(() => { reload(); }, [reload]);
 
+  // Load active alerts
+  useEffect(() => {
+    base44.entities.EmergencyAlert.filter({ is_active: true }).then(setActiveAlerts).catch(() => {});
+    const unsub = base44.entities.EmergencyAlert.subscribe((event) => {
+      if (event.type === "create" && event.data?.is_active) setActiveAlerts(prev => [...prev, event.data]);
+      else if (event.type === "update") setActiveAlerts(prev => event.data?.is_active ? prev.map(a => a.id === event.id ? event.data : a) : prev.filter(a => a.id !== event.id));
+      else if (event.type === "delete") setActiveAlerts(prev => prev.filter(a => a.id !== event.id));
+    });
+    return unsub;
+  }, []);
+
+  // Load allUsers for admin panel
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      base44.functions.invoke("listUsers").then(res => setAllUsers(res?.data?.users || [])).catch(() => {});
+    }
+  }, [user]);
+
   useEffect(() => {
     if (!user) return;
     const unsub = base44.entities.Assignment.subscribe(() => reload());
@@ -131,6 +153,27 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-2xl mx-auto px-3 py-4 lg:px-4 lg:py-6 space-y-4">
+      {/* Active Emergency Alerts */}
+      {activeAlerts.map(alert => (
+        <div key={alert.id} className="flex items-start gap-3 bg-red-900/60 border border-red-500/50 rounded-lg px-4 py-3 text-red-200 text-sm shadow-lg animate-pulse">
+          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-red-400" />
+          <div className="flex-1">
+            <p className="font-bold text-white">🚨 ACTIVE ALERT: {alert.alert_type}</p>
+            <p className="text-xs text-red-300 mt-0.5">{alert.message}</p>
+          </div>
+          {user?.role === 'admin' && (
+            <button
+              onClick={async () => {
+                await base44.entities.EmergencyAlert.update(alert.id, { is_active: false });
+                setActiveAlerts(prev => prev.filter(a => a.id !== alert.id));
+              }}
+              className="text-red-400 hover:text-white mt-0.5 shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      ))}
       {!navigator.onLine && (
         <div className="flex items-center gap-2 bg-orange-900/40 border border-orange-500/30 rounded-lg px-3 py-2 text-orange-300 text-xs">
           <WifiOff className="w-3.5 h-3.5 shrink-0" />
@@ -187,6 +230,12 @@ export default function Dashboard() {
           <EmergencyButton />
         </div>
       </div>
+
+      {/* Personal Check-in Status */}
+      {user && <PersonalCheckIn user={user} />}
+
+      {/* Admin: Team Status Panel */}
+      {user?.role === 'admin' && <AdminDashboardPanel allUsers={allUsers} />}
 
       <SpecialEventsDropdown />
 
