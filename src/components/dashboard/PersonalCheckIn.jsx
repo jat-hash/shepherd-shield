@@ -65,8 +65,8 @@ export default function PersonalCheckIn({ user }) {
             const existingLive = await base44.entities.LiveLocation.filter({ user_email: user.email, is_active: true }).catch(() => []);
             if (existingLive.length > 0) {
               setLiveLocationId(existingLive[0].id);
-              const userName = user.display_name || user.full_name || user.email;
-              startLiveTracking(existingLive[0].id, userName);
+              // Do NOT auto-resume watchPosition on load — this triggers Safari location prompts
+              // without user interaction. Location will resume next time user checks in.
             }
             await savePersonalCheckInState({ checkedIn: true, recordId: open.id, checkInTime: open.check_in_time });
           } else if (!local?.checkedIn) {
