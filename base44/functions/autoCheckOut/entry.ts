@@ -54,10 +54,10 @@ Deno.serve(async (req) => {
     for (const loc of allLocations) {
       if (!loc.user_email || !loc.latitude || !loc.longitude) continue;
 
-      // Skip stale locations (not updated in 30 minutes)
+      // Skip stale locations (not updated in 4 hours - accounts for backgrounded app)
       const lastUpdated = loc.last_updated ? new Date(loc.last_updated) : null;
-      if (lastUpdated && (now - lastUpdated) > 30 * 60 * 1000) {
-        console.log(`Skipping stale location for ${loc.user_name} (${Math.round((now - lastUpdated) / 60000)} min old)`);
+      if (lastUpdated && (now - lastUpdated) > 4 * 60 * 60 * 1000) {
+        console.log(`Skipping very stale location for ${loc.user_name} (${Math.round((now - lastUpdated) / 60000)} min old)`);
         continue;
       }
 
