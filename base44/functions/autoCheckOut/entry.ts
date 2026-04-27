@@ -3,7 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 // Church hub coordinates: 21224 Orting Kapowsin Hwy E, Graham, WA 98338
 const HUB_LAT = 47.0637;
 const HUB_LON = -122.2525;
-const VICINITY_MILES = 2;
+const VICINITY_MILES = 5;
 
 const FIREBASE_SERVER_KEY = Deno.env.get("FIREBASE_SERVER_KEY");
 const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID");
