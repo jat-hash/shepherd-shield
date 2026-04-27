@@ -165,7 +165,17 @@ export default function PersonalCheckIn({ user }) {
     setCheckedIn(true);
     setCheckInTime(now.toISOString());
     setWorking(false);
-    toast.success(navigator.onLine ? "Checked in" : "Checked in (will sync when online)");
+    if (navigator.onLine) {
+      toast.success("✅ Checked In", {
+        description: `Logged at ${new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`,
+        duration: 5000,
+      });
+    } else {
+      toast.success("✅ Checked In (Offline)", {
+        description: "Will sync automatically when you're back online.",
+        duration: 5000,
+      });
+    }
   };
 
   const handleCheckOut = async () => {
@@ -186,7 +196,17 @@ export default function PersonalCheckIn({ user }) {
     setRecordId(null);
     setCheckInTime(null);
     setWorking(false);
-    toast.success(navigator.onLine ? "Checked out" : "Checked out (will sync when online)");
+    if (navigator.onLine) {
+      toast.success("👋 Checked Out", {
+        description: `Logged at ${new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`,
+        duration: 5000,
+      });
+    } else {
+      toast.success("👋 Checked Out (Offline)", {
+        description: "Will sync automatically when you're back online.",
+        duration: 5000,
+      });
+    }
   };
 
   if (loading) return null;
