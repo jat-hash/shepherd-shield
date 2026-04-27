@@ -56,9 +56,9 @@ Deno.serve(async (req) => {
     for (const loc of allLocations) {
       if (!loc.user_email || !loc.latitude || !loc.longitude) continue;
 
-      // Skip stale locations (not updated in 4 hours - accounts for backgrounded app)
+      // Skip stale locations (not updated in 8 hours - covers a full service day with backgrounded app)
       const lastUpdated = loc.last_updated ? new Date(loc.last_updated) : null;
-      if (lastUpdated && (now - lastUpdated) > 4 * 60 * 60 * 1000) {
+      if (lastUpdated && (now - lastUpdated) > 8 * 60 * 60 * 1000) {
         console.log(`Skipping stale location for ${loc.user_name} (${Math.round((now - lastUpdated) / 60000)} min old)`);
         continue;
       }
@@ -133,10 +133,10 @@ Deno.serve(async (req) => {
     // ── 2. Assignment alerts & hard fallback for users WITHOUT active GPS ──────
     const todayAssignments = await base44.asServiceRole.entities.Assignment.filter({ service_date: today });
     // Users with a recent location record are handled by GPS above; skip them from time-based fallback
-    const fourHoursAgo = new Date(now - 4 * 60 * 60 * 1000);
+    const eightHoursAgo = new Date(now - 8 * 60 * 60 * 1000);
     const activeUserEmails = new Set(
       allLocations
-        .filter(l => l.last_updated && new Date(l.last_updated) > fourHoursAgo)
+        .filter(l => l.last_updated && new Date(l.last_updated) > eightHoursAgo)
         .map(l => l.user_email)
     );
 
