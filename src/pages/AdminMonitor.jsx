@@ -116,10 +116,12 @@ export default function AdminMonitor() {
       });
 
       // Also treat users with active GPS as personally checked in (auto-synthesize)
+      // Only if they don't already have a real PersonalCheckIn record (open or closed)
+      const allPersonalEmails = new Set(todayPersonalCheckIns.map(p => (p.user_email || '').toLowerCase()));
       recentLocations.forEach(ll => {
         if (!ll.user_email) return;
         const key = ll.user_email.toLowerCase();
-        if (!personalByEmail[key]) {
+        if (!personalByEmail[key] && !allPersonalEmails.has(key)) {
           personalByEmail[key] = {
             user_email: ll.user_email,
             user_name: ll.user_name,
@@ -137,13 +139,14 @@ export default function AdminMonitor() {
       // (e.g. they did a personal check-in but also have a formal assignment)
       const enrichedAssignments = todayAssignments.map(a => {
         const personal = personalByEmail[(a.assigned_to_email || '').toLowerCase()];
-        if (personal && !a.checked_in && personal.check_in_time) {
+        // Only merge if the assignment isn't already checked in AND the personal record is open (no checkout)
+        if (personal && !a.checked_in && personal.check_in_time && !personal.check_out_time) {
           return {
             ...a,
             checked_in: true,
             check_in_time: personal.check_in_time,
-            checked_out: !!personal.check_out_time,
-            check_out_time: personal.check_out_time || null,
+            checked_out: false,
+            check_out_time: null,
             check_in_latitude: personal.latitude,
             check_in_longitude: personal.longitude,
           };
