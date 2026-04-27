@@ -187,19 +187,18 @@ export default function AdminMonitor() {
   useEffect(() => {
     if (user?.role === 'admin') {
       loadAssignments();
-      // Load live locations - fetch ALL first to debug
+      // Load live locations - consider anyone with a location updated in last 4 hours as "online"
+      const fourHoursAgo = () => new Date(Date.now() - 4 * 60 * 60 * 1000);
       base44.entities.LiveLocation.list().then(all => {
-        console.log('All LiveLocation records:', all);
-        const active = all.filter(ll => ll.is_active !== false);
-        console.log('Active LiveLocations:', active);
-        setLiveLocations(active);
-      }).catch(err => console.error('LiveLocation fetch error:', err));
+        const recent = all.filter(ll => ll.last_updated && new Date(ll.last_updated) > fourHoursAgo());
+        setLiveLocations(recent);
+      }).catch(() => {});
       // Auto-refresh every 30 seconds
       const interval = setInterval(() => {
         loadAssignments();
         base44.entities.LiveLocation.list().then(all => {
-          const active = all.filter(ll => ll.is_active !== false);
-          setLiveLocations(active);
+          const recent = all.filter(ll => ll.last_updated && new Date(ll.last_updated) > fourHoursAgo());
+          setLiveLocations(recent);
         }).catch(() => {});
       }, 30000);
       return () => clearInterval(interval);
@@ -226,7 +225,11 @@ export default function AdminMonitor() {
     const unsubA = base44.entities.Assignment.subscribe(() => loadAssignments());
     const unsubP = base44.entities.PersonalCheckIn.subscribe(() => loadAssignments());
     const unsubL = base44.entities.LiveLocation.subscribe(() => {
-      base44.entities.LiveLocation.filter({ is_active: true }).then(setLiveLocations).catch(() => {});
+      const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
+      base44.entities.LiveLocation.list().then(all => {
+        const recent = all.filter(ll => ll.last_updated && new Date(ll.last_updated) > fourHoursAgo);
+        setLiveLocations(recent);
+      }).catch(() => {});
     });
     const unsubE = base44.entities.Equipment.subscribe((event) => {
       // When equipment is checked out, auto-create a PersonalCheckIn for that user
