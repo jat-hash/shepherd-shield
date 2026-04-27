@@ -104,9 +104,8 @@ Deno.serve(async (req) => {
     // is_active=true + outside 2mi → check out assignment (user has left)
     // is_active=false → user manually checked out, don't touch
 
-    // Fetch ALL locations (active or not) — is_active=false just means user manually checked out
-    // but we still use GPS proximity for assignment check-in
-    const allLocations = await base44.asServiceRole.entities.LiveLocation.filter({});
+    // Only fetch ACTIVE locations — is_active=false means user manually checked out, skip them entirely
+    const allLocations = await base44.asServiceRole.entities.LiveLocation.filter({ is_active: true });
     let autoCheckedIn = 0;
     let autoCheckedOut = 0;
 
