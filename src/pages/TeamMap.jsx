@@ -293,12 +293,14 @@ export default function TeamMap() {
   }, [loadData]);
 
   useEffect(() => {
-    loadData();
+    // Delay initial load to avoid rate limiting
+    const timer = setTimeout(() => loadData(), 8000);
     const unsub = base44.entities.Assignment.subscribe(debouncedLoadData);
     const unsub2 = base44.entities.Incident.subscribe(debouncedLoadData);
     const unsub3 = base44.entities.PersonalCheckIn.subscribe(debouncedLoadData);
     const unsub4 = base44.entities.LiveLocation.subscribe(debouncedLoadData);
     return () => {
+      clearTimeout(timer);
       unsub(); unsub2(); unsub3(); unsub4();
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };
