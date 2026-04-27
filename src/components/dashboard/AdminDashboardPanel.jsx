@@ -51,8 +51,11 @@ export default function AdminDashboardPanel({ allUsers = [] }) {
     liveLocations.forEach(l => { liveByEmail[(l.user_email || '').toLowerCase()] = l; });
 
     const personalByEmail = {};
+    // Only open (no check_out_time) records count as checked in
     personalCheckIns.filter(p => !p.check_out_time).forEach(p => {
-      if (!personalByEmail[p.user_email]) personalByEmail[p.user_email.toLowerCase()] = p;
+      if (p.user_email && !personalByEmail[p.user_email.toLowerCase()]) {
+        personalByEmail[p.user_email.toLowerCase()] = p;
+      }
     });
 
     // Enrich assignments

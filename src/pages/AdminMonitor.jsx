@@ -115,6 +115,11 @@ export default function AdminMonitor() {
         if (new Date(p.check_in_time) > new Date(existing.check_in_time)) personalByEmail[key] = p;
       });
 
+      // Remove any closed records that ended up in personalByEmail (all records for that user were checked out)
+      Object.keys(personalByEmail).forEach(k => {
+        if (personalByEmail[k].check_out_time) delete personalByEmail[k];
+      });
+
       // Also treat users with active GPS as personally checked in (auto-synthesize)
       // Only if they don't already have a real PersonalCheckIn record (open or closed)
       const allPersonalEmails = new Set(todayPersonalCheckIns.map(p => (p.user_email || '').toLowerCase()));
