@@ -53,7 +53,8 @@ export default function PersonalCheckIn({ user }) {
       // Try server if online
       if (navigator.onLine) {
         try {
-          const today = new Date().toISOString().split("T")[0];
+          const todayLocal = new Date();
+          const today = `${todayLocal.getFullYear()}-${String(todayLocal.getMonth() + 1).padStart(2, '0')}-${String(todayLocal.getDate()).padStart(2, '0')}`;
           const records = await base44.entities.PersonalCheckIn.filter({ user_email: user.email, check_in_date: today });
           const open = records.find((r) => !r.check_out_time);
           if (open) {
@@ -134,7 +135,7 @@ export default function PersonalCheckIn({ user }) {
     const data = {
       user_email: user.email,
       user_name: user.display_name || user.full_name || user.email,
-      check_in_date: now.toISOString().split("T")[0],
+      check_in_date: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
       check_in_time: now.toISOString(),
       ...loc,
     };
