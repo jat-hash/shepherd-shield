@@ -69,7 +69,7 @@ export default function AdminMonitor() {
     const today = `${todayLocal.getFullYear()}-${String(todayLocal.getMonth() + 1).padStart(2, '0')}-${String(todayLocal.getDate()).padStart(2, '0')}`;
     setLoading(true);
     if (!navigator.onLine) {
-      const cached = await getCachedData('assignments');
+      const cached = await getCachedData('assignments_v2');
       setAssignments(cached || []);
       setFilteredAssignments(cached || []);
       setLoading(false);
@@ -229,10 +229,10 @@ export default function AdminMonitor() {
       const merged = [...enrichedAssignments, ...normalizedPersonal, ...ghostMembers];
       setAssignments(merged);
       setFilteredAssignments(merged);
-      await cacheData('assignments', merged).catch(() => {});
+      await cacheData('assignments_v2', merged).catch(() => {});
     } catch (error) {
       // fallback to cache on network error
-      const cached = await getCachedData('assignments');
+      const cached = await getCachedData('assignments_v2');
       setAssignments(cached || []);
       setFilteredAssignments(cached || []);
       toast.error("Offline — showing cached data");
@@ -344,8 +344,8 @@ export default function AdminMonitor() {
     setAssignments(apply);
     setFilteredAssignments(apply);
     // Update cache
-    getCachedData('assignments').then(cached => {
-      if (cached) cacheData('assignments', cached.map(a => a.id === assignmentId ? { ...a, ...updates } : a)).catch(() => {});
+    getCachedData('assignments_v2').then(cached => {
+      if (cached) cacheData('assignments_v2', cached.map(a => a.id === assignmentId ? { ...a, ...updates } : a)).catch(() => {});
     });
   };
 
