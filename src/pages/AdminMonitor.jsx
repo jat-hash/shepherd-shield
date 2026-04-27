@@ -80,7 +80,7 @@ export default function AdminMonitor() {
         base44.entities.Assignment.filter({ service_date: today }, "-start_time", 200),
         base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 200),
         base44.entities.Equipment.filter({ checked_out: true }, "-checked_out_at", 200),
-        base44.entities.LiveLocation.list(),
+        base44.entities.LiveLocation.filter({ is_active: true }, "-last_updated", 100),
       ]);
       setEquipmentCheckouts(checkedOutEquipment || []);
 
@@ -94,9 +94,8 @@ export default function AdminMonitor() {
         console.warn("Could not load user list:", e.message);
       }
 
-      // Mark users with recent GPS (within 8 hours) as live
-      const eightHoursAgo = new Date(Date.now() - 8 * 60 * 60 * 1000);
-      const recentLocations = (allLiveLocations || []).filter(ll => ll.last_updated && new Date(ll.last_updated) > eightHoursAgo);
+      // Only use is_active live locations
+      const recentLocations = allLiveLocations || [];
       setLiveLocations(recentLocations);
 
       // Build a map of personal check-ins by email for merging (case-insensitive)
@@ -105,7 +104,7 @@ export default function AdminMonitor() {
         if (p.user_email) personalByEmail[p.user_email.toLowerCase()] = p;
       });
 
-      // Also treat users with recent GPS as personally checked in (auto-synthesize)
+      // Also treat users with active GPS as personally checked in (auto-synthesize)
       recentLocations.forEach(ll => {
         if (!ll.user_email) return;
         const key = ll.user_email.toLowerCase();
@@ -233,19 +232,12 @@ export default function AdminMonitor() {
     if (user?.role === 'admin') {
       loadAssignments();
       // Load live locations - consider anyone with a location updated in last 8 hours as "online"
-      const eightHoursAgo = () => new Date(Date.now() - 8 * 60 * 60 * 1000);
-      base44.entities.LiveLocation.list().then(all => {
-        const recent = all.filter(ll => ll.last_updated && new Date(ll.last_updated) > eightHoursAgo());
-        setLiveLocations(recent);
-      }).catch(() => {});
-      // Auto-refresh every 30 seconds
+      base44.entities.LiveLocation.filter({ is_active: true }, "-last_updated", 100).then(setLiveLocations).catch(() => {});
+      // Auto-refresh every 60 seconds
       const interval = setInterval(() => {
         loadAssignments();
-        base44.entities.LiveLocation.list().then(all => {
-          const recent = all.filter(ll => ll.last_updated && new Date(ll.last_updated) > eightHoursAgo());
-          setLiveLocations(recent);
-        }).catch(() => {});
-      }, 30000);
+        base44.entities.LiveLocation.filter({ is_active: true }, "-last_updated", 100).then(setLiveLocations).catch(() => {});
+      }, 60000);
       return () => clearInterval(interval);
     }
   }, [user]);
@@ -270,11 +262,7 @@ export default function AdminMonitor() {
     const unsubA = base44.entities.Assignment.subscribe(() => loadAssignments());
     const unsubP = base44.entities.PersonalCheckIn.subscribe(() => loadAssignments());
     const unsubL = base44.entities.LiveLocation.subscribe(() => {
-      const eightHoursAgo = new Date(Date.now() - 8 * 60 * 60 * 1000);
-      base44.entities.LiveLocation.list().then(all => {
-        const recent = all.filter(ll => ll.last_updated && new Date(ll.last_updated) > eightHoursAgo);
-        setLiveLocations(recent);
-      }).catch(() => {});
+      base44.entities.LiveLocation.filter({ is_active: true }, "-last_updated", 100).then(setLiveLocations).catch(() => {});
     });
     const unsubE = base44.entities.Equipment.subscribe((event) => {
       // When equipment is checked out, auto-create a PersonalCheckIn for that user
