@@ -2,7 +2,6 @@ import { useEffect } from "react";
 
 export default function PocketMode() {
   useEffect(() => {
-    // Create overlay
     const overlay = document.createElement("div");
     overlay.id = "pocket-overlay";
     Object.assign(overlay.style, {
@@ -24,10 +23,8 @@ export default function PocketMode() {
     function enablePocketMode() {
       if (pocketActive) return;
       pocketActive = true;
-      overlay.style.opacity = "0.98";
+      overlay.style.opacity = "1";
       overlay.style.pointerEvents = "all";
-      document.body.style.filter = "brightness(0.05)";
-      document.querySelectorAll("audio, video").forEach(el => el.muted = true);
     }
 
     function disablePocketMode() {
@@ -35,28 +32,63 @@ export default function PocketMode() {
       pocketActive = false;
       overlay.style.opacity = "0";
       overlay.style.pointerEvents = "none";
-      document.body.style.filter = "brightness(1)";
-      document.querySelectorAll("audio, video").forEach(el => el.muted = false);
     }
 
-    const handleProximity = (event) => {
-      if (event.value < 5) enablePocketMode();
+    // --- Modern Proximity Sensor API ---
+    let proximitySensor = null;
+    if ("ProximitySensor" in window) {
+      try {
+        proximitySensor = new window.ProximitySensor({ frequency: 5 });
+        proximitySensor.addEventListener("reading", () => {
+          if (proximitySensor.near) enablePocketMode();
+          else disablePocketMode();
+        });
+        proximitySensor.start();
+      } catch (e) {
+        proximitySensor = null;
+      }
+    }
+
+    // --- Legacy deviceproximity (Firefox) ---
+    const handleLegacyProximity = (e) => {
+      if (e.near || e.value < 5) enablePocketMode();
       else disablePocketMode();
     };
+    window.addEventListener("deviceproximity", handleLegacyProximity);
+    window.addEventListener("userproximity", handleLegacyProximity);
 
-    const handleOrientation = (event) => {
-      if (event.beta > 150 || event.beta < -150) enablePocketMode();
-      else disablePocketMode();
+    // --- Face-down orientation fallback ---
+    // beta ~180 or ~-180 = face down. Use absolute value approach.
+    let orientationTimer = null;
+    const handleOrientation = (e) => {
+      // Only use orientation if no proximity sensor available
+      if (proximitySensor) return;
+      const faceDown = Math.abs(e.beta) > 150;
+      if (faceDown) {
+        // Require sustained face-down for 1.5s to avoid false positives
+        if (!orientationTimer) {
+          orientationTimer = setTimeout(() => enablePocketMode(), 1500);
+        }
+      } else {
+        if (orientationTimer) {
+          clearTimeout(orientationTimer);
+          orientationTimer = null;
+        }
+        disablePocketMode();
+      }
     };
-
-    window.addEventListener("deviceproximity", handleProximity);
     window.addEventListener("deviceorientation", handleOrientation);
 
+    // --- Tap anywhere on overlay to dismiss ---
+    overlay.addEventListener("click", disablePocketMode);
+
     return () => {
-      window.removeEventListener("deviceproximity", handleProximity);
+      if (proximitySensor) proximitySensor.stop();
+      window.removeEventListener("deviceproximity", handleLegacyProximity);
+      window.removeEventListener("userproximity", handleLegacyProximity);
       window.removeEventListener("deviceorientation", handleOrientation);
+      if (orientationTimer) clearTimeout(orientationTimer);
       overlay.remove();
-      document.body.style.filter = "brightness(1)";
     };
   }, []);
 
