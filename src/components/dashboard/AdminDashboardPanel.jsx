@@ -41,14 +41,14 @@ export default function AdminDashboardPanel({ allUsers = [] }) {
     const todayLocal = new Date();
     const today = `${todayLocal.getFullYear()}-${String(todayLocal.getMonth() + 1).padStart(2, '0')}-${String(todayLocal.getDate()).padStart(2, '0')}`;
 
-    const assignments = await base44.entities.Assignment.filter({ service_date: today }, "-start_time", 200);
-    const personalCheckIns = await base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 100);
-    const liveLocations = await base44.entities.LiveLocation.list("-last_updated", 100);
+    const [assignments, personalCheckIns, liveLocations] = await Promise.all([
+      base44.entities.Assignment.filter({ service_date: today }, "-start_time", 200),
+      base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 100),
+      base44.entities.LiveLocation.filter({ is_active: true }, "-last_updated", 100),
+    ]);
 
-    const eightHoursAgo = new Date(Date.now() - 8 * 60 * 60 * 1000);
-    const recentLive = liveLocations.filter(l => l.last_updated && new Date(l.last_updated) > eightHoursAgo);
     const liveByEmail = {};
-    recentLive.forEach(l => { liveByEmail[(l.user_email || '').toLowerCase()] = l; });
+    liveLocations.forEach(l => { liveByEmail[(l.user_email || '').toLowerCase()] = l; });
 
     const personalByEmail = {};
     personalCheckIns.filter(p => !p.check_out_time).forEach(p => {
@@ -91,7 +91,7 @@ export default function AdminDashboardPanel({ allUsers = [] }) {
 
   useEffect(() => {
     // Delay initial load to avoid competing with other Dashboard API calls on mount
-    const initialTimer = setTimeout(() => load(), 3000);
+    const initialTimer = setTimeout(() => load(), 5000);
     const interval = setInterval(() => load(), 60000);
     return () => { clearTimeout(initialTimer); clearInterval(interval); };
   }, [load]);
