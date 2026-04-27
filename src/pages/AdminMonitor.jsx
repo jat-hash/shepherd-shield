@@ -64,8 +64,9 @@ export default function AdminMonitor() {
   }, [authUser]);
 
   const loadAssignments = async () => {
-    // Use UTC date since PersonalCheckIn records store UTC-based dates
-    const today = new Date().toISOString().slice(0, 10);
+    // Use local date to match how assignments are created (service_date is set in local time)
+    const todayLocal = new Date();
+    const today = `${todayLocal.getFullYear()}-${String(todayLocal.getMonth() + 1).padStart(2, '0')}-${String(todayLocal.getDate()).padStart(2, '0')}`;
     setLoading(true);
     if (!navigator.onLine) {
       const cached = await getCachedData('assignments');

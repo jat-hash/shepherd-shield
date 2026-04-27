@@ -95,7 +95,8 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const now = new Date();
-    const today = now.toISOString().split("T")[0];
+    // Use Pacific Time (America/Los_Angeles) local date to match how assignments are created
+    const today = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
 
     // ── 1. GPS-based check-in/out for assignments ─────────────────────────────
     // Source of truth: LiveLocation records.
