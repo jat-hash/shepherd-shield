@@ -156,7 +156,10 @@ export default function TeamMap() {
       return;
     }
 
-    const today = new Date().toISOString().slice(0, 10);
+    // Use local Pacific date to match how assignments/check-ins are created
+    const todayLocal = new Date();
+    const today = `${todayLocal.getFullYear()}-${String(todayLocal.getMonth() + 1).padStart(2, '0')}-${String(todayLocal.getDate()).padStart(2, '0')}`;
+
     // Run auth + all DB queries fully in parallel
     const [u, allAssignments, allIncidents, positions, personalCheckIns, liveLocations] = await Promise.all([
       base44.auth.me().catch(() => null),
@@ -164,14 +167,16 @@ export default function TeamMap() {
       base44.entities.Incident.filter({ is_panic: true }, "-updated_date", 100),
       base44.entities.Position.list("-updated_date", 200),
       base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 200),
-      base44.entities.LiveLocation.filter({ is_active: true }, "-last_updated", 200),
+      base44.entities.LiveLocation.list("-last_updated", 200), // fetch all, filter by recency below
     ]);
     if (u) setUser(u);
     setAllPositions(positions);
 
-    // Build map of live locations by email (most recent GPS)
+    // Build map of live locations by email — only recent pings (within 8 hours)
+    const eightHoursAgo = new Date(Date.now() - 8 * 60 * 60 * 1000);
+    const recentLiveLocations = liveLocations.filter(l => l.last_updated && new Date(l.last_updated) > eightHoursAgo);
     const liveByEmail = {};
-    liveLocations.forEach(l => { liveByEmail[(l.user_email || '').toLowerCase()] = l; });
+    recentLiveLocations.forEach(l => { liveByEmail[(l.user_email || '').toLowerCase()] = l; });
 
     // Build map of personal check-ins by email (most recent, not checked out)
     const personalByEmail = {};
@@ -202,13 +207,16 @@ export default function TeamMap() {
       })
       .map(a => {
         const gps = getBestGPS(a.assigned_to_email, a);
-        if (!gps) return null;
+        // Show on map if we have GPS coords (from any source including stored check_in coords)
+        const lat = gps?.lat || a.check_in_latitude;
+        const lng = gps?.lng || a.check_in_longitude;
+        if (!lat || !lng) return null;
         return {
           ...a,
           checked_in: true,
-          check_in_latitude: gps.lat,
-          check_in_longitude: gps.lng,
-          _gps_source: gps.source,
+          check_in_latitude: lat,
+          check_in_longitude: lng,
+          _gps_source: gps?.source || 'checkin',
         };
       })
       .filter(Boolean);
