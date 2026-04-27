@@ -158,52 +158,45 @@ export default function AdminMonitor() {
       const assignmentEmails = new Set(enrichedAssignments.map(a => (a.assigned_to_email || '').toLowerCase()));
 
       // Only include personal check-ins for people WITHOUT a formal assignment today
-      // Include both real PersonalCheckIn records AND GPS-synthesized ones
-      const allPersonalSources = [
-        ...todayPersonalCheckIns,
-        ...recentLocations
-          .filter(ll => ll.user_email && !todayPersonalCheckIns.some(p => p.user_email?.toLowerCase() === ll.user_email?.toLowerCase()))
-          .map(ll => ({
-            id: `gps-${ll.user_email}`,
-            user_email: ll.user_email,
-            user_name: ll.user_name,
-            check_in_date: today,
-            check_in_time: ll.last_updated,
-            check_out_time: null,
-            latitude: ll.latitude,
-            longitude: ll.longitude,
-            _fromGPS: true,
-          }))
-      ];
-
-      // Deduplicate by email - keep only the first (most recent, sorted by time desc) record per person
-      const seenPersonalEmails = new Set();
-      const normalizedPersonal = allPersonalSources
-        .filter(p => !assignmentEmails.has((p.user_email || '').toLowerCase()))
-        .filter(p => {
-          const key = (p.user_email || '').toLowerCase();
-          if (seenPersonalEmails.has(key)) return false;
-          seenPersonalEmails.add(key);
-          return true;
-        })
-        .map(p => ({
-          id: p.id,
-          assigned_to_name: p.user_name,
-          assigned_to_email: p.user_email,
-          position_name: p._fromGPS ? "In Area (GPS)" : "Personal Check-in",
-          service_date: p.check_in_date,
-          start_time: "",
-          end_time: "",
-          status: "Confirmed",
-          checked_in: true,
-          check_in_time: p.check_in_time,
-          checked_out: !!p.check_out_time,
-          check_out_time: p.check_out_time,
-          check_in_latitude: p.latitude,
-          check_in_longitude: p.longitude,
-          _isPersonal: true,
-          _fromGPS: !!p._fromGPS,
+      // Use personalByEmail (already de-duped, prefers open records) as the source of truth
+      // Also include GPS-only members who have no PersonalCheckIn record at all
+      const gpsOnlyPersonal = recentLocations
+        .filter(ll => ll.user_email && !allPersonalEmails.has(ll.user_email.toLowerCase()))
+        .map(ll => ({
+          id: `gps-${ll.user_email}`,
+          user_email: ll.user_email,
+          user_name: ll.user_name,
+          check_in_date: today,
+          check_in_time: ll.last_updated,
+          check_out_time: null,
+          latitude: ll.latitude,
+          longitude: ll.longitude,
+          _fromGPS: true,
         }));
+
+      // Build normalizedPersonal from the already-correct personalByEmail map (open records only)
+      // plus GPS-only entries — both filtered to exclude people with formal assignments
+      const normalizedPersonal = [
+        ...Object.values(personalByEmail).filter(p => !assignmentEmails.has((p.user_email || '').toLowerCase())),
+        ...gpsOnlyPersonal.filter(p => !assignmentEmails.has((p.user_email || '').toLowerCase())),
+      ].map(p => ({
+        id: p.id,
+        assigned_to_name: p.user_name,
+        assigned_to_email: p.user_email,
+        position_name: p._fromGPS ? "In Area (GPS)" : "Personal Check-in",
+        service_date: p.check_in_date,
+        start_time: "",
+        end_time: "",
+        status: "Confirmed",
+        checked_in: true,
+        check_in_time: p.check_in_time,
+        checked_out: false,
+        check_out_time: null,
+        check_in_latitude: p.latitude,
+        check_in_longitude: p.longitude,
+        _isPersonal: true,
+        _fromGPS: !!p._fromGPS,
+      }));
 
       // Build set of all emails represented
       const emailsWithRecords = new Set([
