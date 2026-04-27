@@ -98,10 +98,21 @@ export default function AdminMonitor() {
       const recentLocations = allLiveLocations || [];
       setLiveLocations(recentLocations);
 
-      // Build a map of personal check-ins by email for merging (case-insensitive)
+      // Build a map of personal check-ins by email — prefer open (no check_out_time) records,
+      // and within each category keep the most recently created one.
       const personalByEmail = {};
       todayPersonalCheckIns.forEach(p => {
-        if (p.user_email) personalByEmail[p.user_email.toLowerCase()] = p;
+        if (!p.user_email) return;
+        const key = p.user_email.toLowerCase();
+        const existing = personalByEmail[key];
+        if (!existing) { personalByEmail[key] = p; return; }
+        // Prefer open over closed
+        const pOpen = !p.check_out_time;
+        const existingOpen = !existing.check_out_time;
+        if (pOpen && !existingOpen) { personalByEmail[key] = p; return; }
+        if (!pOpen && existingOpen) return; // keep existing open
+        // Both same state — keep whichever is newer
+        if (new Date(p.check_in_time) > new Date(existing.check_in_time)) personalByEmail[key] = p;
       });
 
       // Also treat users with active GPS as personally checked in (auto-synthesize)
