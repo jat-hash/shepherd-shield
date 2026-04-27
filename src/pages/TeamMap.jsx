@@ -223,41 +223,24 @@ export default function TeamMap() {
     const liveOnlyEmails = Object.values(liveByEmail)
       .filter(l => !assignmentEmails.has((l.user_email || '').toLowerCase()));
 
-    const normalizedPersonal = [
-      ...Object.values(personalByEmail)
-        .filter(p => !assignmentEmails.has((p.user_email || '').toLowerCase()))
-        .map(p => {
-          const live = liveByEmail[(p.user_email || '').toLowerCase()];
-          return {
-            id: p.id,
-            assigned_to_name: p.user_name,
-            assigned_to_email: p.user_email,
-            position_name: "Personal Check-in",
-            service_date: p.check_in_date,
-            check_in_time: p.check_in_time,
-            check_in_latitude: live?.latitude || p.latitude,
-            check_in_longitude: live?.longitude || p.longitude,
-            checked_in: true,
-            checked_out: false,
-            _isPersonal: true,
-          };
-        }),
-      // Live-only (no personal check-in, no assignment)
-      ...liveOnlyEmails
-        .filter(l => !Object.values(personalByEmail).some(p => (p.user_email || '').toLowerCase() === (l.user_email || '').toLowerCase()))
-        .map(l => ({
-          id: l.id,
-          assigned_to_name: l.user_name,
-          assigned_to_email: l.user_email,
-          position_name: "On Site",
-          check_in_time: l.last_updated,
-          check_in_latitude: l.latitude,
-          check_in_longitude: l.longitude,
+    const normalizedPersonal = Object.values(personalByEmail)
+      .filter(p => !assignmentEmails.has((p.user_email || '').toLowerCase()))
+      .map(p => {
+        const live = liveByEmail[(p.user_email || '').toLowerCase()];
+        return {
+          id: p.id,
+          assigned_to_name: p.user_name,
+          assigned_to_email: p.user_email,
+          position_name: "Personal Check-in",
+          service_date: p.check_in_date,
+          check_in_time: p.check_in_time,
+          check_in_latitude: live?.latitude || p.latitude,
+          check_in_longitude: live?.longitude || p.longitude,
           checked_in: true,
           checked_out: false,
           _isPersonal: true,
-        })),
-    ];
+        };
+      });
 
     const allCheckedInMerged = [...enrichedAssignments, ...normalizedPersonal];
     const activeMembers = allCheckedInMerged.filter(a =>
