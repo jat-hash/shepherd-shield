@@ -90,9 +90,10 @@ export default function AdminDashboardPanel({ allUsers = [] }) {
   }, []);
 
   useEffect(() => {
-    load();
-    const interval = setInterval(() => load(), 30000);
-    return () => clearInterval(interval);
+    // Delay initial load to avoid competing with other Dashboard API calls on mount
+    const initialTimer = setTimeout(() => load(), 3000);
+    const interval = setInterval(() => load(), 60000);
+    return () => { clearTimeout(initialTimer); clearInterval(interval); };
   }, [load]);
 
   const mapCenter = mapMembers.length > 0
