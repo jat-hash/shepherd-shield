@@ -14,6 +14,7 @@ import RadioCheckInScanner from "@/components/dashboard/RadioCheckInScanner";
 import QuickEquipmentCheckIn from "@/components/dashboard/QuickEquipmentCheckIn";
 import PersonalCheckIn from "@/components/dashboard/PersonalCheckIn";
 import AdminDashboardPanel from "@/components/dashboard/AdminDashboardPanel";
+import MyCheckInStatus from "@/components/dashboard/MyCheckInStatus";
 
 export default function Dashboard() {
   const { user: authUser } = useAuth();
@@ -230,6 +231,9 @@ export default function Dashboard() {
           <EmergencyButton />
         </div>
       </div>
+
+      {/* My Check-in Status Banner */}
+      {user && <MyCheckInStatus user={user} />}
 
       {/* Personal Check-in Status */}
       {user && <PersonalCheckIn user={user} />}
