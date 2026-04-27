@@ -115,10 +115,38 @@ export default function PocketMode() {
       window.addEventListener("deviceorientation", handleOrientation);
     }
 
+    // --- Ambient Light Sensor: detects when camera/light sensor is covered ---
+    let lightSensor = null;
+    let lightTimer = null;
+    if ("AmbientLightSensor" in window) {
+      try {
+        lightSensor = new window.AmbientLightSensor({ frequency: 2 });
+        lightSensor.addEventListener("reading", () => {
+          // illuminance in lux — pocket/covered is typically < 5 lux
+          if (lightSensor.illuminance < 5) {
+            if (!lightTimer) {
+              lightTimer = setTimeout(() => enablePocketMode(), 800);
+            }
+          } else {
+            if (lightTimer) {
+              clearTimeout(lightTimer);
+              lightTimer = null;
+            }
+            disablePocketMode();
+          }
+        });
+        lightSensor.start();
+      } catch (e) {
+        lightSensor = null;
+      }
+    }
+
     return () => {
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("deviceorientation", handleOrientation);
       if (activateTimer) clearTimeout(activateTimer);
+      if (lightTimer) clearTimeout(lightTimer);
+      if (lightSensor) lightSensor.stop();
       overlay.remove();
     };
   }, []);
