@@ -197,14 +197,9 @@ export default function TeamMap() {
       return null;
     };
 
-    // Include all checked-in assignments + anyone with a live/personal check-in
+    // Include all checked-in assignments that haven't checked out
     const enrichedAssignments = allAssignments
-      .filter(a => {
-        if (a.checked_in && !a.checked_out) return true;
-        const personal = personalByEmail[(a.assigned_to_email || '').toLowerCase()];
-        const live = liveByEmail[(a.assigned_to_email || '').toLowerCase()];
-        return !!(personal || live);
-      })
+      .filter(a => a.checked_in && !a.checked_out)
       .map(a => {
         const gps = getBestGPS(a.assigned_to_email, a);
         // Show on map if we have GPS coords (from any source including stored check_in coords)
