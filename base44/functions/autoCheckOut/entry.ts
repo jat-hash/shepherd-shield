@@ -5,6 +5,11 @@ const HUB_LAT = 47.0637;
 const HUB_LON = -122.2525;
 const VICINITY_MILES = 2;
 
+const FIREBASE_SERVER_KEY = Deno.env.get("FIREBASE_SERVER_KEY");
+const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID");
+const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
+const TWILIO_PHONE_NUMBER = Deno.env.get("TWILIO_PHONE_NUMBER");
+
 function distanceMiles(lat1, lon1, lat2, lon2) {
   const R = 3958.8;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -33,6 +38,57 @@ async function notify(base44, { user_email, title, message, type, assignment_id 
     ...(assignment_id ? { assignment_id } : {}),
     read: false
   });
+}
+
+// Send FCM push notification to all registered devices for a user
+async function sendPush(base44, userEmail, title, body) {
+  if (!FIREBASE_SERVER_KEY) return;
+  try {
+    const devices = await base44.asServiceRole.entities.UserDevice.filter({ user_email: userEmail });
+    if (!devices || devices.length === 0) return;
+    const tokens = devices.map(d => d.fcm_token).filter(Boolean);
+    if (tokens.length === 0) return;
+
+    await fetch("https://fcm.googleapis.com/fcm/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `key=${FIREBASE_SERVER_KEY}`,
+      },
+      body: JSON.stringify({
+        registration_ids: tokens,
+        notification: { title, body },
+        data: { title, body },
+        priority: "high",
+      }),
+    });
+    console.log(`Push sent to ${userEmail}: ${title}`);
+  } catch (e) {
+    console.warn(`Push failed for ${userEmail}:`, e.message);
+  }
+}
+
+// Send SMS via Twilio
+async function sendSMS(userEmail, base44, message) {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) return;
+  try {
+    const users = await base44.asServiceRole.entities.User.filter({ email: userEmail });
+    const phone = users?.[0]?.phone_number;
+    if (!phone) return;
+
+    const url = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
+    const creds = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
+    const body = new URLSearchParams({ To: phone, From: TWILIO_PHONE_NUMBER, Body: message });
+
+    await fetch(url, {
+      method: "POST",
+      headers: { "Authorization": `Basic ${creds}`, "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString(),
+    });
+    console.log(`SMS sent to ${userEmail} (${phone}): ${message.slice(0, 50)}...`);
+  } catch (e) {
+    console.warn(`SMS failed for ${userEmail}:`, e.message);
+  }
 }
 
 Deno.serve(async (req) => {
@@ -85,13 +141,19 @@ Deno.serve(async (req) => {
 
           const alerted = await alreadyNotified(base44, loc.user_email, "Auto Checked In", 4 * 60 * 60 * 1000);
           if (!alerted) {
+            const inTitle = "✅ Arrived at Church";
+            const inMsg = `${loc.user_name}, you've entered the church vicinity and been checked in to ${assignment.position_name}. Service starts at ${assignment.start_time}.`;
             await notify(base44, {
               user_email: loc.user_email,
               title: "Auto Checked In",
-              message: `You've been automatically checked in to ${assignment.position_name} — you're within ${VICINITY_MILES} miles of the church.`,
+              message: inMsg,
               type: "assignment_reminder",
               assignment_id: assignment.id
             });
+            await Promise.all([
+              sendPush(base44, loc.user_email, inTitle, inMsg),
+              sendSMS(loc.user_email, base44, `Shepherd Shield: ${inTitle} — ${inMsg}`),
+            ]);
           }
           console.log(`Auto checked IN: ${loc.user_name} for ${assignment.position_name} (${dist.toFixed(2)} mi)`);
         }
@@ -105,26 +167,21 @@ Deno.serve(async (req) => {
           });
           autoCheckedOut++;
 
-          if (assignment.radio_channel) {
-            const alerted = await alreadyNotified(base44, loc.user_email, "Return Your Radio", 2 * 60 * 60 * 1000);
-            if (!alerted) {
-              await notify(base44, {
-                user_email: loc.user_email,
-                title: "Return Your Radio",
-                message: `You've been auto checked out from ${assignment.position_name}. Please return your radio (Channel ${assignment.radio_channel}).`,
-                type: "assignment_reminder",
-                assignment_id: assignment.id
-              });
-            }
-          }
+          const outTitle = "🚪 Left Church Vicinity";
+          const radioNote = assignment.radio_channel ? ` Please return your radio (Ch ${assignment.radio_channel}).` : "";
+          const outMsg = `${loc.user_name}, you've left the church area and been checked out from ${assignment.position_name}.${radioNote}`;
 
           await notify(base44, {
             user_email: loc.user_email,
             title: "Auto Checked Out",
-            message: `You've been automatically checked out from ${assignment.position_name} — you left the church vicinity.`,
+            message: outMsg,
             type: "assignment_reminder",
             assignment_id: assignment.id
           });
+          await Promise.all([
+            sendPush(base44, loc.user_email, outTitle, outMsg),
+            sendSMS(loc.user_email, base44, `Shepherd Shield: ${outTitle} — ${outMsg}`),
+          ]);
           console.log(`Auto checked OUT: ${loc.user_name} from ${assignment.position_name} (${dist.toFixed(2)} mi away)`);
         }
       }
