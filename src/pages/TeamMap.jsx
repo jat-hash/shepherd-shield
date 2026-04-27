@@ -147,7 +147,7 @@ export default function TeamMap() {
     if (!silent) setLoading(true);
 
     if (!navigator.onLine) {
-      const cached = await getCachedData('teammap').catch(() => []);
+      const cached = await getCachedData('teammap_v2').catch(() => []);
       const activeMembers = (cached || []).filter(a => a._type === 'assignment');
       const activePanics = (cached || []).filter(a => a._type === 'panic');
       setCheckedInAssignments(activeMembers);
@@ -279,7 +279,7 @@ export default function TeamMap() {
       ...activeMembers.map(a => ({ ...a, _type: 'assignment' })),
       ...activePanics.map(i => ({ ...i, _type: 'panic' })),
     ];
-    cacheData('teammap', toCache).catch(() => {});
+    cacheData('teammap_v2', toCache).catch(() => {});
 
     setCheckedInAssignments(activeMembers);
     setPanicIncidents(activePanics);
