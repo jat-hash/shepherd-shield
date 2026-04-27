@@ -93,9 +93,9 @@ export default function AdminDashboardPanel({ allUsers = [] }) {
   }, []);
 
   useEffect(() => {
-    // Delay initial load to avoid competing with other Dashboard API calls on mount
-    const initialTimer = setTimeout(() => load(), 5000);
-    const interval = setInterval(() => load(), 60000);
+    // Delay initial load and use longer refresh interval to avoid rate limits
+    const initialTimer = setTimeout(() => load(), 8000);
+    const interval = setInterval(() => load(), 90000);
     return () => { clearTimeout(initialTimer); clearInterval(interval); };
   }, [load]);
 
