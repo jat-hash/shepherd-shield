@@ -174,10 +174,10 @@ export default function AdminMonitor() {
           _fromGPS: true,
         }));
 
-      // Build normalizedPersonal from the already-correct personalByEmail map (open records only)
+      // Build normalizedPersonal from the already-correct personalByEmail map — open records ONLY
       // plus GPS-only entries — both filtered to exclude people with formal assignments
       const normalizedPersonal = [
-        ...Object.values(personalByEmail).filter(p => !assignmentEmails.has((p.user_email || '').toLowerCase())),
+        ...Object.values(personalByEmail).filter(p => !p.check_out_time && !assignmentEmails.has((p.user_email || '').toLowerCase())),
         ...gpsOnlyPersonal.filter(p => !assignmentEmails.has((p.user_email || '').toLowerCase())),
       ].map(p => ({
         id: p.id,
