@@ -93,9 +93,9 @@ export default function AdminMonitor() {
         console.warn("Could not load user list:", e.message);
       }
 
-      // Mark users with recent GPS (within 4 hours) as live
-      const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
-      const recentLocations = (allLiveLocations || []).filter(ll => ll.last_updated && new Date(ll.last_updated) > fourHoursAgo);
+      // Mark users with recent GPS (within 8 hours) as live
+      const eightHoursAgo = new Date(Date.now() - 8 * 60 * 60 * 1000);
+      const recentLocations = (allLiveLocations || []).filter(ll => ll.last_updated && new Date(ll.last_updated) > eightHoursAgo);
       setLiveLocations(recentLocations);
 
       // Build a map of personal check-ins by email for merging (case-insensitive)
@@ -231,17 +231,17 @@ export default function AdminMonitor() {
   useEffect(() => {
     if (user?.role === 'admin') {
       loadAssignments();
-      // Load live locations - consider anyone with a location updated in last 4 hours as "online"
-      const fourHoursAgo = () => new Date(Date.now() - 4 * 60 * 60 * 1000);
+      // Load live locations - consider anyone with a location updated in last 8 hours as "online"
+      const eightHoursAgo = () => new Date(Date.now() - 8 * 60 * 60 * 1000);
       base44.entities.LiveLocation.list().then(all => {
-        const recent = all.filter(ll => ll.last_updated && new Date(ll.last_updated) > fourHoursAgo());
+        const recent = all.filter(ll => ll.last_updated && new Date(ll.last_updated) > eightHoursAgo());
         setLiveLocations(recent);
       }).catch(() => {});
       // Auto-refresh every 30 seconds
       const interval = setInterval(() => {
         loadAssignments();
         base44.entities.LiveLocation.list().then(all => {
-          const recent = all.filter(ll => ll.last_updated && new Date(ll.last_updated) > fourHoursAgo());
+          const recent = all.filter(ll => ll.last_updated && new Date(ll.last_updated) > eightHoursAgo());
           setLiveLocations(recent);
         }).catch(() => {});
       }, 30000);
@@ -269,9 +269,9 @@ export default function AdminMonitor() {
     const unsubA = base44.entities.Assignment.subscribe(() => loadAssignments());
     const unsubP = base44.entities.PersonalCheckIn.subscribe(() => loadAssignments());
     const unsubL = base44.entities.LiveLocation.subscribe(() => {
-      const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
+      const eightHoursAgo = new Date(Date.now() - 8 * 60 * 60 * 1000);
       base44.entities.LiveLocation.list().then(all => {
-        const recent = all.filter(ll => ll.last_updated && new Date(ll.last_updated) > fourHoursAgo);
+        const recent = all.filter(ll => ll.last_updated && new Date(ll.last_updated) > eightHoursAgo);
         setLiveLocations(recent);
       }).catch(() => {});
     });
