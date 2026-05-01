@@ -156,14 +156,41 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Hard auto check-out 1 hour after service end (no GPS)
-      if (assignment.checked_in && !assignment.checked_out && now > oneHourAfterEnd) {
-        await base44.asServiceRole.entities.Assignment.update(assignment.id, {
-          checked_out: true,
-          check_out_time: oneHourAfterEnd.toISOString()
-        });
-        autoCheckedOut++;
-        console.log(`Hard cutoff auto checkout: ${assignment.assigned_to_name}`);
+      // Auto check-out if: 1 hour after end OR user has left the 5-mile vicinity
+      if (assignment.checked_in && !assignment.checked_out) {
+        let shouldCheckOut = false;
+        let reason = '';
+
+        // 1) Hard cutoff: 1 hour after service end
+        if (now > oneHourAfterEnd) {
+          shouldCheckOut = true;
+          reason = 'hard cutoff (1hr after end)';
+        }
+
+        // 2) GPS: user left the 5-mile radius (only if service has started)
+        if (!shouldCheckOut && now >= startDateTime) {
+          const liveLocations = await base44.asServiceRole.entities.LiveLocation.filter({
+            user_email: assignment.assigned_to_email,
+            is_active: true
+          });
+          const loc = liveLocations?.[0];
+          if (loc?.latitude && loc?.longitude) {
+            const dist = distanceMiles(loc.latitude, loc.longitude, HUB_LAT, HUB_LON);
+            if (dist > VICINITY_MILES) {
+              shouldCheckOut = true;
+              reason = `left vicinity (${dist.toFixed(1)} miles from hub)`;
+            }
+          }
+        }
+
+        if (shouldCheckOut) {
+          await base44.asServiceRole.entities.Assignment.update(assignment.id, {
+            checked_out: true,
+            check_out_time: now.toISOString()
+          });
+          autoCheckedOut++;
+          console.log(`Auto checkout (${reason}): ${assignment.assigned_to_name}`);
+        }
       }
     }
 
