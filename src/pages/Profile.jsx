@@ -18,6 +18,8 @@ export default function Profile() {
   const [newDisplayName, setNewDisplayName] = useState("");
   const [editingPhone, setEditingPhone] = useState(false);
   const [newPhone, setNewPhone] = useState("");
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
@@ -40,6 +42,13 @@ export default function Profile() {
     setUser(prev => ({ ...prev, phone_number: newPhone.trim() }));
     toast.success("Phone number updated");
     setEditingPhone(false);
+  };
+
+  const handleUpdateEmail = async () => {
+    await base44.auth.updateMe({ contact_email: newEmail.trim() });
+    setUser(prev => ({ ...prev, contact_email: newEmail.trim() }));
+    toast.success("Contact email updated");
+    setEditingEmail(false);
   };
 
   const handlePhotoUpload = async (e) => {
@@ -160,7 +169,29 @@ export default function Profile() {
           </div>
         )}
         
-        <p className="text-sm text-slate-400 mt-1">{displayUser?.email || "No email"}</p>
+        {/* Contact Email */}
+        {editingEmail ? (
+          <div className="flex items-center gap-2 max-w-xs mx-auto mt-1 mb-1">
+            <Input
+              value={newEmail}
+              onChange={e => setNewEmail(e.target.value)}
+              placeholder="contact@example.com"
+              className="bg-[#0a1128] border-slate-700 text-white text-center text-sm"
+              autoFocus
+            />
+            <Button onClick={handleUpdateEmail} size="sm" className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]">Save</Button>
+            <Button onClick={() => setEditingEmail(false)} size="sm" variant="ghost" className="text-slate-400">Cancel</Button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center gap-2 mt-1">
+            <p className="text-sm text-slate-400">
+              {displayUser?.contact_email || displayUser?.email || "No email"}
+            </p>
+            <button onClick={() => { setNewEmail(displayUser?.contact_email || displayUser?.email || ""); setEditingEmail(true); }} className="text-slate-400 hover:text-[#d4a843] transition-colors">
+              <Edit2 className="w-3 h-3" />
+            </button>
+          </div>
+        )}
 
         {/* Phone Number */}
         {editingPhone ? (
