@@ -21,8 +21,19 @@ function distanceMiles(lat1, lon1, lat2, lon2) {
 }
 
 function parseServiceTime(date, time) {
+  // Parse as Pacific Time by appending the offset explicitly
+  // Pacific Standard Time = UTC-8, Pacific Daylight Time = UTC-7
+  // We use the Intl API to determine the correct offset for the given date
   const [h, m] = time.split(":").map(Number);
-  return new Date(`${date}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`);
+  // Build a UTC date first, then adjust by PT offset
+  const naive = new Date(`${date}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00Z`);
+  // Get the PT offset in minutes for that date
+  const ptOffset = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', timeZoneName: 'shortOffset' })
+    .formatToParts(naive)
+    .find(p => p.type === 'timeZoneName')?.value || 'GMT-7';
+  const offsetMatch = ptOffset.match(/GMT([+-]\d+)/);
+  const offsetHours = offsetMatch ? parseInt(offsetMatch[1]) : -7;
+  return new Date(naive.getTime() - offsetHours * 60 * 60 * 1000);
 }
 
 async function alreadyNotified(base44, userEmail, title, windowMs) {
