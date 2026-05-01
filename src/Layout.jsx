@@ -3,12 +3,12 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, MessageCircle, RotateCw } from "lucide-react";
+import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, RotateCw } from "lucide-react";
 
 import NotificationBell from "@/components/notifications/NotificationBell";
 import AlertNotificationSystem from "@/components/notifications/AlertNotificationSystem";
 import UserSwitcher from "@/components/UserSwitcher";
-import AIAssistant from "@/components/AIAssistant";
+import NotificationToast from "@/components/notifications/NotificationToast";
 
 const NAV_ITEMS = [
   { name: "Dashboard", icon: Home, page: "Dashboard" },
@@ -391,7 +391,7 @@ export default function Layout({ children, currentPageName }) {
         </div>
       </nav>
     </div>
-    <AIAssistant />
+    <NotificationToast userEmail={user?.email} />
     </>
   );
 }
