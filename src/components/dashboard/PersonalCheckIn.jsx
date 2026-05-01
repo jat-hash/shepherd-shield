@@ -9,6 +9,21 @@ import {
   syncPendingPersonalCheckIns,
 } from "../../lib/offlineStorage";
 
+// Church hub coordinates
+const HUB_LAT = 47.0637;
+const HUB_LON = -122.2525;
+const VICINITY_MILES = 3;
+
+function distanceMiles(lat1, lon1, lat2, lon2) {
+  const R = 3958.8;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
 export default function PersonalCheckIn({ user }) {
   const [checkedIn, setCheckedIn] = useState(false);
   const [checkInTime, setCheckInTime] = useState(null);
@@ -95,21 +110,48 @@ export default function PersonalCheckIn({ user }) {
     if (!navigator.geolocation) return;
     const id = navigator.geolocation.watchPosition(
       async (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
         const locationData = {
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          accuracy: pos.coords.accuracy,
+          latitude,
+          longitude,
+          accuracy,
           last_updated: new Date().toISOString(),
           is_active: true,
         };
         // Always cache locally first
         await savePersonalCheckInState({ checkedIn: true, recordId, liveLocationId: liveId, checkInTime, lastLocation: locationData });
-        
+
         // Try to sync to server if online
         if (navigator.onLine && liveId) {
           try {
             await base44.entities.LiveLocation.update(liveId, locationData);
           } catch (e) { /* silent */ }
+        }
+
+        // Auto check-out if user has left the 3-mile vicinity
+        const dist = distanceMiles(latitude, longitude, HUB_LAT, HUB_LON);
+        if (dist > VICINITY_MILES) {
+          console.log(`Auto checkout: ${dist.toFixed(1)} miles from hub`);
+          toast.info("👋 Auto Checked Out", {
+            description: `You've moved ${dist.toFixed(1)} miles from the hub.`,
+            duration: 6000,
+          });
+          // Reuse handleCheckOut logic inline to avoid stale closure issues
+          const now = new Date();
+          const state = await getPersonalCheckInState();
+          if (state?.recordId && navigator.onLine) {
+            try { await base44.entities.PersonalCheckIn.update(state.recordId, { check_out_time: now.toISOString() }); } catch (e) { /* silent */ }
+          }
+          if (liveId) {
+            try { await base44.entities.LiveLocation.update(liveId, { is_active: false }); } catch (e) { /* silent */ }
+          }
+          navigator.geolocation.clearWatch(id);
+          watchIdRef[0] = null;
+          await savePersonalCheckInState({ checkedIn: false });
+          setCheckedIn(false);
+          setRecordId(null);
+          setCheckInTime(null);
+          setLiveLocationId(null);
         }
       },
       () => {},
