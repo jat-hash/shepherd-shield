@@ -98,108 +98,17 @@ Deno.serve(async (req) => {
     // Use Pacific Time (America/Los_Angeles) local date to match how assignments are created
     const today = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
 
-    // ── 1. GPS-based check-in/out for assignments ─────────────────────────────
-    // Source of truth: LiveLocation records.
-    // is_active=true + within 2mi → check in assignment
-    // is_active=true + outside 2mi → check out assignment (user has left)
-    // is_active=false → user manually checked out, don't touch
+    // Assignments are MANUAL check-in/out only — no GPS automation for assignments.
+    // GPS auto check-in/out applies only to PersonalCheckIn (handled in the PersonalCheckIn component).
 
-    // Only fetch ACTIVE locations — is_active=false means user manually checked out, skip them entirely
-    const allLocations = await base44.asServiceRole.entities.LiveLocation.filter({ is_active: true });
     let autoCheckedIn = 0;
     let autoCheckedOut = 0;
 
-    for (const loc of allLocations) {
-      if (!loc.user_email || !loc.latitude || !loc.longitude) continue;
-
-      // Skip stale locations (not updated in 8 hours - covers a full service day with backgrounded app)
-      const lastUpdated = loc.last_updated ? new Date(loc.last_updated) : null;
-      if (lastUpdated && (now - lastUpdated) > 8 * 60 * 60 * 1000) {
-        console.log(`Skipping stale location for ${loc.user_name} (${Math.round((now - lastUpdated) / 60000)} min old)`);
-        continue;
-      }
-      if (!lastUpdated) continue; // No timestamp at all, skip
-
-      const dist = distanceMiles(loc.latitude, loc.longitude, HUB_LAT, HUB_LON);
-      const isNear = dist <= VICINITY_MILES;
-
-      const userAssignments = await base44.asServiceRole.entities.Assignment.filter({
-        assigned_to_email: loc.user_email,
-        service_date: today
-      });
-
-      for (const assignment of userAssignments) {
-        // ── Auto check IN ──────────────────────────────────────────────────
-        if (isNear && !assignment.checked_in) {
-          await base44.asServiceRole.entities.Assignment.update(assignment.id, {
-            checked_in: true,
-            check_in_time: now.toISOString(),
-            check_in_latitude: loc.latitude,
-            check_in_longitude: loc.longitude
-          });
-          autoCheckedIn++;
-
-          const alerted = await alreadyNotified(base44, loc.user_email, "Auto Checked In", 4 * 60 * 60 * 1000);
-          if (!alerted) {
-            const inTitle = "✅ Arrived at Church";
-            const inMsg = `${loc.user_name}, you've entered the church vicinity and been checked in to ${assignment.position_name}. Service starts at ${assignment.start_time}.`;
-            await notify(base44, {
-              user_email: loc.user_email,
-              title: "Auto Checked In",
-              message: inMsg,
-              type: "assignment_reminder",
-              assignment_id: assignment.id
-            });
-            await Promise.all([
-              sendPush(base44, loc.user_email, inTitle, inMsg),
-              sendSMS(loc.user_email, base44, `Shepherd Shield: ${inTitle} — ${inMsg}`),
-            ]);
-          }
-          console.log(`Auto checked IN: ${loc.user_name} for ${assignment.position_name} (${dist.toFixed(2)} mi)`);
-        }
-
-        // ── Auto check OUT ─────────────────────────────────────────────────
-        // Only check out if they're actively sharing location but have left the area
-        if (!isNear && assignment.checked_in && !assignment.checked_out) {
-          await base44.asServiceRole.entities.Assignment.update(assignment.id, {
-            checked_out: true,
-            check_out_time: now.toISOString()
-          });
-          autoCheckedOut++;
-
-          const outTitle = "🚪 Left Church Vicinity";
-          const radioNote = assignment.radio_channel ? ` Please return your radio (Ch ${assignment.radio_channel}).` : "";
-          const outMsg = `${loc.user_name}, you've left the church area and been checked out from ${assignment.position_name}.${radioNote}`;
-
-          await notify(base44, {
-            user_email: loc.user_email,
-            title: "Auto Checked Out",
-            message: outMsg,
-            type: "assignment_reminder",
-            assignment_id: assignment.id
-          });
-          await Promise.all([
-            sendPush(base44, loc.user_email, outTitle, outMsg),
-            sendSMS(loc.user_email, base44, `Shepherd Shield: ${outTitle} — ${outMsg}`),
-          ]);
-          console.log(`Auto checked OUT: ${loc.user_name} from ${assignment.position_name} (${dist.toFixed(2)} mi away)`);
-        }
-      }
-    }
-
-    // ── 2. Assignment alerts & hard fallback for users WITHOUT active GPS ──────
+    // ── 1. Assignment alerts & hard fallback checkout ─────────────────────────
     const todayAssignments = await base44.asServiceRole.entities.Assignment.filter({ service_date: today });
-    // Users with a recent location record are handled by GPS above; skip them from time-based fallback
-    const eightHoursAgo = new Date(now - 8 * 60 * 60 * 1000);
-    const activeUserEmails = new Set(
-      allLocations
-        .filter(l => l.last_updated && new Date(l.last_updated) > eightHoursAgo)
-        .map(l => l.user_email)
-    );
 
     for (const assignment of todayAssignments) {
       if (!assignment.service_date || !assignment.start_time || !assignment.end_time) continue;
-      if (activeUserEmails.has(assignment.assigned_to_email)) continue; // GPS handles these
 
       const startDateTime = parseServiceTime(assignment.service_date, assignment.start_time);
       const endDateTime = parseServiceTime(assignment.service_date, assignment.end_time);
