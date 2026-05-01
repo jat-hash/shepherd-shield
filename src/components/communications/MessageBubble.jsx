@@ -122,7 +122,12 @@ export default function MessageBubble({ message, isMe, currentUserEmail, onUpdat
           
           <div className="flex items-center justify-between mt-1 gap-3">
             <p className={`text-[9px] ${isMe ? "text-[#0a1128]/60" : "text-slate-500"}`}>
-              {new Date(message.created_date + (message.created_date.endsWith('Z') ? '' : 'Z')).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
+              {(() => {
+                if (!message.created_date) return '';
+                const raw = message.created_date;
+                const d = new Date(raw.endsWith('Z') ? raw : raw + 'Z');
+                return isNaN(d.getTime()) ? '' : d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+              })()}
             </p>
             
             {isMe && (
