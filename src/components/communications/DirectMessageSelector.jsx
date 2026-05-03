@@ -8,8 +8,15 @@ import { cacheData, getCachedData } from "@/lib/offlineStorage";
 
 const USERS_CACHE_KEY = "team_users";
 
-export default function DirectMessageSelector({ currentUserEmail, onSelectDM }) {
+export default function DirectMessageSelector({ currentUserEmail, onSelectDM, autoOpen, onAutoOpenHandled }) {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (autoOpen && currentUserEmail) {
+      setOpen(true);
+      onAutoOpenHandled?.();
+    }
+  }, [autoOpen, currentUserEmail]);
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [isOffline, setIsOffline] = useState(!navigator.onLine);

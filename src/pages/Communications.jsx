@@ -26,9 +26,18 @@ export default function Communications() {
   const [uploading, setUploading] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [allUsers, setAllUsers] = useState([]);
+  const [pendingDmOpen, setPendingDmOpen] = useState(false);
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
   const fileInputRef = useRef(null);
+
+  // If navigated here with ?tab=dm, open the DM selector
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("tab") === "dm") {
+      setPendingDmOpen(true);
+    }
+  }, []);
 
   const requestNotificationPermission = async () => {
     if (!('Notification' in window)) return;
@@ -360,7 +369,7 @@ export default function Communications() {
       )}
       {/* Channel Pills */}
       <div className="px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar border-b border-[rgba(212,168,67,0.1)]">
-        <DirectMessageSelector currentUserEmail={user?.email} onSelectDM={handleSelectDM} />
+        <DirectMessageSelector currentUserEmail={user?.email} onSelectDM={handleSelectDM} autoOpen={pendingDmOpen} onAutoOpenHandled={() => setPendingDmOpen(false)} />
         
         {CHANNELS.map(ch => (
           <button

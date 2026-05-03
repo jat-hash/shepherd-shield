@@ -12,10 +12,15 @@ function extractUrl(text) {
   return match ? match[0] : null;
 }
 
-function getNotificationPage(notification) {
+function getNotificationRoute(notification) {
   const type = notification.type || "";
-  if (notification.assignment_id || type.includes("assignment")) return "Assignments";
-  if (type === "general") return "Communications";
+  const msg = notification.message || "";
+  if (notification.assignment_id || type.includes("assignment")) return "/Assignments";
+  // DM notifications include "Direct message from" in the message or title
+  if (type === "general" && (msg.toLowerCase().includes("direct message") || notification.title?.toLowerCase().includes("direct message"))) {
+    return "/Communications?tab=dm";
+  }
+  if (type === "general") return "/Communications";
   return null;
 }
 
@@ -116,11 +121,11 @@ export default function NotificationBell({ userEmail }) {
       markAsRead(notification.id);
       return;
     }
-    const page = getNotificationPage(notification);
-    if (page) {
+    const route = getNotificationRoute(notification);
+    if (route) {
       setOpen(false);
       markAsRead(notification.id);
-      navigate(createPageUrl(page));
+      navigate(route);
     }
   };
 
@@ -158,9 +163,9 @@ export default function NotificationBell({ userEmail }) {
             </div>
           ) : (
             notifications.map((notification) => {
-              const page = getNotificationPage(notification);
+              const route = getNotificationRoute(notification);
               const url = extractUrl(notification.message);
-              const isClickable = !!(page || url);
+              const isClickable = !!(route || url);
 
               return (
                 <div
@@ -186,7 +191,7 @@ export default function NotificationBell({ userEmail }) {
                       </p>
                       {isClickable && (
                         <p className="text-[10px] text-[#d4a843] mt-0.5">
-                          {url ? 'Tap to open link' : `Tap to go to ${page}`} →
+                          {url ? 'Tap to open link' : route === '/Communications?tab=dm' ? 'Tap to open DM' : `Tap to go to ${route?.replace('/', '')}`} →
                         </p>
                       )}
                     </div>

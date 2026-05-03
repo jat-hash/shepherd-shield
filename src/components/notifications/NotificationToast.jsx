@@ -4,10 +4,14 @@ import { Bell, X, ExternalLink, MessageSquare, AlertTriangle } from "lucide-reac
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
-function getNotificationPage(notification) {
+function getNotificationRoute(notification) {
   const type = notification.type || "";
-  if (notification.assignment_id || type.includes("assignment")) return "Assignments";
-  if (type === "general") return "Communications";
+  const msg = notification.message || "";
+  if (notification.assignment_id || type.includes("assignment")) return "/Assignments";
+  if (type === "general" && (msg.toLowerCase().includes("direct message") || notification.title?.toLowerCase().includes("direct message"))) {
+    return "/Communications?tab=dm";
+  }
+  if (type === "general") return "/Communications";
   return null;
 }
 
@@ -87,8 +91,8 @@ export default function NotificationToast({ userEmail }) {
     const url = extractUrl(toast.message);
     if (url) { window.open(url, "_blank"); }
     else {
-      const page = getNotificationPage(toast);
-      if (page) navigate(createPageUrl(page));
+      const route = getNotificationRoute(toast);
+      if (route) navigate(route);
     }
     dismissToast(toast._toastId);
   };
@@ -99,8 +103,8 @@ export default function NotificationToast({ userEmail }) {
     <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none" style={{ maxWidth: '340px' }}>
       {toasts.map((toast) => {
         const url = extractUrl(toast.message);
-        const page = getNotificationPage(toast);
-        const isClickable = !!(url || page);
+        const route = getNotificationRoute(toast);
+        const isClickable = !!(url || route);
 
         return (
           <div
@@ -112,6 +116,7 @@ export default function NotificationToast({ userEmail }) {
             <div
               className={`flex-1 min-w-0 ${isClickable ? 'cursor-pointer' : ''}`}
               onClick={isClickable ? () => handleClick(toast) : undefined}
+
             >
               <p className="text-sm font-semibold text-white leading-tight">{toast.title}</p>
               {url ? (
@@ -122,7 +127,9 @@ export default function NotificationToast({ userEmail }) {
                 <p className="text-xs text-slate-400 mt-1 line-clamp-2">{toast.message}</p>
               )}
               {isClickable && !url && (
-                <p className="text-[10px] text-[#d4a843] mt-1">Tap to go to {page} →</p>
+                <p className="text-[10px] text-[#d4a843] mt-1">
+                  {route === '/Communications?tab=dm' ? 'Tap to open DM →' : `Tap to go to ${route?.replace('/', '')} →`}
+                </p>
               )}
             </div>
             <button
