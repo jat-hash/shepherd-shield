@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Eye, Upload, Trash2, Pencil, WifiOff } from "lucide-react";
+import { Plus, Eye, Upload, Trash2, Pencil, WifiOff, X } from "lucide-react";
 import useOfflineData from "@/hooks/useOfflineData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ export default function WatchList() {
   const [form, setForm] = useState({ full_name: "", status: "Monitor", description: "", notes: "", photo: "" });
   const [saving, setSaving] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [zoomedPhoto, setZoomedPhoto] = useState(null);
 
   const fetchFn = useCallback(() => base44.entities.WatchListPerson.list("-created_date", 100), []);
   const { data: persons, loading, isOffline, reload: load } = useOfflineData("watchlist", fetchFn, []);
@@ -171,6 +172,19 @@ export default function WatchList() {
         </DialogContent>
       </Dialog>
 
+      {/* Photo Zoom Overlay */}
+      {zoomedPhoto && (
+        <div
+          className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setZoomedPhoto(null)}
+        >
+          <img src={zoomedPhoto} alt="" className="max-w-full max-h-full object-contain rounded-xl" style={{ maxHeight: '90vh' }} />
+          <button className="absolute top-4 right-4 text-white bg-black/50 rounded-full p-2">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+      )}
+
       {/* Detail View */}
       <Dialog open={!!detailPerson} onOpenChange={() => setDetailPerson(null)}>
         <DialogContent className="bg-[#1a2744] border-slate-700 text-white w-[calc(100vw-2rem)] max-w-md max-h-[90vh] overflow-y-auto">
@@ -178,8 +192,12 @@ export default function WatchList() {
           {detailPerson && (
             <div className="space-y-4">
               {detailPerson.photo && (
-                <div className="w-full h-48 rounded-xl overflow-hidden">
+                <div
+                  className="w-full h-48 rounded-xl overflow-hidden cursor-zoom-in"
+                  onClick={() => setZoomedPhoto(detailPerson.photo)}
+                >
                   <img src={detailPerson.photo} alt="" className="w-full h-full object-contain" />
+                  <p className="text-center text-[10px] text-slate-500 mt-1">Tap to zoom</p>
                 </div>
               )}
               <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${statusColors[detailPerson.status]}`}>{detailPerson.status}</span>
