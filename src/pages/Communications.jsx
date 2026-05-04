@@ -249,18 +249,7 @@ export default function Communications() {
     try {
       await base44.entities.TeamMessage.create(messageData);
       
-      // Send FCM notification to receiver if DM
-      if (activeChannel.type === 'dm' && messageData.content) {
-        const withoutPrefix = activeChannel.name.replace('DM: ', '');
-        const recipientEmail = withoutPrefix.replace(user.email, '').replace(/^-|-$/g, '').trim();
-        if (recipientEmail) {
-          base44.functions.invoke('sendFCMNotification', {
-            recipient_email: recipientEmail,
-            title: `Message from ${messageData.sender_name}`,
-            body: messageData.content.substring(0, 100)
-          }).catch(() => {});
-        }
-      }
+      // FCM + in-app notification handled by notifyNewMessage automation
     } catch (error) {
       // If send fails (offline or network error), save as pending
       await savePendingMessage(messageData);
