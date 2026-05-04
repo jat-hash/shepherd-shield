@@ -184,8 +184,8 @@ Deno.serve(async (req) => {
           reason = 'hard cutoff (1hr after end)';
         }
 
-        // 2) GPS: user left the 5-mile radius (only if service has started)
-        if (!shouldCheckOut && now >= startDateTime) {
+        // 2) GPS: user left the 3-mile radius of the hub
+        if (!shouldCheckOut) {
           const liveLocations = await base44.asServiceRole.entities.LiveLocation.filter({
             user_email: assignment.assigned_to_email,
             is_active: true
@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
             const dist = distanceMiles(loc.latitude, loc.longitude, HUB_LAT, HUB_LON);
             if (dist > VICINITY_MILES) {
               shouldCheckOut = true;
-              reason = `left vicinity (${dist.toFixed(1)} miles from hub)`;
+              reason = `left 3-mile radius (${dist.toFixed(1)} mi from hub)`;
             }
           }
         }
