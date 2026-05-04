@@ -26,7 +26,7 @@ export default function WatchList() {
   const [zoomedPhoto, setZoomedPhoto] = useState(null);
   const [pinchScale, setPinchScale] = useState(1);
   const [pinchOffset, setPinchOffset] = useState({ x: 0, y: 0 });
-  const pinchRef = { lastDist: null, lastScale: 1, isDragging: false, lastTouch: null };
+  const pinchRef = useRef({ lastDist: null, lastScale: 1, isDragging: false, lastTouch: null });
 
   const fetchFn = useCallback(() => base44.entities.WatchListPerson.list("-created_date", 100), []);
   const { data: persons, loading, isOffline, reload: load } = useOfflineData("watchlist", fetchFn, []);
@@ -189,29 +189,29 @@ export default function WatchList() {
             if (e.touches.length === 2) {
               const dx = e.touches[0].clientX - e.touches[1].clientX;
               const dy = e.touches[0].clientY - e.touches[1].clientY;
-              pinchRef.lastDist = Math.hypot(dx, dy);
-              pinchRef.lastScale = pinchScale;
+              pinchRef.current.lastDist = Math.hypot(dx, dy);
+              pinchRef.current.lastScale = pinchScale;
             } else if (e.touches.length === 1 && pinchScale > 1) {
-              pinchRef.isDragging = true;
-              pinchRef.lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+              pinchRef.current.isDragging = true;
+              pinchRef.current.lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
             }
           }}
           onTouchMove={(e) => {
             e.preventDefault();
-            if (e.touches.length === 2) {
+            if (e.touches.length === 2 && pinchRef.current.lastDist) {
               const dx = e.touches[0].clientX - e.touches[1].clientX;
               const dy = e.touches[0].clientY - e.touches[1].clientY;
               const dist = Math.hypot(dx, dy);
-              const newScale = Math.min(6, Math.max(1, pinchRef.lastScale * (dist / pinchRef.lastDist)));
+              const newScale = Math.min(6, Math.max(1, pinchRef.current.lastScale * (dist / pinchRef.current.lastDist)));
               setPinchScale(newScale);
-            } else if (e.touches.length === 1 && pinchRef.isDragging && pinchRef.lastTouch) {
-              const dx = e.touches[0].clientX - pinchRef.lastTouch.x;
-              const dy = e.touches[0].clientY - pinchRef.lastTouch.y;
-              pinchRef.lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            } else if (e.touches.length === 1 && pinchRef.current.isDragging && pinchRef.current.lastTouch) {
+              const dx = e.touches[0].clientX - pinchRef.current.lastTouch.x;
+              const dy = e.touches[0].clientY - pinchRef.current.lastTouch.y;
+              pinchRef.current.lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
               setPinchOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
             }
           }}
-          onTouchEnd={() => { pinchRef.isDragging = false; pinchRef.lastDist = null; if (pinchScale <= 1) setPinchOffset({ x: 0, y: 0 }); }}
+          onTouchEnd={() => { pinchRef.current.isDragging = false; pinchRef.current.lastDist = null; if (pinchScale <= 1) setPinchOffset({ x: 0, y: 0 }); }}
           style={{ touchAction: 'none' }}
         >
           <img
@@ -222,7 +222,7 @@ export default function WatchList() {
               maxHeight: '100vh',
               objectFit: 'contain',
               transform: `scale(${pinchScale}) translate(${pinchOffset.x / pinchScale}px, ${pinchOffset.y / pinchScale}px)`,
-              transition: pinchRef.lastDist ? 'none' : 'transform 0.1s ease',
+              transition: pinchRef.current.lastDist ? 'none' : 'transform 0.1s ease',
               userSelect: 'none',
               pointerEvents: 'none',
             }}
