@@ -24,6 +24,9 @@ export default function WatchList() {
   const [saving, setSaving] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [zoomedPhoto, setZoomedPhoto] = useState(null);
+  const [pinchScale, setPinchScale] = useState(1);
+  const [pinchOffset, setPinchOffset] = useState({ x: 0, y: 0 });
+  const pinchRef = { lastDist: null, lastScale: 1, isDragging: false, lastTouch: null };
 
   const fetchFn = useCallback(() => base44.entities.WatchListPerson.list("-created_date", 100), []);
   const { data: persons, loading, isOffline, reload: load } = useOfflineData("watchlist", fetchFn, []);
@@ -177,16 +180,68 @@ export default function WatchList() {
         </DialogContent>
       </Dialog>
 
-      {/* Photo Zoom Overlay */}
+      {/* Photo Zoom Overlay with pinch-to-zoom */}
       {zoomedPhoto && (
         <div
-          className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4"
-          onClick={() => setZoomedPhoto(null)}
+          className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center"
+          onClick={(e) => { if (e.target === e.currentTarget) { setZoomedPhoto(null); setPinchScale(1); setPinchOffset({ x: 0, y: 0 }); } }}
+          onTouchStart={(e) => {
+            if (e.touches.length === 2) {
+              const dx = e.touches[0].clientX - e.touches[1].clientX;
+              const dy = e.touches[0].clientY - e.touches[1].clientY;
+              pinchRef.lastDist = Math.hypot(dx, dy);
+              pinchRef.lastScale = pinchScale;
+            } else if (e.touches.length === 1 && pinchScale > 1) {
+              pinchRef.isDragging = true;
+              pinchRef.lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
+          }}
+          onTouchMove={(e) => {
+            e.preventDefault();
+            if (e.touches.length === 2) {
+              const dx = e.touches[0].clientX - e.touches[1].clientX;
+              const dy = e.touches[0].clientY - e.touches[1].clientY;
+              const dist = Math.hypot(dx, dy);
+              const newScale = Math.min(6, Math.max(1, pinchRef.lastScale * (dist / pinchRef.lastDist)));
+              setPinchScale(newScale);
+            } else if (e.touches.length === 1 && pinchRef.isDragging && pinchRef.lastTouch) {
+              const dx = e.touches[0].clientX - pinchRef.lastTouch.x;
+              const dy = e.touches[0].clientY - pinchRef.lastTouch.y;
+              pinchRef.lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+              setPinchOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+            }
+          }}
+          onTouchEnd={() => { pinchRef.isDragging = false; pinchRef.lastDist = null; if (pinchScale <= 1) setPinchOffset({ x: 0, y: 0 }); }}
+          style={{ touchAction: 'none' }}
         >
-          <img src={zoomedPhoto} alt="" className="max-w-full max-h-full object-contain rounded-xl" style={{ maxHeight: '90vh' }} />
-          <button className="absolute top-4 right-4 text-white bg-black/50 rounded-full p-2">
+          <img
+            src={zoomedPhoto}
+            alt=""
+            style={{
+              maxWidth: '100vw',
+              maxHeight: '100vh',
+              objectFit: 'contain',
+              transform: `scale(${pinchScale}) translate(${pinchOffset.x / pinchScale}px, ${pinchOffset.y / pinchScale}px)`,
+              transition: pinchRef.lastDist ? 'none' : 'transform 0.1s ease',
+              userSelect: 'none',
+              pointerEvents: 'none',
+            }}
+          />
+          <button
+            className="absolute top-4 right-4 text-white bg-black/60 rounded-full p-2 z-10"
+            onClick={() => { setZoomedPhoto(null); setPinchScale(1); setPinchOffset({ x: 0, y: 0 }); }}
+          >
             <X className="w-6 h-6" />
           </button>
+          {pinchScale > 1 && (
+            <button
+              className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/70 bg-black/40 rounded-full px-3 py-1 text-xs"
+              onClick={() => { setPinchScale(1); setPinchOffset({ x: 0, y: 0 }); }}
+            >
+              Reset zoom
+            </button>
+          )}
+          <p className="absolute bottom-6 right-4 text-white/40 text-[10px]">{Math.round(pinchScale * 100)}%</p>
         </div>
       )}
 
