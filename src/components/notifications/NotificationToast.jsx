@@ -2,13 +2,14 @@ import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Bell, X, ExternalLink, MessageSquare, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
 
 function getNotificationRoute(notification) {
   const type = notification.type || "";
-  const msg = notification.message || "";
+  const msg = (notification.message || "").toLowerCase();
+  const title = (notification.title || "").toLowerCase();
   if (notification.assignment_id || type.includes("assignment")) return "/Assignments";
-  if (type === "general" && (msg.toLowerCase().includes("direct message") || notification.title?.toLowerCase().includes("direct message"))) {
+  // DM notifications: title like "Message from X" or message includes "direct message"
+  if (type === "general" && (msg.includes("direct message") || title.includes("message from") || title.includes("direct message"))) {
     return "/Communications?tab=dm";
   }
   if (type === "general") return "/Communications";
@@ -31,14 +32,14 @@ function getIcon(notification) {
 export default function NotificationToast({ userEmail }) {
   const [toasts, setToasts] = useState([]);
   const seenIds = useRef(new Set());
-  const navigate = useNavigate();
   const isFirstLoad = useRef(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!userEmail) return;
 
-    // Load existing notifications on mount — mark them all as "seen" so we don't toast them
-    base44.entities.Notification.filter({ user_email: userEmail }, '-created_date', 20)
+    // Pre-seed seenIds with existing notifications so we never toast them on load
+    base44.entities.Notification.filter({ user_email: userEmail }, '-created_date', 50)
       .then(existing => {
         existing.forEach(n => seenIds.current.add(n.id));
         isFirstLoad.current = false;
@@ -46,13 +47,14 @@ export default function NotificationToast({ userEmail }) {
       .catch(() => { isFirstLoad.current = false; });
 
     const unsub = base44.entities.Notification.subscribe((event) => {
+      // Only fire on brand-new creates for this user
+      if (event.type !== "create") return;
+      if (event.data?.user_email !== userEmail) return;
       if (isFirstLoad.current) return;
-      if (event.type === "create" && event.data?.user_email === userEmail) {
-        const n = event.data;
-        if (seenIds.current.has(n.id)) return;
-        seenIds.current.add(n.id);
-        showToast(n);
-      }
+      const n = event.data;
+      if (seenIds.current.has(n.id)) return;
+      seenIds.current.add(n.id);
+      addToast(n);
     });
 
     return () => unsub();
@@ -75,12 +77,14 @@ export default function NotificationToast({ userEmail }) {
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
   };
 
-  const showToast = (notification) => {
+  const addToast = (notification) => {
     playSound();
-    const id = notification.id + '_toast_' + Date.now();
-    setToasts(prev => [...prev, { ...notification, _toastId: id }]);
-    // Auto-dismiss after 6 seconds
-    setTimeout(() => dismissToast(id), 6000);
+    const toastId = `${notification.id}_${Date.now()}`;
+    setToasts(prev => [...prev, { ...notification, _toastId: toastId }]);
+    // Use functional update in timeout to avoid stale closure
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t._toastId !== toastId));
+    }, 6000);
   };
 
   const dismissToast = (toastId) => {
@@ -89,8 +93,9 @@ export default function NotificationToast({ userEmail }) {
 
   const handleClick = (toast) => {
     const url = extractUrl(toast.message);
-    if (url) { window.open(url, "_blank"); }
-    else {
+    if (url) {
+      window.open(url, "_blank");
+    } else {
       const route = getNotificationRoute(toast);
       if (route) navigate(route);
     }
@@ -100,7 +105,7 @@ export default function NotificationToast({ userEmail }) {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none" style={{ maxWidth: '340px' }}>
+    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3" style={{ maxWidth: '340px', width: 'calc(100vw - 48px)' }}>
       {toasts.map((toast) => {
         const url = extractUrl(toast.message);
         const route = getNotificationRoute(toast);
@@ -109,14 +114,13 @@ export default function NotificationToast({ userEmail }) {
         return (
           <div
             key={toast._toastId}
-            className="pointer-events-auto bg-[#1a2744] border border-[rgba(212,168,67,0.3)] rounded-xl shadow-2xl p-4 flex items-start gap-3 animate-in slide-in-from-right duration-300"
-            style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}
+            className="bg-[#1a2744] border border-[rgba(212,168,67,0.3)] rounded-xl shadow-2xl p-4 flex items-start gap-3"
+            style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.6)', animation: 'slideInRight 0.3s ease-out' }}
           >
             <div className="flex-shrink-0 mt-0.5">{getIcon(toast)}</div>
             <div
               className={`flex-1 min-w-0 ${isClickable ? 'cursor-pointer' : ''}`}
               onClick={isClickable ? () => handleClick(toast) : undefined}
-
             >
               <p className="text-sm font-semibold text-white leading-tight">{toast.title}</p>
               {url ? (
@@ -128,19 +132,25 @@ export default function NotificationToast({ userEmail }) {
               )}
               {isClickable && !url && (
                 <p className="text-[10px] text-[#d4a843] mt-1">
-                  {route === '/Communications?tab=dm' ? 'Tap to open DM →' : `Tap to go to ${route?.replace('/', '')} →`}
+                  {route?.includes('tab=dm') ? 'Tap to open DM →' : `Tap to open →`}
                 </p>
               )}
             </div>
             <button
               onClick={() => dismissToast(toast._toastId)}
-              className="flex-shrink-0 text-slate-500 hover:text-white transition-colors"
+              className="flex-shrink-0 text-slate-500 hover:text-white transition-colors p-0.5"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
         );
       })}
+      <style>{`
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }

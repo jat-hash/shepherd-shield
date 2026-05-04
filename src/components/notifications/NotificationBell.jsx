@@ -14,10 +14,10 @@ function extractUrl(text) {
 
 function getNotificationRoute(notification) {
   const type = notification.type || "";
-  const msg = notification.message || "";
+  const msg = (notification.message || "").toLowerCase();
+  const title = (notification.title || "").toLowerCase();
   if (notification.assignment_id || type.includes("assignment")) return "/Assignments";
-  // DM notifications include "Direct message from" in the message or title
-  if (type === "general" && (msg.toLowerCase().includes("direct message") || notification.title?.toLowerCase().includes("direct message"))) {
+  if (type === "general" && (msg.includes("direct message") || title.includes("message from") || title.includes("direct message"))) {
     return "/Communications?tab=dm";
   }
   if (type === "general") return "/Communications";
@@ -56,6 +56,8 @@ export default function NotificationBell({ userEmail }) {
     let unsub;
     try {
       unsub = base44.entities.Notification.subscribe((event) => {
+        // Only reload on create/delete, not updates (avoids loops with toast marking)
+        if (event.type === "update") return;
         if (event.data?.user_email === userEmail || event.old_data?.user_email === userEmail) {
           clearTimeout(debounceTimer.current);
           debounceTimer.current = setTimeout(() => {
