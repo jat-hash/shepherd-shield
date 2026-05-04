@@ -42,9 +42,9 @@ export default function AdminDashboardPanel({ allUsers = [] }) {
     const today = `${todayLocal.getFullYear()}-${String(todayLocal.getMonth() + 1).padStart(2, '0')}-${String(todayLocal.getDate()).padStart(2, '0')}`;
 
     const assignments = await base44.entities.Assignment.filter({ service_date: today }, "-start_time", 200);
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 600));
     const personalCheckIns = await base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 100);
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 600));
     const liveLocations = await base44.entities.LiveLocation.filter({ is_active: true }, "-last_updated", 100);
 
     const liveByEmail = {};
@@ -94,8 +94,8 @@ export default function AdminDashboardPanel({ allUsers = [] }) {
 
   useEffect(() => {
     // Delay initial load and use longer refresh interval to avoid rate limits
-    const initialTimer = setTimeout(() => load(), 12000);
-    const interval = setInterval(() => load(), 120000);
+    const initialTimer = setTimeout(() => load(), 15000);
+    const interval = setInterval(() => load(), 180000);
     return () => { clearTimeout(initialTimer); clearInterval(interval); };
   }, [load]);
 
