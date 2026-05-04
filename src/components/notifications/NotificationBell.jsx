@@ -14,15 +14,35 @@ function extractUrl(text) {
 
 function getNotificationRoute(notification) {
   const type = notification.type || "";
+  const msg = (notification.message || "").toLowerCase();
+  const title = (notification.title || "").toLowerCase();
+
   if (notification.assignment_id || type.includes("assignment")) return "/Assignments";
+
   if (type === "general") {
+    // DM: has a channel field — deep link directly
     if (notification.dm_channel) {
       return `/Communications?channel=${encodeURIComponent(notification.dm_channel)}`;
     }
-    const msg = (notification.message || "").toLowerCase();
-    const title = (notification.title || "").toLowerCase();
+    // Incident keywords
+    if (title.includes("incident") || msg.includes("incident") || (title.includes("alert") && msg.includes("reported"))) {
+      return "/Incidents";
+    }
+    // Equipment keywords
+    if (title.includes("equipment") || msg.includes("equipment") || msg.includes("checked out") || msg.includes("returned")) {
+      return "/EquipmentInventory";
+    }
+    // Check-in/out keywords
+    if (title.includes("check-in") || title.includes("check-out") || msg.includes("checked in") || msg.includes("checked out for their assignment")) {
+      return "/Assignments";
+    }
+    // DM fallback by keyword
     if (msg.includes("direct message") || title.includes("message from") || title.includes("direct message")) {
       return "/Communications?tab=dm";
+    }
+    // General channel message
+    if (msg.includes("message") || title.includes("message")) {
+      return "/Communications";
     }
     return "/Communications";
   }
@@ -198,7 +218,12 @@ export default function NotificationBell({ userEmail }) {
                       </p>
                       {isClickable && (
                         <p className="text-[10px] text-[#d4a843] mt-0.5">
-                          {url ? 'Tap to open link' : route === '/Communications?tab=dm' ? 'Tap to open DM' : `Tap to go to ${route?.replace('/', '')}`} →
+                          {url ? 'Tap to open link'
+                            : route?.startsWith('/Communications') ? 'Tap to open →'
+                            : route === '/Incidents' ? 'Tap to view incident →'
+                            : route === '/EquipmentInventory' ? 'Tap to view equipment →'
+                            : route === '/Assignments' ? 'Tap to view assignments →'
+                            : 'Tap to open →'}
                         </p>
                       )}
                     </div>

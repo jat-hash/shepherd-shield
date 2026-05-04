@@ -5,17 +5,35 @@ import { useNavigate } from "react-router-dom";
 
 function getNotificationRoute(notification) {
   const type = notification.type || "";
+  const msg = (notification.message || "").toLowerCase();
+  const title = (notification.title || "").toLowerCase();
+
   if (notification.assignment_id || type.includes("assignment")) return "/Assignments";
+
   if (type === "general") {
-    // If we have a specific DM channel, route directly to it
+    // DM: has a channel field — deep link directly
     if (notification.dm_channel) {
       return `/Communications?channel=${encodeURIComponent(notification.dm_channel)}`;
     }
-    // Fallback: detect DM by title/message keywords
-    const msg = (notification.message || "").toLowerCase();
-    const title = (notification.title || "").toLowerCase();
+    // Incident keywords
+    if (title.includes("incident") || msg.includes("incident") || title.includes("alert") && msg.includes("reported")) {
+      return "/Incidents";
+    }
+    // Equipment keywords
+    if (title.includes("equipment") || msg.includes("equipment") || msg.includes("checked out") || msg.includes("returned")) {
+      return "/EquipmentInventory";
+    }
+    // Check-in/out keywords
+    if (title.includes("check-in") || title.includes("check-out") || msg.includes("checked in") || msg.includes("checked out for their assignment")) {
+      return "/Assignments";
+    }
+    // DM fallback by keyword
     if (msg.includes("direct message") || title.includes("message from") || title.includes("direct message")) {
       return "/Communications?tab=dm";
+    }
+    // General channel message
+    if (msg.includes("message") || title.includes("message")) {
+      return "/Communications";
     }
     return "/Communications";
   }
