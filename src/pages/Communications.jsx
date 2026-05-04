@@ -31,13 +31,26 @@ export default function Communications() {
   const typingTimeout = useRef(null);
   const fileInputRef = useRef(null);
 
-  // If navigated here with ?tab=dm, open the DM selector
+  // If navigated here with ?tab=dm or ?channel=..., handle auto-open
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("tab") === "dm") {
+    const channelParam = params.get("channel");
+    if (channelParam) {
+      // Auto-switch to specific DM channel — displayName resolved once allUsers loads
+      setActiveChannel({ name: channelParam, type: "dm", displayName: "" });
+      setChannel(channelParam);
+      setDmChannels(prev => prev.includes(channelParam) ? prev : [...prev, channelParam]);
+    } else if (params.get("tab") === "dm") {
       setPendingDmOpen(true);
     }
   }, []);
+
+  // Once allUsers loads, fill in displayName for any active DM that's missing it
+  useEffect(() => {
+    if (allUsers.length > 0 && activeChannel.type === "dm" && !activeChannel.displayName) {
+      setActiveChannel(prev => ({ ...prev, displayName: getDmDisplayName(prev.name) }));
+    }
+  }, [allUsers]);
 
   const requestNotificationPermission = async () => {
     if (!('Notification' in window)) return;

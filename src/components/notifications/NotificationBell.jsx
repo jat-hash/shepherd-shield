@@ -14,13 +14,18 @@ function extractUrl(text) {
 
 function getNotificationRoute(notification) {
   const type = notification.type || "";
-  const msg = (notification.message || "").toLowerCase();
-  const title = (notification.title || "").toLowerCase();
   if (notification.assignment_id || type.includes("assignment")) return "/Assignments";
-  if (type === "general" && (msg.includes("direct message") || title.includes("message from") || title.includes("direct message"))) {
-    return "/Communications?tab=dm";
+  if (type === "general") {
+    if (notification.dm_channel) {
+      return `/Communications?channel=${encodeURIComponent(notification.dm_channel)}`;
+    }
+    const msg = (notification.message || "").toLowerCase();
+    const title = (notification.title || "").toLowerCase();
+    if (msg.includes("direct message") || title.includes("message from") || title.includes("direct message")) {
+      return "/Communications?tab=dm";
+    }
+    return "/Communications";
   }
-  if (type === "general") return "/Communications";
   return null;
 }
 

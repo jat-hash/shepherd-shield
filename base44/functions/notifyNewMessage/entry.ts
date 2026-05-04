@@ -21,9 +21,10 @@ Deno.serve(async (req) => {
       if (recipientEmail) {
         notifications = [{
           user_email: recipientEmail,
-          title: `New direct message from ${data.sender_name}`,
+          title: `Message from ${data.sender_name}`,
           message: data.content.substring(0, 100) + (data.content.length > 100 ? '...' : ''),
-          type: 'general'
+          type: 'general',
+          dm_channel: data.channel
         }];
       }
     } else {

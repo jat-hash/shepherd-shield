@@ -5,14 +5,20 @@ import { useNavigate } from "react-router-dom";
 
 function getNotificationRoute(notification) {
   const type = notification.type || "";
-  const msg = (notification.message || "").toLowerCase();
-  const title = (notification.title || "").toLowerCase();
   if (notification.assignment_id || type.includes("assignment")) return "/Assignments";
-  // DM notifications: title like "Message from X" or message includes "direct message"
-  if (type === "general" && (msg.includes("direct message") || title.includes("message from") || title.includes("direct message"))) {
-    return "/Communications?tab=dm";
+  if (type === "general") {
+    // If we have a specific DM channel, route directly to it
+    if (notification.dm_channel) {
+      return `/Communications?channel=${encodeURIComponent(notification.dm_channel)}`;
+    }
+    // Fallback: detect DM by title/message keywords
+    const msg = (notification.message || "").toLowerCase();
+    const title = (notification.title || "").toLowerCase();
+    if (msg.includes("direct message") || title.includes("message from") || title.includes("direct message")) {
+      return "/Communications?tab=dm";
+    }
+    return "/Communications";
   }
-  if (type === "general") return "/Communications";
   return null;
 }
 
