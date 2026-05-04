@@ -106,8 +106,11 @@ export default function WatchList() {
       ) : (
         <div className="space-y-3">
           {filtered.map(p => (
-            <button key={p.id} onClick={() => setDetailPerson(p)} className="w-full text-left bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-4 flex items-center gap-4 hover:border-[#d4a843]/30 transition-all">
-              <div className="w-14 h-14 rounded-xl bg-[#0a1128] border border-slate-700 overflow-hidden flex-shrink-0">
+            <div key={p.id} className="w-full text-left bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-4 flex items-center gap-4 hover:border-[#d4a843]/30 transition-all">
+              <div
+                className={`w-14 h-14 rounded-xl bg-[#0a1128] border border-slate-700 overflow-hidden flex-shrink-0 ${p.photo ? 'cursor-zoom-in' : ''}`}
+                onClick={() => p.photo && setZoomedPhoto(p.photo)}
+              >
                 {p.photo ? (
                   <img src={p.photo} alt="" className="w-full h-full object-contain" />
                 ) : (
@@ -116,14 +119,16 @@ export default function WatchList() {
                   </div>
                 )}
               </div>
-              <div className="flex-1 min-w-0">
+              <button className="flex-1 min-w-0 text-left" onClick={() => setDetailPerson(p)}>
                 <h3 className="text-sm font-bold text-white">{p.full_name}</h3>
                 <p className="text-xs text-slate-400 truncate mt-0.5">{p.description || "No description"}</p>
-              </div>
-              <span className={`px-2 py-1 rounded-full text-[10px] font-semibold border ${statusColors[p.status]}`}>
-                {p.status}
-              </span>
-            </button>
+              </button>
+              <button onClick={() => setDetailPerson(p)} className="flex-shrink-0">
+                <span className={`px-2 py-1 rounded-full text-[10px] font-semibold border ${statusColors[p.status]}`}>
+                  {p.status}
+                </span>
+              </button>
+            </div>
           ))}
         </div>
       )}
