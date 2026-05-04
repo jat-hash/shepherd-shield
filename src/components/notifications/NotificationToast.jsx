@@ -90,7 +90,7 @@ export default function NotificationToast({ userEmail }) {
     // Use functional update in timeout to avoid stale closure
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t._toastId !== toastId));
-    }, 6000);
+    }, 10000);
   };
 
   const dismissToast = (toastId) => {
@@ -120,14 +120,12 @@ export default function NotificationToast({ userEmail }) {
         return (
           <div
             key={toast._toastId}
-            className="bg-[#1a2744] border border-[rgba(212,168,67,0.3)] rounded-xl shadow-2xl p-4 flex items-start gap-3"
+            className={`bg-[#1a2744] border border-[rgba(212,168,67,0.3)] rounded-xl shadow-2xl p-4 flex items-start gap-3 ${isClickable ? 'cursor-pointer active:bg-[#243056]' : ''}`}
             style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.6)', animation: 'slideInRight 0.3s ease-out' }}
+            onClick={isClickable ? () => handleClick(toast) : undefined}
           >
             <div className="flex-shrink-0 mt-0.5">{getIcon(toast)}</div>
-            <div
-              className={`flex-1 min-w-0 ${isClickable ? 'cursor-pointer' : ''}`}
-              onClick={isClickable ? () => handleClick(toast) : undefined}
-            >
+            <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-white leading-tight">{toast.title}</p>
               {url ? (
                 <span className="text-xs text-blue-400 flex items-center gap-1 mt-1">
@@ -136,14 +134,12 @@ export default function NotificationToast({ userEmail }) {
               ) : (
                 <p className="text-xs text-slate-400 mt-1 line-clamp-2">{toast.message}</p>
               )}
-              {isClickable && !url && (
-                <p className="text-[10px] text-[#d4a843] mt-1">
-                  {route?.includes('tab=dm') ? 'Tap to open DM →' : `Tap to open →`}
-                </p>
+              {isClickable && (
+                <p className="text-[10px] text-[#d4a843] mt-1">Tap to open →</p>
               )}
             </div>
             <button
-              onClick={() => dismissToast(toast._toastId)}
+              onClick={(e) => { e.stopPropagation(); dismissToast(toast._toastId); }}
               className="flex-shrink-0 text-slate-500 hover:text-white transition-colors p-0.5"
             >
               <X className="w-4 h-4" />
