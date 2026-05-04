@@ -101,11 +101,15 @@ export default function NotificationToast({ userEmail }) {
     const url = extractUrl(toast.message);
     if (url) {
       window.open(url, "_blank");
-    } else {
-      const route = getNotificationRoute(toast);
-      if (route) navigate(route);
+      dismissToast(toast._toastId);
+      return;
     }
-    dismissToast(toast._toastId);
+    const route = getNotificationRoute(toast);
+    if (route) {
+      navigate(route);
+      setTimeout(() => dismissToast(toast._toastId), 300);
+    }
+    // Don't dismiss if no route — let user see it
   };
 
   if (toasts.length === 0) return null;
