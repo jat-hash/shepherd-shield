@@ -53,7 +53,7 @@
       "type": "string",
       "enum": [
         "Open",
-        "In Progress",
+        "Under Review",
         "Resolved",
         "Closed"
       ],

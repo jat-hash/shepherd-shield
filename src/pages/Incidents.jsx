@@ -17,7 +17,7 @@ const severityColors = {
 
 const statusColors = {
   Open: "text-red-400",
-  "In Progress": "text-amber-400",
+  "Under Review": "text-amber-400",
   Resolved: "text-emerald-400",
   Closed: "text-slate-400",
 };
@@ -75,7 +75,7 @@ export default function Incidents() {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex gap-2 overflow-x-auto no-scrollbar">
-            {["all", "Open", "In Progress", "Resolved", "Closed"].map(f => (
+            {["all", "Open", "Under Review", "Resolved", "Closed"].map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
@@ -155,9 +155,9 @@ export default function Incidents() {
                   {currentUser?.role === 'admin' && (
                     <>
                       {inc.status === "Open" && (
-                        <button onClick={(e) => { e.stopPropagation(); updateStatus(inc.id, "In Progress"); }} className="text-amber-400 hover:text-amber-300 underline">Take</button>
+                        <button onClick={(e) => { e.stopPropagation(); updateStatus(inc.id, "Under Review"); }} className="text-amber-400 hover:text-amber-300 underline">Review</button>
                       )}
-                      {inc.status === "In Progress" && (
+                      {inc.status === "Under Review" && (
                         <button onClick={(e) => { e.stopPropagation(); updateStatus(inc.id, "Resolved"); }} className="text-emerald-400 hover:text-emerald-300 underline">Resolve</button>
                       )}
                     </>
