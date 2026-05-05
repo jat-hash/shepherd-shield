@@ -63,9 +63,9 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const maxSize = 20 * 1024 * 1024; // 20MB
+    const maxSize = 200 * 1024 * 1024; // 200MB
     if (file.size > maxSize) {
-      toast.error("File size must be less than 20MB");
+      toast.error("File size must be less than 200MB");
       return;
     }
 
@@ -183,10 +183,10 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
             <Label className="text-slate-300 text-xs">Attachments</Label>
             <label className="mt-1 flex items-center gap-2 cursor-pointer bg-[#0a1128] border border-dashed border-slate-600 rounded-lg p-3 hover:border-[#d4a843]/40 transition-colors">
               <Upload className="w-4 h-4 text-slate-400" />
-              <span className="text-xs text-slate-400">{uploading ? "Uploading..." : "Add photo, video, or document (PDF, Word, Excel…)"}</span>
+              <span className="text-xs text-slate-400">{uploading ? "Uploading..." : "Add photo, video, or document — up to 200MB"}</span>
               <input
                 type="file"
-                accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.ppt,.pptx"
+                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.ppt,.pptx"
                 className="hidden"
                 onChange={handleFileUpload}
                 disabled={uploading}
@@ -197,7 +197,7 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
                 {form.attachments.map((url, i) => {
                   const filename = decodeURIComponent(url.split("/").pop().split("?")[0]);
                   const isImage = url.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-                  const isVideo = url.match(/\.(mp4|mov|avi|webm)$/i);
+                  const isVideo = url.match(/\.(mp4|mov|avi|webm|mkv|m4v|wmv|flv|3gp|ts|mts)$/i);
                   return (
                     <div key={i} className="relative group">
                       {isImage ? (
