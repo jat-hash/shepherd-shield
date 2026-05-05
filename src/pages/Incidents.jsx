@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, AlertTriangle, Clock, CheckCircle2, FileWarning, ArrowUpDown, Image, WifiOff } from "lucide-react";
+import { Plus, AlertTriangle, Clock, CheckCircle2, FileWarning, ArrowUpDown, Image, WifiOff, Pencil } from "lucide-react";
 import useOfflineData from "@/hooks/useOfflineData";
 import { Button } from "@/components/ui/button";
 import IncidentForm from "@/components/incidents/IncidentForm";
@@ -24,6 +24,7 @@ const statusColors = {
 
 export default function Incidents() {
   const [formOpen, setFormOpen] = useState(false);
+  const [editingIncident, setEditingIncident] = useState(null);
   const [filter, setFilter] = useState("all");
   const [severityFilter, setSeverityFilter] = useState("all");
   const [sortBy, setSortBy] = useState("-created_date");
@@ -178,16 +179,25 @@ export default function Incidents() {
       </div>
 
       <IncidentForm open={formOpen} onClose={() => setFormOpen(false)} onSaved={loadIncidents} />
+      <IncidentForm open={!!editingIncident} onClose={() => setEditingIncident(null)} onSaved={() => { loadIncidents(); setViewingIncident(null); }} incident={editingIncident} />
 
       {/* Incident Detail View */}
       <Dialog open={!!viewingIncident} onOpenChange={() => setViewingIncident(null)}>
         <DialogContent className="bg-[#1a2744] border-slate-700 text-white max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-[#d4a843] flex items-center gap-2">
+            <DialogTitle className="text-[#d4a843] flex items-center gap-2 flex-wrap">
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${severityColors[viewingIncident?.severity]}`}>
                 {viewingIncident?.severity}
               </span>
-              {viewingIncident?.title}
+              <span className="flex-1">{viewingIncident?.title}</span>
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => { setEditingIncident(viewingIncident); setViewingIncident(null); }}
+                  className="flex items-center gap-1 text-xs text-slate-400 hover:text-white bg-[#0a1128] border border-slate-700 rounded-lg px-2 py-1 transition-colors"
+                >
+                  <Pencil className="w-3 h-3" /> Edit
+                </button>
+              )}
             </DialogTitle>
           </DialogHeader>
           {viewingIncident && (

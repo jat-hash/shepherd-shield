@@ -13,7 +13,8 @@ const CATEGORIES = ["Suspicious Activity", "Medical Emergency", "Disruptive Beha
 const SEVERITIES = ["Low", "Medium", "High", "Critical"];
 const STATUSES = ["Open", "In Progress", "Resolved", "Closed"];
 
-export default function IncidentForm({ open, onClose, onSaved }) {
+export default function IncidentForm({ open, onClose, onSaved, incident }) {
+  const isEditing = !!incident;
   const [form, setForm] = useState({
     title: "",
     category: "",
@@ -30,19 +31,33 @@ export default function IncidentForm({ open, onClose, onSaved }) {
 
   useEffect(() => {
     if (open) {
-      setForm({
-        title: "",
-        category: "",
-        location: "",
-        severity: "",
-        description: "",
-        people_involved: "",
-        status: "Open",
-        incident_date: new Date().toISOString().split("T")[0],
-        attachments: [],
-      });
+      if (incident) {
+        setForm({
+          title: incident.title || "",
+          category: incident.category || "",
+          location: incident.location || "",
+          severity: incident.severity || "",
+          description: incident.description || "",
+          people_involved: incident.people_involved || "",
+          status: incident.status || "Open",
+          incident_date: incident.incident_date || new Date().toISOString().split("T")[0],
+          attachments: incident.attachments || [],
+        });
+      } else {
+        setForm({
+          title: "",
+          category: "",
+          location: "",
+          severity: "",
+          description: "",
+          people_involved: "",
+          status: "Open",
+          incident_date: new Date().toISOString().split("T")[0],
+          attachments: [],
+        });
+      }
     }
-  }, [open]);
+  }, [open, incident]);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -75,11 +90,15 @@ export default function IncidentForm({ open, onClose, onSaved }) {
 
   const handleSave = async () => {
     setSaving(true);
-    const user = await base44.auth.me();
-    await base44.entities.Incident.create({
-      ...form,
-      reported_by: user?.data?.display_name || user?.display_name || user?.full_name || user?.email || "Unknown",
-    });
+    if (isEditing) {
+      await base44.entities.Incident.update(incident.id, form);
+    } else {
+      const user = await base44.auth.me();
+      await base44.entities.Incident.create({
+        ...form,
+        reported_by: user?.data?.display_name || user?.display_name || user?.full_name || user?.email || "Unknown",
+      });
+    }
     setSaving(false);
     onSaved?.();
     onClose();
@@ -96,7 +115,7 @@ export default function IncidentForm({ open, onClose, onSaved }) {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="bg-[#1a2744] border-slate-700 text-white w-[calc(100vw-2rem)] max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-[#d4a843]">New Incident Report</DialogTitle>
+          <DialogTitle className="text-[#d4a843]">{isEditing ? "Edit Incident Report" : "New Incident Report"}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -143,6 +162,18 @@ export default function IncidentForm({ open, onClose, onSaved }) {
             <Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" rows={4} placeholder="Detailed description of the incident..." />
           </div>
 
+          {isEditing && (
+            <div>
+              <Label className="text-slate-300 text-xs">Status</Label>
+              <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
+                <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-[#1a2744] border-slate-700">
+                  {STATUSES.map(s => <SelectItem key={s} value={s} className="text-white">{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div>
             <Label className="text-slate-300 text-xs">People Involved</Label>
             <Textarea value={form.people_involved} onChange={e => setForm({ ...form, people_involved: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" rows={2} placeholder="Names and descriptions" />
@@ -183,7 +214,7 @@ export default function IncidentForm({ open, onClose, onSaved }) {
         <DialogFooter className="mt-4 flex gap-2">
           <Button variant="ghost" onClick={onClose} className="flex-1 sm:flex-none text-slate-400">Cancel</Button>
           <Button onClick={handleSave} disabled={saving || !form.title || !form.category || !form.severity || !form.location || !form.description} className="flex-1 sm:flex-none bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
-            {saving ? "Submitting..." : "Submit Report"}
+            {saving ? "Saving..." : isEditing ? "Save Changes" : "Submit Report"}
           </Button>
         </DialogFooter>
       </DialogContent>
