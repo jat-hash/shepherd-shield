@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Upload, X } from "lucide-react";
+import { Upload, X, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 const CATEGORIES = ["Suspicious Activity", "Medical Emergency", "Disruptive Behavior", "Theft", "Trespassing", "Unsecured Property", "Weather Emergency", "Facility Issue", "Other"];
@@ -180,32 +180,51 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
           </div>
 
           <div>
-            <Label className="text-slate-300 text-xs">Photos/Videos</Label>
+            <Label className="text-slate-300 text-xs">Attachments</Label>
             <label className="mt-1 flex items-center gap-2 cursor-pointer bg-[#0a1128] border border-dashed border-slate-600 rounded-lg p-3 hover:border-[#d4a843]/40 transition-colors">
               <Upload className="w-4 h-4 text-slate-400" />
-              <span className="text-xs text-slate-400">{uploading ? "Uploading..." : "Add photo, video or document"}</span>
-              <input type="file" accept="image/*,video/*,.pdf" className="hidden" onChange={handleFileUpload} disabled={uploading} />
+              <span className="text-xs text-slate-400">{uploading ? "Uploading..." : "Add photo, video, or document (PDF, Word, Excel…)"}</span>
+              <input
+                type="file"
+                accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.ppt,.pptx"
+                className="hidden"
+                onChange={handleFileUpload}
+                disabled={uploading}
+              />
             </label>
             {form.attachments.length > 0 && (
               <div className="flex gap-2 mt-2 flex-wrap">
-                {form.attachments.map((url, i) => (
-                  <div key={i} className="relative group w-20 h-20 rounded-lg bg-[#0a1128] border border-slate-700 overflow-hidden">
-                    {url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                      <img src={url} alt="" className="w-full h-full object-cover" />
-                    ) : url.match(/\.(mp4|mov|avi|webm)$/i) ? (
-                      <video src={url} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xs text-slate-400">📄</div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => removeAttachment(i)}
-                      className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="w-3 h-3 text-white" />
-                    </button>
-                  </div>
-                ))}
+                {form.attachments.map((url, i) => {
+                  const filename = decodeURIComponent(url.split("/").pop().split("?")[0]);
+                  const isImage = url.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+                  const isVideo = url.match(/\.(mp4|mov|avi|webm)$/i);
+                  return (
+                    <div key={i} className="relative group">
+                      {isImage ? (
+                        <div className="w-20 h-20 rounded-lg bg-[#0a1128] border border-slate-700 overflow-hidden">
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      ) : isVideo ? (
+                        <div className="w-20 h-20 rounded-lg bg-[#0a1128] border border-slate-700 overflow-hidden">
+                          <video src={url} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <a href={url} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2 bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2 hover:border-[#d4a843]/40 transition-colors max-w-[200px]">
+                          <FileText className="w-4 h-4 text-[#d4a843] flex-shrink-0" />
+                          <span className="text-xs text-slate-300 truncate">{filename}</span>
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(i)}
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                      >
+                        <X className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
