@@ -70,14 +70,17 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
     }
 
     setUploading(true);
+    toast.info(`Uploading ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)…`);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setForm(prev => ({ ...prev, attachments: [...prev.attachments, file_url] }));
-      toast.success("File uploaded");
+      toast.success("File uploaded successfully");
     } catch (error) {
-      toast.error("Upload failed");
+      console.error("Upload error:", error);
+      toast.error(`Upload failed: ${error?.message || "Unknown error"}`);
     } finally {
       setUploading(false);
+      e.target.value = "";
     }
   };
 
