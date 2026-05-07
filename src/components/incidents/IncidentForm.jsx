@@ -191,24 +191,21 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
 
           <div>
             <Label className="text-slate-300 text-xs">Attachments</Label>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="mt-1 w-full flex items-center gap-2 cursor-pointer bg-[#0a1128] border border-dashed border-slate-600 rounded-lg p-3 hover:border-[#d4a843]/40 transition-colors disabled:opacity-50"
-            >
-              <Upload className="w-4 h-4 text-slate-400" />
-              <span className="text-xs text-slate-400">{uploading ? "Uploading..." : "Add photo, video, or document — up to 500MB"}</span>
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.ppt,.pptx"
-              className="hidden"
-              multiple
-              onChange={handleFileUpload}
-              disabled={uploading}
-            />
+            <div className="relative mt-1">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.ppt,.pptx"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                multiple
+                onChange={handleFileUpload}
+                disabled={uploading}
+              />
+              <div className="flex items-center gap-2 bg-[#0a1128] border border-dashed border-slate-600 rounded-lg p-3 hover:border-[#d4a843]/40 transition-colors">
+                <Upload className="w-4 h-4 text-slate-400" />
+                <span className="text-xs text-slate-400">{uploading ? "Uploading..." : "Tap to add photo, video, or document — up to 500MB"}</span>
+              </div>
+            </div>
             {form.attachments.length > 0 && (
               <div className="flex gap-2 mt-2 flex-wrap">
                 {form.attachments.map((url, i) => {
