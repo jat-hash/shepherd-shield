@@ -28,6 +28,7 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
   });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [fileInputKey, setFileInputKey] = useState(0);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -62,8 +63,9 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
 
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files || []);
-    e.target.value = "";
     if (files.length === 0) return;
+    // Reset input so same file can be picked again next time
+    setFileInputKey(k => k + 1);
 
     const maxSize = 500 * 1024 * 1024; // 500MB
     const validFiles = files.filter(file => {
@@ -203,6 +205,7 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
           <div>
             <Label className="text-slate-300 text-xs">Attachments {form.attachments.length > 0 && `(${form.attachments.length})`}</Label>
             <input
+              key={fileInputKey}
               ref={fileInputRef}
               type="file"
               accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.ppt,.pptx"
@@ -214,7 +217,7 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
             <button
               type="button"
               disabled={uploading}
-              onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); fileInputRef.current?.click(); }}
+              onClick={() => fileInputRef.current?.click()}
               className="mt-1 w-full flex items-center gap-2 cursor-pointer bg-[#0a1128] border border-dashed border-slate-600 rounded-lg p-3 hover:border-[#d4a843]/40 transition-colors disabled:opacity-50 select-none"
             >
               <Upload className="w-4 h-4 text-slate-400 flex-shrink-0" />
