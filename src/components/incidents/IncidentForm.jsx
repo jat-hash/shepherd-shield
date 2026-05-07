@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,6 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
   });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (open) {
@@ -190,22 +189,19 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
           </div>
 
           <div>
-            <Label className="text-slate-300 text-xs">Attachments</Label>
-            <div className="relative mt-1">
+            <Label className="text-slate-300 text-xs">Attachments {form.attachments.length > 0 && `(${form.attachments.length})`}</Label>
+            <label className="mt-1 flex items-center gap-2 cursor-pointer bg-[#0a1128] border border-dashed border-slate-600 rounded-lg p-3 hover:border-[#d4a843]/40 transition-colors select-none">
               <input
-                ref={fileInputRef}
                 type="file"
                 accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.ppt,.pptx"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                className="sr-only"
                 multiple
                 onChange={handleFileUpload}
                 disabled={uploading}
               />
-              <div className="flex items-center gap-2 bg-[#0a1128] border border-dashed border-slate-600 rounded-lg p-3 hover:border-[#d4a843]/40 transition-colors">
-                <Upload className="w-4 h-4 text-slate-400" />
-                <span className="text-xs text-slate-400">{uploading ? "Uploading..." : "Tap to add photo, video, or document — up to 500MB"}</span>
-              </div>
-            </div>
+              <Upload className="w-4 h-4 text-slate-400 flex-shrink-0" />
+              <span className="text-xs text-slate-400">{uploading ? "Uploading..." : "Tap to add photos, videos, or documents (up to 500MB each)"}</span>
+            </label>
             {form.attachments.length > 0 && (
               <div className="flex gap-2 mt-2 flex-wrap">
                 {form.attachments.map((url, i) => {
