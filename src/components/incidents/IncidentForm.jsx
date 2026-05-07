@@ -60,28 +60,34 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
   }, [open, incident]);
 
   const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    const maxSize = 700 * 1024 * 1024; // 700MB
-    if (file.size > maxSize) {
-      toast.error("File size must be less than 700MB");
-      return;
+    const maxSize = 20 * 1024 * 1024; // 20MB platform limit
+
+    for (const file of Array.from(files)) {
+      if (file.size > maxSize) {
+        toast.error(`${file.name} exceeds 20MB limit`);
+        continue;
+      }
+
+      setUploading(true);
+      toast.info(`Uploading ${file.name}…`);
+      try {
+        const result = await base44.integrations.Core.UploadFile({ file });
+        const url = result?.file_url || result?.url;
+        if (!url) throw new Error("No URL returned from upload");
+        setForm(prev => ({ ...prev, attachments: [...prev.attachments, url] }));
+        toast.success(`${file.name} uploaded`);
+      } catch (error) {
+        console.error("Upload error:", error);
+        toast.error(`Upload failed: ${error?.response?.data?.message || error?.message || "Unknown error"}`);
+      } finally {
+        setUploading(false);
+      }
     }
 
-    setUploading(true);
-    toast.info(`Uploading ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)…`);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setForm(prev => ({ ...prev, attachments: [...prev.attachments, file_url] }));
-      toast.success("File uploaded successfully");
-    } catch (error) {
-      console.error("Upload error:", error);
-      toast.error(`Upload failed: ${error?.message || "Unknown error"}`);
-    } finally {
-      setUploading(false);
-      e.target.value = "";
-    }
+    e.target.value = "";
   };
 
   const removeAttachment = (index) => {
@@ -186,11 +192,12 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
             <Label className="text-slate-300 text-xs">Attachments</Label>
             <label className="mt-1 flex items-center gap-2 cursor-pointer bg-[#0a1128] border border-dashed border-slate-600 rounded-lg p-3 hover:border-[#d4a843]/40 transition-colors">
               <Upload className="w-4 h-4 text-slate-400" />
-              <span className="text-xs text-slate-400">{uploading ? "Uploading..." : "Add photo, video, or document — up to 700MB"}</span>
+              <span className="text-xs text-slate-400">{uploading ? "Uploading..." : "Add photo, video, or document — up to 20MB"}</span>
               <input
                 type="file"
                 accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.ppt,.pptx"
                 className="hidden"
+                multiple
                 onChange={handleFileUpload}
                 disabled={uploading}
               />
