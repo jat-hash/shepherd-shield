@@ -60,34 +60,45 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
   }, [open, incident]);
 
   const handleFileUpload = async (e) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (files.length === 0) return;
 
     const maxSize = 500 * 1024 * 1024; // 500MB
-
-    for (const file of Array.from(files)) {
+    const validFiles = files.filter(file => {
       if (file.size > maxSize) {
         toast.error(`${file.name} exceeds 500MB limit`);
-        continue;
+        return false;
       }
+      return true;
+    });
 
-      setUploading(true);
-      toast.info(`Uploading ${file.name}…`);
-      try {
-        const result = await base44.integrations.Core.UploadFile({ file });
-        const url = result?.file_url || result?.url;
-        if (!url) throw new Error("No URL returned from upload");
-        setForm(prev => ({ ...prev, attachments: [...prev.attachments, url] }));
-        toast.success(`${file.name} uploaded`);
-      } catch (error) {
-        console.error("Upload error:", error);
-        toast.error(`Upload failed: ${error?.response?.data?.message || error?.message || "Unknown error"}`);
-      } finally {
-        setUploading(false);
+    if (validFiles.length === 0) return;
+
+    setUploading(true);
+    toast.info(`Uploading ${validFiles.length} file${validFiles.length > 1 ? "s" : ""}…`);
+
+    const results = await Promise.allSettled(
+      validFiles.map(file => base44.integrations.Core.UploadFile({ file }))
+    );
+
+    const newUrls = [];
+    results.forEach((result, i) => {
+      if (result.status === "fulfilled") {
+        const url = result.value?.file_url || result.value?.url;
+        if (url) {
+          newUrls.push(url);
+          toast.success(`${validFiles[i].name} uploaded`);
+        }
+      } else {
+        toast.error(`Failed to upload ${validFiles[i].name}`);
       }
+    });
+
+    if (newUrls.length > 0) {
+      setForm(prev => ({ ...prev, attachments: [...prev.attachments, ...newUrls] }));
     }
-
-    e.target.value = "";
+    setUploading(false);
   };
 
   const removeAttachment = (index) => {
