@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { CheckCircle, XCircle, Clock, Edit2, Search, Trash2, Bell, Send, MessageSquare, WifiOff, Wrench, RefreshCw, Plus } from "lucide-react";
@@ -54,6 +54,7 @@ export default function AdminMonitor() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [equipmentCheckouts, setEquipmentCheckouts] = useState([]);
   const [newAssignmentOpen, setNewAssignmentOpen] = useState(false);
+  const loadAssignmentsRef = useRef(null);
 
   useEffect(() => {
     if (authUser) {
@@ -240,6 +241,9 @@ export default function AdminMonitor() {
     setLoading(false);
   };
 
+  // Keep ref always pointing to latest loadAssignments to avoid stale closures in subscriptions
+  useEffect(() => { loadAssignmentsRef.current = loadAssignments; });
+
   useEffect(() => {
     if (user?.role === 'admin') {
       loadAssignments();
@@ -271,8 +275,8 @@ export default function AdminMonitor() {
 
   useEffect(() => {
     if (!user) return;
-    const unsubA = base44.entities.Assignment.subscribe(() => loadAssignments());
-    const unsubP = base44.entities.PersonalCheckIn.subscribe(() => loadAssignments());
+    const unsubA = base44.entities.Assignment.subscribe(() => loadAssignmentsRef.current?.());
+    const unsubP = base44.entities.PersonalCheckIn.subscribe(() => loadAssignmentsRef.current?.());
     const unsubL = base44.entities.LiveLocation.subscribe(() => {
       base44.entities.LiveLocation.filter({ is_active: true }, "-last_updated", 100).then(setLiveLocations).catch(() => {});
     });
