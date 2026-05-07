@@ -95,8 +95,12 @@ export default function AdminMonitor() {
         console.warn("Could not load user list:", e.message);
       }
 
-      // Only use is_active live locations
-      const recentLocations = allLiveLocations || [];
+      // Only use locations updated in the last 2 hours (is_active can be stale)
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+      const recentLocations = (allLiveLocations || []).filter(ll => {
+        if (!ll.last_updated) return false;
+        return new Date(ll.last_updated) > twoHoursAgo;
+      });
       setLiveLocations(recentLocations);
 
       // Build a map of personal check-ins by email — prefer open (no check_out_time) records,
@@ -116,9 +120,12 @@ export default function AdminMonitor() {
         if (new Date(p.check_in_time) > new Date(existing.check_in_time)) personalByEmail[key] = p;
       });
 
-      // Remove any closed records that ended up in personalByEmail (all records for that user were checked out)
+      // Remove any closed records or stale records (check-in older than 12 hours)
+      const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
       Object.keys(personalByEmail).forEach(k => {
-        if (personalByEmail[k].check_out_time) delete personalByEmail[k];
+        const rec = personalByEmail[k];
+        if (rec.check_out_time) { delete personalByEmail[k]; return; }
+        if (rec.check_in_time && new Date(rec.check_in_time) < twelveHoursAgo) { delete personalByEmail[k]; }
       });
 
       // Also treat users with active GPS as personally checked in (auto-synthesize)
@@ -244,16 +251,22 @@ export default function AdminMonitor() {
   // Keep ref always pointing to latest loadAssignments to avoid stale closures in subscriptions
   useEffect(() => { loadAssignmentsRef.current = loadAssignments; });
 
+  // Debounce ref to avoid rapid-fire reloads from subscriptions
+  const reloadDebounceRef = useRef(null);
+  const debouncedReload = () => {
+    if (reloadDebounceRef.current) clearTimeout(reloadDebounceRef.current);
+    reloadDebounceRef.current = setTimeout(() => {
+      loadAssignmentsRef.current?.();
+    }, 800);
+  };
+
   useEffect(() => {
     if (user?.role === 'admin') {
       loadAssignments();
-      // Load live locations - consider anyone with a location updated in last 8 hours as "online"
-      base44.entities.LiveLocation.filter({ is_active: true }, "-last_updated", 100).then(setLiveLocations).catch(() => {});
-      // Auto-refresh every 60 seconds
+      // Auto-refresh every 90 seconds
       const interval = setInterval(() => {
-        loadAssignments();
-        base44.entities.LiveLocation.filter({ is_active: true }, "-last_updated", 100).then(setLiveLocations).catch(() => {});
-      }, 60000);
+        loadAssignmentsRef.current?.();
+      }, 90000);
       return () => clearInterval(interval);
     }
   }, [user]);
@@ -262,7 +275,7 @@ export default function AdminMonitor() {
     const handleOnline = async () => {
       setIsOffline(false);
       await syncPendingCheckIns(base44).catch(() => {});
-      loadAssignments();
+      loadAssignmentsRef.current?.();
     };
     const handleOffline = () => setIsOffline(true);
     window.addEventListener("online", handleOnline);
@@ -275,8 +288,8 @@ export default function AdminMonitor() {
 
   useEffect(() => {
     if (!user) return;
-    const unsubA = base44.entities.Assignment.subscribe(() => loadAssignmentsRef.current?.());
-    const unsubP = base44.entities.PersonalCheckIn.subscribe(() => loadAssignmentsRef.current?.());
+    const unsubA = base44.entities.Assignment.subscribe(() => debouncedReload());
+    const unsubP = base44.entities.PersonalCheckIn.subscribe(() => debouncedReload());
     const unsubL = base44.entities.LiveLocation.subscribe(() => {
       base44.entities.LiveLocation.filter({ is_active: true }, "-last_updated", 100).then(setLiveLocations).catch(() => {});
     });
