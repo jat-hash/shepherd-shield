@@ -63,11 +63,11 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const maxSize = 20 * 1024 * 1024; // 20MB platform limit
+    const maxSize = 500 * 1024 * 1024; // 500MB
 
     for (const file of Array.from(files)) {
       if (file.size > maxSize) {
-        toast.error(`${file.name} exceeds 20MB limit`);
+        toast.error(`${file.name} exceeds 500MB limit`);
         continue;
       }
 
@@ -192,7 +192,7 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
             <Label className="text-slate-300 text-xs">Attachments</Label>
             <label className="mt-1 flex items-center gap-2 cursor-pointer bg-[#0a1128] border border-dashed border-slate-600 rounded-lg p-3 hover:border-[#d4a843]/40 transition-colors">
               <Upload className="w-4 h-4 text-slate-400" />
-              <span className="text-xs text-slate-400">{uploading ? "Uploading..." : "Add photo, video, or document — up to 20MB"}</span>
+              <span className="text-xs text-slate-400">{uploading ? "Uploading..." : "Add photo, video, or document — up to 500MB"}</span>
               <input
                 type="file"
                 accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.ppt,.pptx"
