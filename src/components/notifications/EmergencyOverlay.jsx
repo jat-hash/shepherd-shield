@@ -77,22 +77,26 @@ export default function EmergencyOverlay({ alert, onDismiss }) {
     setUnlocked(false);
   }, []);
 
-  // Screen flash loop — starts immediately (no gesture needed)
+  // Auto-start everything as soon as alert appears
   useEffect(() => {
     if (!alert) { stopAll(); return; }
+
+    // Screen flash — no gesture needed
     flashRef.current = setInterval(() => setFlash(f => !f), 500);
+
+    // Try vibration + torch immediately (works if app was already interacted with)
+    const pattern = getPattern(alert.alert_type);
+    startVibration(pattern);
+    startTorch();
+    setUnlocked(true);
+
     return () => {
       clearInterval(flashRef.current);
       setFlash(false);
     };
   }, [alert]);
 
-  // Cleanup on unmount or alert gone
-  useEffect(() => {
-    if (!alert) stopAll();
-  }, [alert]);
-
-  // When user taps the screen (unlock gesture), start vibration + torch
+  // Fallback: if vibration wasn't allowed yet, unlock on first tap anywhere
   const handleUnlock = useCallback(() => {
     if (!alert || unlocked) return;
     setUnlocked(true);
@@ -113,10 +117,10 @@ export default function EmergencyOverlay({ alert, onDismiss }) {
       style={{ background: getBg(alert.alert_type, flash), transition: "background 0.15s" }}
       onClick={handleUnlock}
     >
-      {/* Tap to activate banner */}
+      {/* Fallback tap banner — only shown if auto-start failed */}
       {!unlocked && (
-        <div className="absolute top-0 left-0 right-0 bg-yellow-400 text-black text-center py-3 font-bold text-base tracking-wide animate-pulse">
-          👆 TAP ANYWHERE TO ACTIVATE VIBRATION
+        <div className="absolute top-0 left-0 right-0 bg-yellow-400 text-black text-center py-3 font-bold text-base tracking-wide animate-pulse" onClick={handleUnlock}>
+          👆 TAP HERE TO ACTIVATE VIBRATION
         </div>
       )}
 
@@ -162,7 +166,7 @@ export default function EmergencyOverlay({ alert, onDismiss }) {
           </button>
 
           <p className="text-center text-red-300 text-xs">
-            {unlocked ? "🔴 Vibrating — tap ACKNOWLEDGE to stop" : "Tap anywhere to activate vibration & torch"}
+            🔴 Tap ACKNOWLEDGE to stop all alerts
           </p>
         </div>
       </div>
