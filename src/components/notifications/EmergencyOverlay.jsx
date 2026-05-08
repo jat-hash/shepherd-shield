@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle } from "lucide-react";
+import { base44 } from "@/api/base44Client";
 
 const VIBRATE_PATTERNS = {
   "Fire":           [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200],
@@ -16,6 +17,7 @@ const BG_COLORS = {
 };
 
 export default function EmergencyOverlay({ alert, onDismiss }) {
+  const [dismissing, setDismissing] = useState(false);
   const [flash, setFlash] = useState(false);
   const intervalRefs = useRef({ flash: null, vibrate: null, torch: null });
   const torchTrackRef = useRef(null);
@@ -116,10 +118,21 @@ export default function EmergencyOverlay({ alert, onDismiss }) {
           </div>
 
           <button
-            onClick={onDismiss}
-            className="w-full bg-white text-red-700 font-black text-lg py-5 rounded-xl active:bg-red-50 transition-colors"
+            onClick={async () => {
+              if (dismissing) return;
+              setDismissing(true);
+              try {
+                await base44.entities.EmergencyAlert.update(alert.id, { is_active: false });
+              } catch (e) {
+                console.warn("Could not deactivate alert:", e);
+              }
+              onDismiss();
+              setDismissing(false);
+            }}
+            disabled={dismissing}
+            className="w-full bg-white text-red-700 font-black text-lg py-5 rounded-xl active:bg-red-50 transition-colors disabled:opacity-60"
           >
-            ✅ ACKNOWLEDGE & STOP
+            {dismissing ? "⏳ ACKNOWLEDGING..." : "✅ ACKNOWLEDGE & STOP"}
           </button>
 
           <p className="text-center text-red-300 text-xs">
