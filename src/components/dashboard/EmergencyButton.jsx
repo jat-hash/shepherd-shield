@@ -15,6 +15,17 @@ import { Label } from "@/components/ui/label";
 
 const ALERT_TYPES = ["Lockdown", "Medical Emergency", "Fire", "Suspicious Activity", "Weather"];
 
+const VIBRATE_PATTERNS = {
+  "Lockdown":           [50, 30, 50, 30, 50, 30, 50, 30, 50, 30, 50, 30, 50, 30, 50, 30],
+  "Medical Emergency":  [1000, 300, 1000, 300, 1000, 300],
+  "Fire":               [1000, 500, 1000, 500, 1000, 500],
+  "Suspicious Activity":[800, 200, 200, 200, 800, 200, 200, 200],
+  "Weather":            [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200],
+};
+function getVibratePattern(type) {
+  return VIBRATE_PATTERNS[type] || VIBRATE_PATTERNS["Weather"];
+}
+
 // Flash the torch in a loop until stopRef.current is true
 async function flashTorchLoop(stopRef) {
   let stream = null;
@@ -81,10 +92,11 @@ export default function EmergencyButton({ user }) {
     setSending(true);
 
     // Start continuous vibrate + torch until sent
-    const sosPattern = [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200];
+    const pattern = getVibratePattern(alertType);
+    const repeatDelay = pattern.reduce((a, b) => a + b, 0) + 500;
     if (navigator.vibrate) {
-      navigator.vibrate(sosPattern);
-      vibrateIntervalRef.current = setInterval(() => navigator.vibrate?.(sosPattern), 2500);
+      navigator.vibrate(pattern);
+      vibrateIntervalRef.current = setInterval(() => navigator.vibrate?.(pattern), repeatDelay);
     }
     stopTorchRef.current = false;
     flashTorchLoop(stopTorchRef);

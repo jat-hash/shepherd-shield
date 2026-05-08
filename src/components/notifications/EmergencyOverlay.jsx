@@ -2,6 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+// Vibration patterns per alert type
+const VIBRATE_PATTERNS = {
+  "Lockdown":           [50, 30, 50, 30, 50, 30, 50, 30, 50, 30, 50, 30, 50, 30, 50, 30], // rapid bursts
+  "Medical Emergency":  [1000, 300, 1000, 300, 1000, 300],                                  // long pulses
+  "Fire":               [1000, 500, 1000, 500, 1000, 500],                                  // 1-second on/off
+  "Suspicious Activity":[800, 200, 200, 200, 800, 200, 200, 200],                           // long-short stagger
+  "Weather":            [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200], // SOS
+};
+function getVibratePattern(alertType) {
+  return VIBRATE_PATTERNS[alertType] || VIBRATE_PATTERNS["Weather"];
+}
+
 // Flash the rear camera torch in a loop until stopped
 async function startTorchFlash(stopRef) {
   let stream = null;
@@ -32,13 +44,14 @@ export default function EmergencyOverlay({ alert, onDismiss }) {
   useEffect(() => {
     if (!alert) return;
 
-    // Continuous vibration — SOS pattern every 2.5s
-    const sosPattern = [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200];
+    // Continuous vibration — pattern based on alert type
+    const pattern = getVibratePattern(alert.alert_type);
+    const repeatDelay = pattern.reduce((a, b) => a + b, 0) + 500;
     if (navigator.vibrate) {
-      navigator.vibrate(sosPattern);
+      navigator.vibrate(pattern);
       vibrateIntervalRef.current = setInterval(() => {
-        if (navigator.vibrate) navigator.vibrate(sosPattern);
-      }, 2500);
+        if (navigator.vibrate) navigator.vibrate(pattern);
+      }, repeatDelay);
     }
 
     // Screen flash loop
