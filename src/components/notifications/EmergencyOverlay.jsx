@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 
 const VIBRATE_PATTERNS = {
   "Fire":           [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200],
@@ -17,14 +18,37 @@ const BG_COLORS = {
 };
 
 export default function EmergencyOverlay({ alert, onDismiss }) {
+  const { user } = useAuth();
   const [dismissing, setDismissing] = useState(false);
   const [flash, setFlash] = useState(false);
   const intervalRefs = useRef({ flash: null, vibrate: null, torch: null });
   const torchTrackRef = useRef(null);
   const torchStreamRef = useRef(null);
+  const [hasAcknowledged, setHasAcknowledged] = useState(false);
+
+  // Check if current user has already acknowledged this alert
+  useEffect(() => {
+    if (!alert || !user) return;
+    
+    const checkAcknowledgment = async () => {
+      try {
+        const existing = await base44.entities.SafetyCheckIn.filter({
+          alert_id: alert.id,
+          user_email: user.email
+        });
+        if (existing.length > 0) {
+          setHasAcknowledged(true);
+        }
+      } catch (e) {
+        console.warn("Could not check acknowledgment status:", e);
+      }
+    };
+    
+    checkAcknowledgment();
+  }, [alert?.id, user?.email]);
 
   useEffect(() => {
-    if (!alert) return;
+    if (!alert || hasAcknowledged) return;
 
     const pattern = VIBRATE_PATTERNS[alert.alert_type] || VIBRATE_PATTERNS["Fire"];
     const patternDuration = pattern.reduce((a, b) => a + b, 0) + 500;
@@ -72,9 +96,12 @@ export default function EmergencyOverlay({ alert, onDismiss }) {
       }
       setFlash(false);
     };
-  }, [alert?.id]); // key on alert id so it restarts for each new alert
+  }, [alert?.id, hasAcknowledged]);
 
   if (!alert) return null;
+
+  // Hide if current user already acknowledged
+  if (hasAcknowledged) return null;
 
   const [bgOn, bgOff] = BG_COLORS[alert.alert_type] || BG_COLORS["Fire"];
 
@@ -93,7 +120,7 @@ export default function EmergencyOverlay({ alert, onDismiss }) {
           </div>
           <div>
             <h2 className="text-xl font-black text-white uppercase tracking-wider">🚨 EMERGENCY</h2>
-            <p className="text-red-200 text-sm">Immediate Action Required</p>
+            <p className="text-red-200 text-sm">Your Acknowledgment Required</p>
           </div>
         </div>
 
@@ -119,14 +146,21 @@ export default function EmergencyOverlay({ alert, onDismiss }) {
 
           <button
             onClick={async () => {
-              if (dismissing) return;
+              if (dismissing || !user) return;
               setDismissing(true);
               try {
-                await base44.entities.EmergencyAlert.update(alert.id, { is_active: false });
+                // Create individual SafetyCheckIn record
+                await base44.entities.SafetyCheckIn.create({
+                  alert_id: alert.id,
+                  user_email: user.email,
+                  user_name: user.full_name || user.email,
+                  status: "safe"
+                });
+                setHasAcknowledged(true);
+                onDismiss();
               } catch (e) {
-                console.warn("Could not deactivate alert:", e);
+                console.warn("Could not acknowledge alert:", e);
               }
-              onDismiss();
               setDismissing(false);
             }}
             disabled={dismissing}
