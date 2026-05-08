@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 
 const VIBRATE_PATTERNS = {
@@ -7,123 +7,80 @@ const VIBRATE_PATTERNS = {
   "Active Shooter": [800, 200, 800, 200, 800, 200],
   "Disturbance":    [300, 200, 300, 200, 300, 200],
 };
-function getPattern(type) {
-  return VIBRATE_PATTERNS[type] || VIBRATE_PATTERNS["Fire"];
-}
 
 const BG_COLORS = {
-  "Fire":           ["rgba(200,60,0,0.98)", "rgba(10,0,0,0.98)"],
-  "Medical":        ["rgba(0,80,180,0.98)", "rgba(10,0,0,0.98)"],
-  "Active Shooter": ["rgba(180,0,0,0.98)",  "rgba(10,0,0,0.98)"],
-  "Disturbance":    ["rgba(140,80,0,0.98)", "rgba(10,0,0,0.98)"],
+  "Fire":           ["rgba(220,60,0,0.98)",  "rgba(10,0,0,0.98)"],
+  "Medical":        ["rgba(0,80,180,0.98)",  "rgba(10,0,0,0.98)"],
+  "Active Shooter": ["rgba(180,0,0,0.98)",   "rgba(10,0,0,0.98)"],
+  "Disturbance":    ["rgba(140,80,0,0.98)",  "rgba(10,0,0,0.98)"],
 };
-function getBg(type, flash) {
-  const [a, b] = BG_COLORS[type] || BG_COLORS["Fire"];
-  return flash ? a : b;
-}
 
 export default function EmergencyOverlay({ alert, onDismiss }) {
   const [flash, setFlash] = useState(false);
-  const [unlocked, setUnlocked] = useState(false);
-  const flashRef = useRef(null);
-  const vibrateRef = useRef(null);
-  const torchStopRef = useRef(false);
+  const intervalRefs = useRef({ flash: null, vibrate: null, torch: null });
+  const torchTrackRef = useRef(null);
   const torchStreamRef = useRef(null);
 
-  // Start vibration loop — must be called from user gesture context
-  const startVibration = useCallback((pattern) => {
-    if (!navigator.vibrate) return;
-    navigator.vibrate(pattern);
-    const total = pattern.reduce((a, b) => a + b, 0) + 600;
-    vibrateRef.current = setInterval(() => {
-      navigator.vibrate(pattern);
-    }, total);
-  }, []);
-
-  // Torch flash
-  const startTorch = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      torchStreamRef.current = stream;
-      const track = stream.getVideoTracks()[0];
-      const caps = track.getCapabilities?.() || {};
-      if (!caps.torch) { stream.getTracks().forEach(t => t.stop()); return; }
-      let on = true;
-      torchStopRef.current = false;
-      const loop = async () => {
-        if (torchStopRef.current) {
-          track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
-          stream.getTracks().forEach(t => t.stop());
-          return;
-        }
-        await track.applyConstraints({ advanced: [{ torch: on }] }).catch(() => {});
-        on = !on;
-        setTimeout(loop, 400);
-      };
-      loop();
-    } catch (_) {}
-  }, []);
-
-  const stopAll = useCallback(() => {
-    clearInterval(flashRef.current);
-    clearInterval(vibrateRef.current);
-    torchStopRef.current = true;
-    if (navigator.vibrate) navigator.vibrate(0);
-    if (torchStreamRef.current) {
-      torchStreamRef.current.getTracks().forEach(t => t.stop());
-      torchStreamRef.current = null;
-    }
-    setFlash(false);
-    setUnlocked(false);
-  }, []);
-
-  // Auto-start everything as soon as alert appears
   useEffect(() => {
-    if (!alert) { stopAll(); return; }
+    if (!alert) return;
 
-    // Screen flash — no gesture needed
-    flashRef.current = setInterval(() => setFlash(f => !f), 500);
+    const pattern = VIBRATE_PATTERNS[alert.alert_type] || VIBRATE_PATTERNS["Fire"];
+    const patternDuration = pattern.reduce((a, b) => a + b, 0) + 500;
 
-    // Try vibration + torch immediately (works if app was already interacted with)
-    const pattern = getPattern(alert.alert_type);
-    startVibration(pattern);
-    startTorch();
-    setUnlocked(true);
+    // 1. Screen flash
+    intervalRefs.current.flash = setInterval(() => setFlash(f => !f), 400);
+
+    // 2. Vibration loop
+    if (navigator.vibrate) {
+      navigator.vibrate(pattern);
+      intervalRefs.current.vibrate = setInterval(() => {
+        navigator.vibrate(pattern);
+      }, patternDuration);
+    }
+
+    // 3. Torch flash (best-effort)
+    navigator.mediaDevices?.getUserMedia({ video: { facingMode: "environment" } })
+      .then(stream => {
+        torchStreamRef.current = stream;
+        const track = stream.getVideoTracks()[0];
+        const caps = track.getCapabilities?.() || {};
+        if (!caps.torch) { stream.getTracks().forEach(t => t.stop()); return; }
+        torchTrackRef.current = track;
+        let on = true;
+        intervalRefs.current.torch = setInterval(() => {
+          track.applyConstraints({ advanced: [{ torch: on }] }).catch(() => {});
+          on = !on;
+        }, 400);
+      })
+      .catch(() => {});
 
     return () => {
-      clearInterval(flashRef.current);
+      // Cleanup all
+      clearInterval(intervalRefs.current.flash);
+      clearInterval(intervalRefs.current.vibrate);
+      clearInterval(intervalRefs.current.torch);
+      if (navigator.vibrate) navigator.vibrate(0);
+      if (torchTrackRef.current) {
+        torchTrackRef.current.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+        torchTrackRef.current = null;
+      }
+      if (torchStreamRef.current) {
+        torchStreamRef.current.getTracks().forEach(t => t.stop());
+        torchStreamRef.current = null;
+      }
       setFlash(false);
     };
-  }, [alert]);
-
-  // Fallback: if vibration wasn't allowed yet, unlock on first tap anywhere
-  const handleUnlock = useCallback(() => {
-    if (!alert || unlocked) return;
-    setUnlocked(true);
-    startVibration(getPattern(alert.alert_type));
-    startTorch();
-  }, [alert, unlocked, startVibration, startTorch]);
-
-  const handleAcknowledge = useCallback(() => {
-    stopAll();
-    onDismiss();
-  }, [stopAll, onDismiss]);
+  }, [alert?.id]); // key on alert id so it restarts for each new alert
 
   if (!alert) return null;
+
+  const [bgOn, bgOff] = BG_COLORS[alert.alert_type] || BG_COLORS["Fire"];
 
   return (
     <div
       className="fixed inset-0 z-[9999] flex flex-col items-center justify-center"
-      style={{ background: getBg(alert.alert_type, flash), transition: "background 0.15s" }}
-      onClick={handleUnlock}
+      style={{ background: flash ? bgOn : bgOff, transition: "background 0.1s" }}
     >
-      {/* Fallback tap banner — only shown if auto-start failed */}
-      {!unlocked && (
-        <div className="absolute top-0 left-0 right-0 bg-yellow-400 text-black text-center py-3 font-bold text-base tracking-wide animate-pulse" onClick={handleUnlock}>
-          👆 TAP HERE TO ACTIVATE VIBRATION
-        </div>
-      )}
-
       <div className="max-w-sm w-full mx-4 rounded-2xl border-4 border-white shadow-2xl overflow-hidden"
         style={{ background: "rgba(180,0,0,0.95)" }}>
 
@@ -159,14 +116,14 @@ export default function EmergencyOverlay({ alert, onDismiss }) {
           </div>
 
           <button
-            onClick={(e) => { e.stopPropagation(); handleAcknowledge(); }}
+            onClick={onDismiss}
             className="w-full bg-white text-red-700 font-black text-lg py-5 rounded-xl active:bg-red-50 transition-colors"
           >
             ✅ ACKNOWLEDGE & STOP
           </button>
 
           <p className="text-center text-red-300 text-xs">
-            🔴 Tap ACKNOWLEDGE to stop all alerts
+            🔴 Vibrating — tap ACKNOWLEDGE to stop
           </p>
         </div>
       </div>
