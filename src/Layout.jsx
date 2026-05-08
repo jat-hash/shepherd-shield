@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
@@ -9,6 +9,7 @@ import NotificationBell from "@/components/notifications/NotificationBell";
 import AlertNotificationSystem from "@/components/notifications/AlertNotificationSystem";
 import UserSwitcher from "@/components/UserSwitcher";
 import NotificationToast from "@/components/notifications/NotificationToast";
+import EmergencyOverlay from "@/components/notifications/EmergencyOverlay";
 
 const NAV_ITEMS = [
   { name: "Dashboard", icon: Home, page: "Dashboard" },
@@ -29,6 +30,9 @@ export default function Layout({ children, currentPageName }) {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [alertUnreadCount, setAlertUnreadCount] = useState(0);
+  const [overlayAlert, setOverlayAlert] = useState(null);
+  const acknowledgedIdsRef = useRef(new Set());
+  const mountedRef = useRef(false);
 
   const user = authUser || fallbackUser;
 
@@ -45,18 +49,32 @@ export default function Layout({ children, currentPageName }) {
   }, [authUser]);
 
   useEffect(() => {
-    base44.entities.EmergencyAlert.filter({ is_active: true }).then(setAlerts).catch(() => {});
+    base44.entities.EmergencyAlert.filter({ is_active: true }).then(alerts => {
+      setAlerts(alerts);
+      // Seed acknowledged IDs with pre-existing alerts so we don't re-show them on load
+      alerts.forEach(a => acknowledgedIdsRef.current.add(a.id));
+      mountedRef.current = true;
+    }).catch(() => { mountedRef.current = true; });
 
     const unsub = base44.entities.EmergencyAlert.subscribe((event) => {
       if (event.type === "create" && event.data?.is_active) {
         setAlerts(prev => [...prev, event.data]);
+        // Show overlay for brand-new alerts that haven't been acknowledged
+        if (!acknowledgedIdsRef.current.has(event.data.id)) {
+          setOverlayAlert(event.data);
+        }
       } else if (event.type === "update") {
         setAlerts(prev => event.data?.is_active
           ? prev.map(a => a.id === event.id ? event.data : a)
           : prev.filter(a => a.id !== event.id)
         );
+        // If alert was deactivated (resolved by admin), close overlay
+        if (!event.data?.is_active) {
+          setOverlayAlert(prev => prev?.id === event.id ? null : prev);
+        }
       } else if (event.type === "delete") {
         setAlerts(prev => prev.filter(a => a.id !== event.id));
+        setOverlayAlert(prev => prev?.id === event.id ? null : prev);
       }
     });
     return unsub;
@@ -392,6 +410,13 @@ export default function Layout({ children, currentPageName }) {
       </nav>
     </div>
     <NotificationToast userEmail={user?.email} />
+    <EmergencyOverlay
+      alert={overlayAlert}
+      onDismiss={() => {
+        if (overlayAlert) acknowledgedIdsRef.current.add(overlayAlert.id);
+        setOverlayAlert(null);
+      }}
+    />
     </>
   );
 }

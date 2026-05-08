@@ -15,23 +15,21 @@ import { Label } from "@/components/ui/label";
 
 const ALERT_TYPES = ["Lockdown", "Medical Emergency", "Fire", "Suspicious Activity", "Weather"];
 
-// Flash the torch (front torch isn't accessible on most browsers — we do best effort on rear camera)
-async function flashTorchPattern(durationMs = 6000) {
+// Flash the torch in a loop until stopRef.current is true
+async function flashTorchLoop(stopRef) {
   let stream = null;
   try {
     stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
     const track = stream.getVideoTracks()[0];
     const capabilities = track.getCapabilities?.() || {};
-    if (capabilities.torch) {
-      const end = Date.now() + durationMs;
-      let on = true;
-      while (Date.now() < end) {
-        await track.applyConstraints({ advanced: [{ torch: on }] }).catch(() => {});
-        on = !on;
-        await new Promise(r => setTimeout(r, 250));
-      }
-      await track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+    if (!capabilities.torch) { stream.getTracks().forEach(t => t.stop()); return; }
+    let on = true;
+    while (!stopRef.current) {
+      await track.applyConstraints({ advanced: [{ torch: on }] }).catch(() => {});
+      on = !on;
+      await new Promise(r => setTimeout(r, 300));
     }
+    await track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
   } catch (_) {
     // Torch not supported — silently skip
   } finally {
@@ -39,12 +37,6 @@ async function flashTorchPattern(durationMs = 6000) {
   }
 }
 
-function vibrateAlert() {
-  if (!navigator.vibrate) return;
-  // SOS-style pattern: 3 short, 3 long, 3 short — repeat twice
-  const sos = [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200];
-  navigator.vibrate([...sos, 500, ...sos]);
-}
 
 export default function EmergencyButton({ user }) {
   const [open, setOpen] = useState(false);
@@ -53,6 +45,8 @@ export default function EmergencyButton({ user }) {
   const [sending, setSending] = useState(false);
   const [loadingSuggestion, setLoadingSuggestion] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
+  const stopTorchRef = useRef(false);
+  const vibrateIntervalRef = useRef(null);
 
   // Only admins can trigger emergency alerts
   if (user?.role !== 'admin') return null;
@@ -86,10 +80,14 @@ export default function EmergencyButton({ user }) {
     if (!alertType || !message) return;
     setSending(true);
 
-    // Vibrate immediately (no sound)
-    vibrateAlert();
-    // Flash torch in background
-    flashTorchPattern(6000);
+    // Start continuous vibrate + torch until sent
+    const sosPattern = [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200];
+    if (navigator.vibrate) {
+      navigator.vibrate(sosPattern);
+      vibrateIntervalRef.current = setInterval(() => navigator.vibrate?.(sosPattern), 2500);
+    }
+    stopTorchRef.current = false;
+    flashTorchLoop(stopTorchRef);
 
     const me = await base44.auth.me();
     const alert = await base44.entities.EmergencyAlert.create({
@@ -111,6 +109,11 @@ export default function EmergencyButton({ user }) {
       alertType,
       message
     }).catch(() => {});
+
+    // Stop torch + vibrate after send completes
+    stopTorchRef.current = true;
+    clearInterval(vibrateIntervalRef.current);
+    if (navigator.vibrate) navigator.vibrate(0);
 
     setSending(false);
     setOpen(false);

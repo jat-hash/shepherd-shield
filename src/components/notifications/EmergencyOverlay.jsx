@@ -1,64 +1,64 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-function playEmergencyAlarm(ctxRef, intervalRef) {
+// Flash the rear camera torch in a loop until stopped
+async function startTorchFlash(stopRef) {
+  let stream = null;
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    ctxRef.current = ctx;
-
-    const playBurst = () => {
-      try {
-        for (let i = 0; i < 4; i++) {
-          const offset = i * 0.25;
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.type = "square";
-          osc.frequency.setValueAtTime(i % 2 === 0 ? 880 : 440, ctx.currentTime + offset);
-          gain.gain.setValueAtTime(0.5, ctx.currentTime + offset);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.22);
-          osc.start(ctx.currentTime + offset);
-          osc.stop(ctx.currentTime + offset + 0.22);
-        }
-      } catch (_) {}
-    };
-
-    playBurst();
-    intervalRef.current = setInterval(playBurst, 1800);
-  } catch (_) {}
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    const track = stream.getVideoTracks()[0];
+    const capabilities = track.getCapabilities?.() || {};
+    if (!capabilities.torch) { stream.getTracks().forEach(t => t.stop()); return; }
+    let on = true;
+    while (!stopRef.current) {
+      await track.applyConstraints({ advanced: [{ torch: on }] }).catch(() => {});
+      on = !on;
+      await new Promise(r => setTimeout(r, 300));
+    }
+    await track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+  } catch (_) {
+    // Torch not supported — silently skip
+  } finally {
+    stream?.getTracks().forEach(t => t.stop());
+  }
 }
 
 export default function EmergencyOverlay({ alert, onDismiss }) {
-  const audioCtxRef = useRef(null);
-  const alarmIntervalRef = useRef(null);
+  const stopTorchRef = useRef(false);
   const vibrateIntervalRef = useRef(null);
+  const [flash, setFlash] = useState(false);
 
   useEffect(() => {
-    if (alert) {
-      playEmergencyAlarm(audioCtxRef, alarmIntervalRef);
+    if (!alert) return;
 
-      if ('vibrate' in navigator) {
-        navigator.vibrate([400, 150, 400, 150, 400]);
-        vibrateIntervalRef.current = setInterval(() => {
-          navigator.vibrate([400, 150, 400, 150, 400]);
-        }, 2000);
-      }
+    // Continuous vibration — SOS pattern every 2.5s
+    const sosPattern = [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200];
+    if (navigator.vibrate) {
+      navigator.vibrate(sosPattern);
+      vibrateIntervalRef.current = setInterval(() => {
+        if (navigator.vibrate) navigator.vibrate(sosPattern);
+      }, 2500);
     }
 
+    // Screen flash loop
+    let flashInterval = setInterval(() => setFlash(f => !f), 500);
+
+    // Torch flash in background
+    stopTorchRef.current = false;
+    startTorchFlash(stopTorchRef);
+
     return () => {
-      if (alarmIntervalRef.current) clearInterval(alarmIntervalRef.current);
-      if (vibrateIntervalRef.current) clearInterval(vibrateIntervalRef.current);
-      if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
+      stopTorchRef.current = true;
+      clearInterval(vibrateIntervalRef.current);
+      clearInterval(flashInterval);
       if (navigator.vibrate) navigator.vibrate(0);
     };
   }, [alert]);
 
   const handleAcknowledge = () => {
-    if (alarmIntervalRef.current) clearInterval(alarmIntervalRef.current);
-    if (vibrateIntervalRef.current) clearInterval(vibrateIntervalRef.current);
-    if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
+    stopTorchRef.current = true;
+    clearInterval(vibrateIntervalRef.current);
     if (navigator.vibrate) navigator.vibrate(0);
     onDismiss();
   };
@@ -66,57 +66,51 @@ export default function EmergencyOverlay({ alert, onDismiss }) {
   if (!alert) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center p-4 animate-pulse">
-
-      <div className="max-w-2xl w-full bg-red-600 rounded-2xl border-4 border-white shadow-2xl overflow-hidden">
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      style={{ background: flash ? "rgba(180,0,0,0.97)" : "rgba(10,5,5,0.97)" }}
+    >
+      <div className="max-w-lg w-full bg-red-700 rounded-2xl border-4 border-white shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="bg-red-700 p-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center animate-bounce">
-              <AlertTriangle className="w-10 h-10 text-red-600" />
-            </div>
-            <div>
-              <h2 className="text-3xl font-bold text-white uppercase tracking-wider">
-                🚨 EMERGENCY ALERT
-              </h2>
-              <p className="text-red-200 text-sm mt-1">Immediate Action Required</p>
-            </div>
+        <div className="bg-red-800 p-5 flex items-center gap-4">
+          <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shrink-0 animate-bounce">
+            <AlertTriangle className="w-9 h-9 text-red-600" />
           </div>
-  
+          <div>
+            <h2 className="text-2xl font-bold text-white uppercase tracking-wider">🚨 EMERGENCY ALERT</h2>
+            <p className="text-red-200 text-sm mt-0.5">Immediate Action Required</p>
+          </div>
         </div>
 
         {/* Content */}
-        <div className="p-8 space-y-6">
-          <div className="bg-white rounded-xl p-6">
-            <h3 className="text-2xl font-bold text-red-600 mb-2">
-              {alert.alert_type}
-            </h3>
-            <p className="text-gray-800 text-lg leading-relaxed">
-              {alert.message}
-            </p>
+        <div className="p-6 space-y-5">
+          <div className="bg-white rounded-xl p-5">
+            <h3 className="text-xl font-bold text-red-600 mb-1">{alert.alert_type}</h3>
+            <p className="text-gray-800 text-base leading-relaxed">{alert.message}</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div className="bg-red-700 rounded-lg p-4">
-              <p className="text-red-200 text-xs uppercase tracking-wider mb-1">Triggered By</p>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="bg-red-800 rounded-lg p-3">
+              <p className="text-red-300 text-xs uppercase tracking-wider mb-1">Triggered By</p>
               <p className="text-white font-semibold">{alert.triggered_by || "System"}</p>
             </div>
-            <div className="bg-red-700 rounded-lg p-4">
-              <p className="text-red-200 text-xs uppercase tracking-wider mb-1">Time</p>
+            <div className="bg-red-800 rounded-lg p-3">
+              <p className="text-red-300 text-xs uppercase tracking-wider mb-1">Time</p>
               <p className="text-white font-semibold">
-                {new Date(alert.created_date).toLocaleTimeString()}
+                {alert.created_date ? new Date(alert.created_date).toLocaleTimeString() : "Now"}
               </p>
             </div>
           </div>
 
-          {/* Action Button - MUST acknowledge to stop alarm */}
           <Button
             onClick={handleAcknowledge}
-            className="w-full bg-white text-red-600 hover:bg-red-50 font-bold text-lg py-6 rounded-xl animate-pulse"
+            className="w-full bg-white text-red-600 hover:bg-red-50 font-bold text-lg py-6 rounded-xl"
           >
-            ✅ TAP TO ACKNOWLEDGE &amp; STOP ALARM
+            ✅ TAP TO ACKNOWLEDGE & STOP
           </Button>
-          <p className="text-center text-red-200 text-xs">You must acknowledge this alert to stop the alarm</p>
+          <p className="text-center text-red-200 text-xs">
+            Vibration and flash will continue until you acknowledge
+          </p>
         </div>
       </div>
     </div>
