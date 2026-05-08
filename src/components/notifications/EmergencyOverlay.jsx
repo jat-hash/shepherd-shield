@@ -4,10 +4,10 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 
 const VIBRATE_PATTERNS = {
-  "Fire":           [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200],
-  "Medical":        [500, 200, 500, 200],
-  "Active Shooter": [800, 200, 800, 200, 800, 200],
-  "Disturbance":    [300, 200, 300, 200, 300, 200],
+  "Fire":           [300, 150, 300, 150, 400],
+  "Medical":        [500, 200, 500, 200, 500],
+  "Active Shooter": [800, 200, 800, 200, 800],
+  "Disturbance":    [400, 200, 400, 200, 400],
 };
 
 const BG_COLORS = {
@@ -51,28 +51,26 @@ export default function EmergencyOverlay({ alert, onDismiss }) {
     if (!alert || hasAcknowledged) return;
 
     const pattern = VIBRATE_PATTERNS[alert.alert_type] || VIBRATE_PATTERNS["Fire"];
-    const patternDuration = pattern.reduce((a, b) => a + b, 0) + 500;
+    const patternDuration = pattern.reduce((a, b) => a + b, 0) + 100;
 
-    // 1. Screen flash
+    // 1. Screen flash continuously every 400ms
     intervalRefs.current.flash = setInterval(() => setFlash(f => !f), 400);
 
-    // 2. Vibration loop - use larger amplitude pattern for better feedback
+    // 2. Continuous vibration loop until acknowledged
     if (navigator.vibrate) {
-      try {
-        navigator.vibrate(pattern);
-        intervalRefs.current.vibrate = setInterval(() => {
-          try {
-            navigator.vibrate(pattern);
-          } catch (e) {
-            console.warn("Vibration failed:", e);
-          }
-        }, patternDuration);
-      } catch (e) {
-        console.warn("Could not start vibration:", e);
-      }
+      const startVibration = () => {
+        try {
+          navigator.vibrate(pattern);
+        } catch (e) {
+          console.log("Vibration error:", e.message);
+        }
+      };
+      
+      startVibration();
+      intervalRefs.current.vibrate = setInterval(startVibration, patternDuration);
     }
 
-    // 3. Back camera torch flash - activate immediately on alert
+    // 3. Back camera torch - flash continuously until acknowledged
     const initTorch = async () => {
       if (!navigator.mediaDevices?.getUserMedia) {
         console.log("Camera API not available");
@@ -80,7 +78,6 @@ export default function EmergencyOverlay({ alert, onDismiss }) {
       }
 
       try {
-        // Request camera first (torch cannot be in initial constraint, only in advanced)
         const stream = await navigator.mediaDevices.getUserMedia({ 
           video: { facingMode: "environment" } 
         });
@@ -90,49 +87,65 @@ export default function EmergencyOverlay({ alert, onDismiss }) {
         
         if (!track) {
           stream.getTracks().forEach(t => t.stop());
-          console.log("No video track");
+          console.log("No video track available");
           return;
         }
         
         torchTrackRef.current = track;
-        console.log("Camera acquired, applying torch constraint");
+        console.log("Torch: Camera acquired");
         
-        // Start torch immediately
-        await track.applyConstraints({ advanced: [{ torch: true }] });
-        console.log("Torch ON");
+        // Turn torch ON immediately
+        try {
+          await track.applyConstraints({ advanced: [{ torch: true }] });
+          console.log("Torch: ON");
+        } catch (e) {
+          console.log("Torch: Could not enable:", e.message);
+        }
         
-        // Toggle torch on/off every 400ms
+        // Flash torch on/off every 400ms
         let on = true;
         intervalRefs.current.torch = setInterval(async () => {
           try {
             await track.applyConstraints({ advanced: [{ torch: on }] });
-            console.log(`Torch ${on ? 'ON' : 'OFF'}`);
+            console.log(`Torch: ${on ? 'ON' : 'OFF'}`);
             on = !on;
           } catch (e) {
-            console.log("Torch toggle error:", e.message);
+            console.log(`Torch: Toggle error - ${e.message}`);
           }
         }, 400);
       } catch (err) {
-        console.log("Camera access error:", err.message);
+        console.log("Torch: Camera access denied -", err.message);
       }
     };
 
     initTorch();
 
     return () => {
-      // Cleanup all
+      // Stop all feedback when acknowledged
       clearInterval(intervalRefs.current.flash);
       clearInterval(intervalRefs.current.vibrate);
       clearInterval(intervalRefs.current.torch);
-      if (navigator.vibrate) navigator.vibrate(0);
+      
+      // Ensure vibration stops
+      if (navigator.vibrate) {
+        navigator.vibrate(0);
+      }
+      
+      // Turn off torch and close camera
       if (torchTrackRef.current) {
-        torchTrackRef.current.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+        try {
+          torchTrackRef.current.applyConstraints({ advanced: [{ torch: false }] });
+        } catch (e) {
+          console.log("Torch: Could not turn off -", e.message);
+        }
         torchTrackRef.current = null;
       }
+      
       if (torchStreamRef.current) {
         torchStreamRef.current.getTracks().forEach(t => t.stop());
         torchStreamRef.current = null;
       }
+      
       setFlash(false);
     };
   }, [alert?.id, hasAcknowledged]);
