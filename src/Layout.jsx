@@ -33,6 +33,7 @@ export default function Layout({ children, currentPageName }) {
   const [overlayAlert, setOverlayAlert] = useState(null);
   const acknowledgedIdsRef = useRef(new Set());
   const mountedRef = useRef(false);
+  const vibrationPrimedRef = useRef(false);
 
   const user = authUser || fallbackUser;
 
@@ -47,6 +48,25 @@ export default function Layout({ children, currentPageName }) {
       base44.auth.me().then(setFallbackUser).catch(() => {});
     }
   }, [authUser]);
+
+  // Prime the vibration API on first user interaction so it works automatically when alerts fire
+  useEffect(() => {
+    const prime = () => {
+      if (vibrationPrimedRef.current) return;
+      if (navigator.vibrate) {
+        navigator.vibrate(1); // silent 1ms vibration to unlock the API
+        vibrationPrimedRef.current = true;
+      }
+      window.removeEventListener("touchstart", prime);
+      window.removeEventListener("click", prime);
+    };
+    window.addEventListener("touchstart", prime, { passive: true });
+    window.addEventListener("click", prime, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", prime);
+      window.removeEventListener("click", prime);
+    };
+  }, []);
 
   useEffect(() => {
     base44.entities.EmergencyAlert.filter({ is_active: true }).then(activeAlerts => {
