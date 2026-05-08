@@ -66,6 +66,13 @@ const getDB = async () => {
 
 export const cacheData = async (storeName, data) => {
   const database = await getDB();
+  
+  // Guard: skip if the store doesn't exist in this DB version
+  if (!database.objectStoreNames.contains(storeName)) {
+    console.warn(`[offlineStorage] Store "${storeName}" not found, skipping cacheData.`);
+    return;
+  }
+  
   const transaction = database.transaction([storeName], 'readwrite');
   const store = transaction.objectStore(storeName);
   
@@ -87,6 +94,13 @@ export const cacheData = async (storeName, data) => {
 
 export const getCachedData = async (storeName) => {
   const database = await getDB();
+  
+  // Guard: return empty array if store doesn't exist
+  if (!database.objectStoreNames.contains(storeName)) {
+    console.warn(`[offlineStorage] Store "${storeName}" not found, returning empty array.`);
+    return [];
+  }
+  
   const transaction = database.transaction([storeName], 'readonly');
   const store = transaction.objectStore(storeName);
   const request = store.getAll();
