@@ -41,11 +41,12 @@ export default function AdminDashboardPanel({ allUsers = [] }) {
     const todayLocal = new Date();
     const today = `${todayLocal.getFullYear()}-${String(todayLocal.getMonth() + 1).padStart(2, '0')}-${String(todayLocal.getDate()).padStart(2, '0')}`;
 
-    const [assignments, personalCheckIns, liveLocations] = await Promise.all([
-      base44.entities.Assignment.filter({ service_date: today }, "-start_time", 200),
-      base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 100),
-      base44.entities.LiveLocation.filter({ is_active: true }, "-last_updated", 100),
-    ]);
+    // Stagger requests to avoid rate limiting
+    const assignments = await base44.entities.Assignment.filter({ service_date: today }, "-start_time", 200);
+    await new Promise(r => setTimeout(r, 300));
+    const personalCheckIns = await base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 100);
+    await new Promise(r => setTimeout(r, 300));
+    const liveLocations = await base44.entities.LiveLocation.filter({ is_active: true }, "-last_updated", 100);
 
     const liveByEmail = {};
     liveLocations.forEach(l => { liveByEmail[(l.user_email || '').toLowerCase()] = l; });
@@ -93,9 +94,9 @@ export default function AdminDashboardPanel({ allUsers = [] }) {
   }, []);
 
   useEffect(() => {
-    load();
+    const timeout = setTimeout(() => load(), 800);
     const interval = setInterval(() => load(), 180000);
-    return () => clearInterval(interval);
+    return () => { clearTimeout(timeout); clearInterval(interval); };
   }, [load]);
 
   const mapCenter = mapMembers.length > 0

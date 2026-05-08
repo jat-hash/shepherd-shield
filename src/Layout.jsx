@@ -49,17 +49,19 @@ export default function Layout({ children, currentPageName }) {
   }, [authUser]);
 
   useEffect(() => {
-    base44.entities.EmergencyAlert.filter({ is_active: true }).then(alerts => {
-      setAlerts(alerts);
-      // Seed acknowledged IDs with pre-existing alerts so we don't re-show them on load
-      alerts.forEach(a => acknowledgedIdsRef.current.add(a.id));
+    base44.entities.EmergencyAlert.filter({ is_active: true }).then(activeAlerts => {
+      setAlerts(activeAlerts);
+      // Show overlay for any active alert not yet acknowledged
+      if (activeAlerts.length > 0) {
+        const unacked = activeAlerts.find(a => !acknowledgedIdsRef.current.has(a.id));
+        if (unacked) setOverlayAlert(unacked);
+      }
       mountedRef.current = true;
     }).catch(() => { mountedRef.current = true; });
 
     const unsub = base44.entities.EmergencyAlert.subscribe((event) => {
       if (event.type === "create" && event.data?.is_active) {
         setAlerts(prev => [...prev, event.data]);
-        // Show overlay for brand-new alerts that haven't been acknowledged
         if (!acknowledgedIdsRef.current.has(event.data.id)) {
           setOverlayAlert(event.data);
         }
@@ -68,7 +70,10 @@ export default function Layout({ children, currentPageName }) {
           ? prev.map(a => a.id === event.id ? event.data : a)
           : prev.filter(a => a.id !== event.id)
         );
-        // If alert was deactivated (resolved by admin), close overlay
+        // Show overlay if a newly updated alert is active and unacknowledged
+        if (event.data?.is_active && !acknowledgedIdsRef.current.has(event.data.id)) {
+          setOverlayAlert(event.data);
+        }
         if (!event.data?.is_active) {
           setOverlayAlert(prev => prev?.id === event.id ? null : prev);
         }
