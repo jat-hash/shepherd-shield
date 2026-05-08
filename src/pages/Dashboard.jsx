@@ -228,7 +228,7 @@ export default function Dashboard() {
         </div>
         <div className="flex flex-col gap-2 shrink-0">
           <NotifyTeamButton user={user} />
-          <EmergencyButton />
+          <EmergencyButton user={user} />
         </div>
       </div>
 

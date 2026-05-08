@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { useState, useRef } from "react";
+import { AlertTriangle, Sparkles, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,45 +11,112 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
-const ALERT_TYPES = ["Lockdown", "Medical Emergency", "Fire", "Suspicious Person", "Weather"];
+const ALERT_TYPES = ["Lockdown", "Medical Emergency", "Fire", "Suspicious Activity", "Weather"];
 
-export default function EmergencyButton() {
+// Flash the torch (front torch isn't accessible on most browsers — we do best effort on rear camera)
+async function flashTorchPattern(durationMs = 6000) {
+  let stream = null;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    const track = stream.getVideoTracks()[0];
+    const capabilities = track.getCapabilities?.() || {};
+    if (capabilities.torch) {
+      const end = Date.now() + durationMs;
+      let on = true;
+      while (Date.now() < end) {
+        await track.applyConstraints({ advanced: [{ torch: on }] }).catch(() => {});
+        on = !on;
+        await new Promise(r => setTimeout(r, 250));
+      }
+      await track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+    }
+  } catch (_) {
+    // Torch not supported — silently skip
+  } finally {
+    stream?.getTracks().forEach(t => t.stop());
+  }
+}
+
+function vibrateAlert() {
+  if (!navigator.vibrate) return;
+  // SOS-style pattern: 3 short, 3 long, 3 short — repeat twice
+  const sos = [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200];
+  navigator.vibrate([...sos, 500, ...sos]);
+}
+
+export default function EmergencyButton({ user }) {
   const [open, setOpen] = useState(false);
   const [alertType, setAlertType] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [loadingSuggestion, setLoadingSuggestion] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+
+  // Only admins can trigger emergency alerts
+  if (user?.role !== 'admin') return null;
+
+  const loadSuggestions = async () => {
+    if (!alertType) return;
+    setLoadingSuggestion(true);
+    try {
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `You are a church security coordinator. Generate 3 short, clear emergency alert messages for a "${alertType}" situation at a church. Each message should be under 100 characters, action-oriented, and calm but urgent. Return only the 3 messages as a JSON array of strings.`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            messages: { type: "array", items: { type: "string" } }
+          }
+        }
+      });
+      setSuggestions(result?.messages || []);
+    } catch (_) {
+      setSuggestions([]);
+    }
+    setLoadingSuggestion(false);
+  };
+
+  const handleAlertTypeChange = (val) => {
+    setAlertType(val);
+    setSuggestions([]);
+  };
 
   const handleSend = async () => {
     if (!alertType || !message) return;
     setSending(true);
-    const user = await base44.auth.me();
+
+    // Vibrate immediately (no sound)
+    vibrateAlert();
+    // Flash torch in background
+    flashTorchPattern(6000);
+
+    const me = await base44.auth.me();
     const alert = await base44.entities.EmergencyAlert.create({
       alert_type: alertType,
       message,
-      triggered_by: user?.display_name || user?.full_name || user?.email || "Unknown",
+      triggered_by: me?.display_name || me?.full_name || me?.email || "Unknown",
       is_active: true,
     });
 
-    // Broadcast email + in-app notifications to all team members
     base44.functions.invoke('broadcastEmergencyAlert', {
       alert_type: alertType,
       message,
-      triggered_by: user?.display_name || user?.full_name || user?.email || "Unknown",
+      triggered_by: me?.display_name || me?.full_name || me?.email || "Unknown",
       id: alert?.id
-    }).catch(err => console.log('Broadcast skipped:', err.message));
+    }).catch(() => {});
 
-    // Send WhatsApp safety check-in requests to all users with phone numbers
     base44.functions.invoke('sendWhatsAppSafetyCheckin', {
       alertId: alert?.id,
       alertType,
       message
-    }).catch(err => console.log('WhatsApp check-in skipped:', err.message));
+    }).catch(() => {});
 
     setSending(false);
     setOpen(false);
     setAlertType("");
     setMessage("");
+    setSuggestions([]);
   };
 
   return (
@@ -62,7 +129,7 @@ export default function EmergencyButton() {
         <span className="text-white font-bold text-base tracking-wider uppercase">Emergency Alert</span>
       </button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setAlertType(""); setMessage(""); setSuggestions([]); } }}>
         <DialogContent className="bg-[#1a2744] border-red-500/30 text-white max-w-md">
           <DialogHeader>
             <DialogTitle className="text-red-400 flex items-center gap-2">
@@ -71,23 +138,61 @@ export default function EmergencyButton() {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            <Select value={alertType} onValueChange={setAlertType}>
-              <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white">
-                <SelectValue placeholder="Select alert type" />
-              </SelectTrigger>
-              <SelectContent className="bg-[#1a2744] border-slate-700">
-                {ALERT_TYPES.map(t => (
-                  <SelectItem key={t} value={t} className="text-white hover:bg-white/10">{t}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div>
+              <Label className="text-slate-300 text-xs mb-1 block">Alert Type</Label>
+              <Select value={alertType} onValueChange={handleAlertTypeChange}>
+                <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white">
+                  <SelectValue placeholder="Select alert type" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#1a2744] border-slate-700">
+                  {ALERT_TYPES.map(t => (
+                    <SelectItem key={t} value={t} className="text-white hover:bg-white/10">{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Textarea
-              placeholder="Describe the emergency..."
-              value={message}
-              onChange={e => setMessage(e.target.value)}
-              className="bg-[#0a1128] border-slate-700 text-white min-h-[80px]"
-            />
+            <div>
+              <Label className="text-slate-300 text-xs mb-1 block">Message</Label>
+              <Textarea
+                placeholder="Describe the emergency..."
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                className="bg-[#0a1128] border-slate-700 text-white min-h-[80px]"
+              />
+            </div>
+
+            {/* AI Suggested Messages */}
+            {alertType && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-slate-400 text-xs">AI Suggested Messages</Label>
+                  <button
+                    onClick={loadSuggestions}
+                    disabled={loadingSuggestion}
+                    className="flex items-center gap-1 text-xs text-[#d4a843] hover:text-[#e0bb5e] disabled:opacity-50 transition-colors"
+                  >
+                    {loadingSuggestion
+                      ? <Loader2 className="w-3 h-3 animate-spin" />
+                      : <Sparkles className="w-3 h-3" />}
+                    {loadingSuggestion ? "Generating..." : "Generate"}
+                  </button>
+                </div>
+                {suggestions.length > 0 && (
+                  <div className="space-y-1.5">
+                    {suggestions.map((s, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setMessage(s)}
+                        className="w-full text-left text-xs px-3 py-2 rounded-lg bg-[#0a1128] border border-slate-700 hover:border-[#d4a843]/50 text-slate-300 hover:text-white transition-colors"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <DialogFooter>
