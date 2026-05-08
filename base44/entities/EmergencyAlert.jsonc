@@ -1,0 +1,35 @@
+{
+  "name": "EmergencyAlert",
+  "type": "object",
+  "title": "Emergency Alert",
+  "description": "Emergency alerts for the security team",
+  "properties": {
+    "alert_type": {
+      "type": "string",
+      "enum": [
+        "Fire",
+        "Medical",
+        "Active Shooter",
+        "Disturbance",
+        "All Clear"
+      ]
+    },
+    "message": {
+      "type": "string"
+    },
+    "triggered_by": {
+      "type": "string"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "resolved_at": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "alert_type",
+    "message"
+  ]
+}

@@ -4,14 +4,13 @@ import { Button } from "@/components/ui/button";
 
 // Vibration patterns per alert type
 const VIBRATE_PATTERNS = {
-  "Lockdown":           [50, 30, 50, 30, 50, 30, 50, 30, 50, 30, 50, 30, 50, 30, 50, 30], // rapid bursts
-  "Medical Emergency":  [1000, 300, 1000, 300, 1000, 300],                                  // long pulses
-  "Fire":               [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200], // SOS
-  "Suspicious Activity":[800, 200, 200, 200, 800, 200, 200, 200],                           // long-short stagger
-  "Weather":            [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200], // SOS
+  "Fire":           [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200], // SOS
+  "Medical":        [500, 200, 500, 200],                                                                   // 2 pulses
+  "Active Shooter": [500, 500],                                                                             // 1 pulse
+  "Disturbance":    [300, 200, 300, 200, 300, 200],                                                        // 3 pulses
 };
 function getVibratePattern(alertType) {
-  return VIBRATE_PATTERNS[alertType] || VIBRATE_PATTERNS["Weather"];
+  return VIBRATE_PATTERNS[alertType] || VIBRATE_PATTERNS["Fire"];
 }
 
 // Flash the rear camera torch in a loop until stopped

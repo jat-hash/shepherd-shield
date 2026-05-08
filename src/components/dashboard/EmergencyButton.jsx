@@ -13,14 +13,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
-const ALERT_TYPES = ["Lockdown", "Medical Emergency", "Fire", "Suspicious Activity", "Weather"];
+const ALERT_TYPES = ["Fire", "Medical", "Active Shooter", "Disturbance"];
 
 const VIBRATE_PATTERNS = {
-  "Lockdown":           [50, 30, 50, 30, 50, 30, 50, 30, 50, 30, 50, 30, 50, 30, 50, 30],
-  "Medical Emergency":  [1000, 300, 1000, 300, 1000, 300],
-  "Fire":               [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200], // SOS
-  "Suspicious Activity":[800, 200, 200, 200, 800, 200, 200, 200],
-  "Weather":            [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200], // SOS
+  "Fire":           [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200], // SOS
+  "Medical":        [500, 200, 500, 200],                                                                   // 2 pulses
+  "Active Shooter": [500, 500],                                                                             // 1 pulse
+  "Disturbance":    [300, 200, 300, 200, 300, 200],                                                        // 3 pulses
 };
 function getVibratePattern(type) {
   return VIBRATE_PATTERNS[type] || VIBRATE_PATTERNS["Weather"];
