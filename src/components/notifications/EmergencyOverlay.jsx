@@ -56,29 +56,54 @@ export default function EmergencyOverlay({ alert, onDismiss }) {
     // 1. Screen flash
     intervalRefs.current.flash = setInterval(() => setFlash(f => !f), 400);
 
-    // 2. Vibration loop
+    // 2. Vibration loop - use larger amplitude pattern for better feedback
     if (navigator.vibrate) {
-      navigator.vibrate(pattern);
-      intervalRefs.current.vibrate = setInterval(() => {
+      try {
         navigator.vibrate(pattern);
-      }, patternDuration);
+        intervalRefs.current.vibrate = setInterval(() => {
+          try {
+            navigator.vibrate(pattern);
+          } catch (e) {
+            console.warn("Vibration failed:", e);
+          }
+        }, patternDuration);
+      } catch (e) {
+        console.warn("Could not start vibration:", e);
+      }
     }
 
-    // 3. Torch flash (best-effort)
-    navigator.mediaDevices?.getUserMedia({ video: { facingMode: "environment" } })
-      .then(stream => {
-        torchStreamRef.current = stream;
-        const track = stream.getVideoTracks()[0];
-        const caps = track.getCapabilities?.() || {};
-        if (!caps.torch) { stream.getTracks().forEach(t => t.stop()); return; }
-        torchTrackRef.current = track;
-        let on = true;
-        intervalRefs.current.torch = setInterval(() => {
-          track.applyConstraints({ advanced: [{ torch: on }] }).catch(() => {});
-          on = !on;
-        }, 400);
+    // 3. Torch flash - request camera permission and control flashlight
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: "environment",
+          torch: true
+        } 
       })
-      .catch(() => {});
+        .then(stream => {
+          torchStreamRef.current = stream;
+          const track = stream.getVideoTracks()[0];
+          if (!track) {
+            stream.getTracks().forEach(t => t.stop());
+            return;
+          }
+          
+          torchTrackRef.current = track;
+          let on = true;
+          intervalRefs.current.torch = setInterval(() => {
+            try {
+              track.applyConstraints({ advanced: [{ torch: on }] })
+                .catch(e => console.warn("Torch constraint failed:", e));
+              on = !on;
+            } catch (e) {
+              console.warn("Torch toggle error:", e);
+            }
+          }, 400);
+        })
+        .catch(err => {
+          console.warn("Camera/torch access denied or unavailable:", err.message);
+        });
+    }
 
     return () => {
       // Cleanup all
