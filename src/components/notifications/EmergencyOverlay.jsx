@@ -75,17 +75,14 @@ export default function EmergencyOverlay({ alert, onDismiss }) {
     // 3. Back camera torch flash - activate immediately on alert
     const initTorch = async () => {
       if (!navigator.mediaDevices?.getUserMedia) {
-        console.warn("Camera API not available");
+        console.log("Camera API not available");
         return;
       }
 
       try {
-        // Request camera with torch constraint
+        // Request camera first (torch cannot be in initial constraint, only in advanced)
         const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            facingMode: "environment",
-            torch: true
-          } 
+          video: { facingMode: "environment" } 
         });
         
         torchStreamRef.current = stream;
@@ -93,39 +90,30 @@ export default function EmergencyOverlay({ alert, onDismiss }) {
         
         if (!track) {
           stream.getTracks().forEach(t => t.stop());
-          console.warn("No video track");
+          console.log("No video track");
           return;
         }
         
         torchTrackRef.current = track;
-        console.log("Torch activated");
+        console.log("Camera acquired, applying torch constraint");
+        
+        // Start torch immediately
+        await track.applyConstraints({ advanced: [{ torch: true }] });
+        console.log("Torch ON");
         
         // Toggle torch on/off every 400ms
         let on = true;
-        intervalRefs.current.torch = setInterval(() => {
-          track.applyConstraints({ advanced: [{ torch: on }] }).catch(() => {});
-          on = !on;
+        intervalRefs.current.torch = setInterval(async () => {
+          try {
+            await track.applyConstraints({ advanced: [{ torch: on }] });
+            console.log(`Torch ${on ? 'ON' : 'OFF'}`);
+            on = !on;
+          } catch (e) {
+            console.log("Torch toggle error:", e.message);
+          }
         }, 400);
       } catch (err) {
-        console.warn("Torch activation failed:", err.message);
-        // Fallback: try without torch constraint
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: "environment" } 
-          });
-          torchStreamRef.current = stream;
-          const track = stream.getVideoTracks()[0];
-          if (track) {
-            torchTrackRef.current = track;
-            let on = true;
-            intervalRefs.current.torch = setInterval(() => {
-              track.applyConstraints({ advanced: [{ torch: on }] }).catch(() => {});
-              on = !on;
-            }, 400);
-          }
-        } catch (e) {
-          console.warn("Camera fallback also failed:", e.message);
-        }
+        console.log("Camera access error:", err.message);
       }
     };
 
