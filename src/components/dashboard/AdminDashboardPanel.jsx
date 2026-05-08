@@ -41,11 +41,12 @@ export default function AdminDashboardPanel({ allUsers = [] }) {
     const todayLocal = new Date();
     const today = `${todayLocal.getFullYear()}-${String(todayLocal.getMonth() + 1).padStart(2, '0')}-${String(todayLocal.getDate()).padStart(2, '0')}`;
 
+    try {
     // Stagger requests to avoid rate limiting
     const assignments = await base44.entities.Assignment.filter({ service_date: today }, "-start_time", 200);
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 500));
     const personalCheckIns = await base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 100);
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 500));
     const liveLocations = await base44.entities.LiveLocation.filter({ is_active: true }, "-last_updated", 100);
 
     const liveByEmail = {};
@@ -91,11 +92,17 @@ export default function AdminDashboardPanel({ allUsers = [] }) {
     // Map members: checked-in with GPS
     setMapMembers(allRecords.filter(a => a._resolved_in && a.lat && a.lng));
     setLoading(false);
+    } catch (err) {
+      if (err?.message?.includes('Rate limit')) {
+        console.warn('AdminDashboardPanel: rate limited, will retry later');
+      }
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    const timeout = setTimeout(() => load(), 800);
-    const interval = setInterval(() => load(), 180000);
+    const timeout = setTimeout(() => load(), 2000);
+    const interval = setInterval(() => load(), 300000); // 5 min interval
     return () => { clearTimeout(timeout); clearInterval(interval); };
   }, [load]);
 
