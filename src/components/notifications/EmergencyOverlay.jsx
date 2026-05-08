@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 const VIBRATE_PATTERNS = {
   "Lockdown":           [50, 30, 50, 30, 50, 30, 50, 30, 50, 30, 50, 30, 50, 30, 50, 30], // rapid bursts
   "Medical Emergency":  [1000, 300, 1000, 300, 1000, 300],                                  // long pulses
-  "Fire":               [1000, 500, 1000, 500, 1000, 500],                                  // 1-second on/off
+  "Fire":               [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200], // SOS
   "Suspicious Activity":[800, 200, 200, 200, 800, 200, 200, 200],                           // long-short stagger
   "Weather":            [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200], // SOS
 };

@@ -18,9 +18,9 @@ const ALERT_TYPES = ["Lockdown", "Medical Emergency", "Fire", "Suspicious Activi
 const VIBRATE_PATTERNS = {
   "Lockdown":           [50, 30, 50, 30, 50, 30, 50, 30, 50, 30, 50, 30, 50, 30, 50, 30],
   "Medical Emergency":  [1000, 300, 1000, 300, 1000, 300],
-  "Fire":               [1000, 500, 1000, 500, 1000, 500],
+  "Fire":               [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200], // SOS
   "Suspicious Activity":[800, 200, 200, 200, 800, 200, 200, 200],
-  "Weather":            [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200],
+  "Weather":            [200, 100, 200, 100, 200, 300, 500, 100, 500, 100, 500, 300, 200, 100, 200, 100, 200], // SOS
 };
 function getVibratePattern(type) {
   return VIBRATE_PATTERNS[type] || VIBRATE_PATTERNS["Weather"];
