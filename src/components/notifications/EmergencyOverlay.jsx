@@ -80,7 +80,12 @@ export default function EmergencyOverlay({ alert, onDismiss }) {
   return (
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-      style={{ background: flash ? "rgba(180,0,0,0.97)" : "rgba(10,5,5,0.97)" }}
+      style={{ background: flash
+        ? alert.alert_type === "Fire" ? "rgba(200,80,0,0.97)"
+          : alert.alert_type === "Active Shooter" ? "rgba(180,0,0,0.97)"
+          : alert.alert_type === "Medical" ? "rgba(0,100,180,0.97)"
+          : "rgba(120,80,0,0.97)"
+        : "rgba(10,5,5,0.97)" }}
     >
       <div className="max-w-lg w-full bg-red-700 rounded-2xl border-4 border-white shadow-2xl overflow-hidden">
         {/* Header */}
