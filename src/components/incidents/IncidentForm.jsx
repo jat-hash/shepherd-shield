@@ -31,10 +31,11 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef(null);
   const uploadingRef = useRef(false);
   const wasOpenRef = useRef(false);
   const filePickerActiveRef = useRef(false);
+  const [fileInputKey, setFileInputKey] = useState(0);
+  const fileInputRef = useRef(null);
 
   // When file picker closes (with or without selection), window gets focus back.
   // Keep a brief lock after that so mobile ghost taps don't dismiss the modal.
@@ -138,6 +139,7 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
     <>
       {/* Hidden file input — rendered at document root level via portal-like approach */}
       <input
+        key={fileInputKey}
         ref={fileInputRef}
         type="file"
         accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.ppt,.pptx"
@@ -251,9 +253,14 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
                 type="button"
                 disabled={uploading}
                 onClick={() => {
-                filePickerActiveRef.current = true;
-                fileInputRef.current?.click();
-              }}
+                  filePickerActiveRef.current = true;
+                  // Increment key to remount the input fresh — fixes mobile first-tap issue
+                  setFileInputKey(k => k + 1);
+                  // Use rAF to ensure new input is mounted before clicking
+                  requestAnimationFrame(() => {
+                    setTimeout(() => fileInputRef.current?.click(), 50);
+                  });
+                }}
                 className="mt-1 w-full flex items-center gap-2 bg-[#0a1128] border border-dashed border-slate-600 rounded-lg p-3 hover:border-[#d4a843]/40 active:border-[#d4a843]/60 transition-colors disabled:opacity-50 touch-manipulation"
               >
                 <Upload className="w-4 h-4 text-slate-400 flex-shrink-0" />
