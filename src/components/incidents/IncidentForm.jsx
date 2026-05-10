@@ -35,11 +35,12 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
-  const formRef = useRef(form);
-  formRef.current = form;
+  const wasOpenRef = useRef(false);
 
   useEffect(() => {
-    if (open) {
+    // Only reset form when the modal first opens (false -> true transition)
+    if (open && !wasOpenRef.current) {
+      wasOpenRef.current = true;
       setForm(incident ? {
         title: incident.title || "",
         category: incident.category || "",
@@ -62,7 +63,10 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
         attachments: [],
       });
     }
-  }, [open, incident]);
+    if (!open) {
+      wasOpenRef.current = false;
+    }
+  }, [open]);
 
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files || []);

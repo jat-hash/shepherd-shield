@@ -36,9 +36,12 @@ export default function Incidents() {
 
   useEffect(() => { 
     base44.auth.me().then(setCurrentUser).catch(() => {});
-    const unsub = base44.entities.Incident.subscribe(() => loadIncidents());
+    const unsub = base44.entities.Incident.subscribe(() => {
+      // Don't reload while a form is open — it can interfere with uploads
+      if (!formOpen && !editingIncident) loadIncidents();
+    });
     return unsub;
-  }, []);
+  }, [formOpen, editingIncident]);
 
   const filtered = incidents.filter(i => {
     if (filter !== "all" && i.status !== filter) return false;
