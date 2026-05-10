@@ -30,6 +30,7 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
   const [uploading, setUploading] = useState(false);
   const [fileInputKey, setFileInputKey] = useState(0);
   const fileInputRef = useRef(null);
+  const filePickerOpenRef = useRef(false);
 
   useEffect(() => {
     if (open) {
@@ -62,6 +63,7 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
   }, [open, incident]);
 
   const handleFileUpload = async (e) => {
+    filePickerOpenRef.current = false;
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
@@ -138,7 +140,7 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen && !filePickerOpenRef.current && !uploading) onClose(); }}>
       <DialogContent className="bg-[#1a2744] border-slate-700 text-white w-[calc(100vw-2rem)] max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-[#d4a843]">{isEditing ? "Edit Incident Report" : "New Incident Report"}</DialogTitle>
@@ -220,7 +222,7 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
             <button
               type="button"
               disabled={uploading}
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => { filePickerOpenRef.current = true; fileInputRef.current?.click(); }}
               className="mt-1 w-full flex items-center gap-2 cursor-pointer bg-[#0a1128] border border-dashed border-slate-600 rounded-lg p-3 hover:border-[#d4a843]/40 transition-colors disabled:opacity-50 select-none"
             >
               <Upload className="w-4 h-4 text-slate-400 flex-shrink-0" />
