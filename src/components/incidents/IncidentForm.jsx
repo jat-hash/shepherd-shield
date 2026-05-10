@@ -36,16 +36,25 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
   const wasOpenRef = useRef(false);
   const filePickerActiveRef = useRef(false);
 
-  // On mobile, the file picker hides the page briefly — prevent any close during that window
+  // When file picker closes (with or without selection), window gets focus back.
+  // Keep a brief lock after that so mobile ghost taps don't dismiss the modal.
   useEffect(() => {
-    const onVisible = () => {
+    const onWindowFocus = () => {
       if (filePickerActiveRef.current) {
-        // Page came back from file picker — keep a brief lock so pointer events don't close modal
-        setTimeout(() => { filePickerActiveRef.current = false; }, 500);
+        setTimeout(() => { filePickerActiveRef.current = false; }, 800);
       }
     };
+    const onVisible = () => {
+      if (filePickerActiveRef.current) {
+        setTimeout(() => { filePickerActiveRef.current = false; }, 800);
+      }
+    };
+    window.addEventListener("focus", onWindowFocus);
     document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", onWindowFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   // Only reset form on open transition
@@ -68,7 +77,6 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
   }, [open]);
 
   const handleFileUpload = async (e) => {
-    filePickerActiveRef.current = false;
     const files = Array.from(e.target.files || []);
     e.target.value = "";
     if (files.length === 0) return;
