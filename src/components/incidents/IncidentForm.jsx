@@ -64,8 +64,6 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-    // Reset input so same file can be picked again next time
-    setFileInputKey(k => k + 1);
 
     const maxSize = 500 * 1024 * 1024; // 500MB
     const validFiles = files.filter(file => {
@@ -76,7 +74,10 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
       return true;
     });
 
-    if (validFiles.length === 0) return;
+    if (validFiles.length === 0) {
+      setFileInputKey(k => k + 1);
+      return;
+    }
 
     setUploading(true);
     toast.info(`Uploading ${validFiles.length} file${validFiles.length > 1 ? "s" : ""}…`);
@@ -102,6 +103,8 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
       setForm(prev => ({ ...prev, attachments: [...prev.attachments, ...newUrls] }));
     }
     setUploading(false);
+    // Reset input key AFTER upload completes so re-selecting the same file works
+    setFileInputKey(k => k + 1);
   };
 
   const removeAttachment = (index) => {
