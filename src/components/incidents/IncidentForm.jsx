@@ -19,26 +19,24 @@ const severityColors = {
   Critical: "bg-red-500/20 text-red-400 border-red-500/30",
 };
 
+const EMPTY_FORM = {
+  title: "", category: "", location: "", severity: "",
+  description: "", people_involved: "", status: "Open",
+  incident_date: new Date().toISOString().split("T")[0],
+  attachments: [],
+};
+
 export default function IncidentForm({ open, onClose, onSaved, incident }) {
   const isEditing = !!incident;
-  const [form, setForm] = useState({
-    title: "",
-    category: "",
-    location: "",
-    severity: "",
-    description: "",
-    people_involved: "",
-    status: "Open",
-    incident_date: new Date().toISOString().split("T")[0],
-    attachments: [],
-  });
+  const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
+  const uploadingRef = useRef(false);
   const wasOpenRef = useRef(false);
 
+  // Only reset form on open transition
   useEffect(() => {
-    // Only reset form when the modal first opens (false -> true transition)
     if (open && !wasOpenRef.current) {
       wasOpenRef.current = true;
       setForm(incident ? {
@@ -51,56 +49,38 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
         status: incident.status || "Open",
         incident_date: incident.incident_date || new Date().toISOString().split("T")[0],
         attachments: incident.attachments || [],
-      } : {
-        title: "",
-        category: "",
-        location: "",
-        severity: "",
-        description: "",
-        people_involved: "",
-        status: "Open",
-        incident_date: new Date().toISOString().split("T")[0],
-        attachments: [],
-      });
+      } : { ...EMPTY_FORM, incident_date: new Date().toISOString().split("T")[0] });
     }
-    if (!open) {
-      wasOpenRef.current = false;
-    }
+    if (!open) wasOpenRef.current = false;
   }, [open]);
 
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files || []);
-    // Reset the input value immediately so same file can be re-selected
     e.target.value = "";
     if (files.length === 0) return;
 
-    const maxSize = 500 * 1024 * 1024;
-    const validFiles = files.filter(file => {
-      if (file.size > maxSize) { toast.error(`${file.name} exceeds 500MB limit`); return false; }
-      return true;
-    });
-    if (validFiles.length === 0) return;
-
+    uploadingRef.current = true;
     setUploading(true);
-    toast.info(`Uploading ${validFiles.length} file${validFiles.length > 1 ? "s" : ""}…`);
+    toast.info(`Uploading ${files.length} file${files.length > 1 ? "s" : ""}…`);
 
     const results = await Promise.allSettled(
-      validFiles.map(file => base44.integrations.Core.UploadFile({ file }))
+      files.map(file => base44.integrations.Core.UploadFile({ file }))
     );
 
     const newUrls = [];
     results.forEach((result, i) => {
       if (result.status === "fulfilled") {
         const url = result.value?.file_url || result.value?.url;
-        if (url) { newUrls.push(url); toast.success(`${validFiles[i].name} uploaded`); }
+        if (url) { newUrls.push(url); toast.success(`${files[i].name} uploaded`); }
       } else {
-        toast.error(`Failed to upload ${validFiles[i].name}`);
+        toast.error(`Failed to upload ${files[i].name}`);
       }
     });
 
     if (newUrls.length > 0) {
       setForm(prev => ({ ...prev, attachments: [...prev.attachments, ...newUrls] }));
     }
+    uploadingRef.current = false;
     setUploading(false);
   };
 
@@ -116,7 +96,7 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
       const user = await base44.auth.me();
       await base44.entities.Incident.create({
         ...form,
-        reported_by: user?.data?.display_name || user?.display_name || user?.full_name || user?.email || "Unknown",
+        reported_by: user?.display_name || user?.full_name || user?.email || "Unknown",
       });
     }
     setSaving(false);
@@ -124,60 +104,79 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
     onClose();
   };
 
+  // Guard: never close if uploading
+  const safeClose = () => {
+    if (uploadingRef.current || uploading) return;
+    onClose();
+  };
+
   if (!open) return null;
 
   return (
     <>
-      {/* File input rendered OUTSIDE the modal overlay to avoid Radix focus-trap issues on mobile */}
+      {/* Hidden file input — rendered at document root level via portal-like approach */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.ppt,.pptx"
-        className="sr-only"
+        style={{ position: "fixed", top: -9999, left: -9999, opacity: 0, pointerEvents: "none" }}
         multiple
         onChange={handleFileUpload}
-        disabled={uploading}
       />
 
-      {/* Backdrop */}
+      {/* Backdrop — only closes if not uploading */}
       <div
-        className="fixed inset-0 bg-black/70 z-[100]"
-        onClick={onClose}
+        className="fixed inset-0 bg-black/70 z-[200]"
+        onPointerDown={(e) => {
+          // Only close if the tap is directly on the backdrop
+          if (e.target === e.currentTarget) safeClose();
+        }}
       />
 
-      {/* Modal */}
-      <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
+      {/* Modal panel */}
+      <div
+        className="fixed inset-x-0 bottom-0 sm:inset-0 z-[201] flex sm:items-center sm:justify-center"
+        style={{ pointerEvents: "none" }}
+      >
         <div
-          className="bg-[#1a2744] border border-slate-700 text-white w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl shadow-2xl pointer-events-auto"
-          onClick={e => e.stopPropagation()}
+          className="bg-[#1a2744] border border-slate-700 text-white w-full sm:max-w-lg sm:rounded-xl rounded-t-xl shadow-2xl overflow-hidden flex flex-col"
+          style={{ maxHeight: "92vh", pointerEvents: "auto" }}
+          onPointerDown={e => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-5 border-b border-slate-700">
-            <h2 className="text-[#d4a843] font-semibold">{isEditing ? "Edit Incident Report" : "New Incident Report"}</h2>
-            <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700 shrink-0">
+            <h2 className="text-[#d4a843] font-semibold text-sm">
+              {isEditing ? "Edit Incident Report" : "New Incident Report"}
+            </h2>
+            <button onClick={safeClose} className="text-slate-400 hover:text-white transition-colors p-1">
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          <div className="p-5 space-y-4">
+          {/* Scrollable body */}
+          <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
             <div>
               <Label className="text-slate-300 text-xs">Title</Label>
-              <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" placeholder="Brief incident title" />
+              <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
+                className="bg-[#0a1128] border-slate-700 text-white mt-1" placeholder="Brief incident title" />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label className="text-slate-300 text-xs">Category</Label>
                 <Select value={form.category} onValueChange={v => setForm({ ...form, category: v })}>
-                  <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent className="bg-[#1a2744] border-slate-700">
+                  <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white mt-1">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1a2744] border-slate-700 z-[300]">
                     {CATEGORIES.map(c => <SelectItem key={c} value={c} className="text-white">{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label className="text-slate-300 text-xs">Location</Label>
-                <Input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" placeholder="e.g. Parking Lot A" />
+                <Input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })}
+                  className="bg-[#0a1128] border-slate-700 text-white mt-1" placeholder="e.g. Parking Lot A" />
               </div>
             </div>
 
@@ -185,14 +184,10 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
               <Label className="text-slate-300 text-xs mb-2 block">Severity</Label>
               <div className="grid grid-cols-4 gap-2">
                 {SEVERITIES.map(s => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setForm({ ...form, severity: s })}
+                  <button key={s} type="button" onClick={() => setForm({ ...form, severity: s })}
                     className={`py-2 rounded-lg text-xs font-semibold border transition-all ${
                       form.severity === s ? severityColors[s] : "border-slate-700 text-slate-500 hover:border-slate-500"
-                    }`}
-                  >
+                    }`}>
                     {s}
                   </button>
                 ))}
@@ -201,7 +196,9 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
 
             <div>
               <Label className="text-slate-300 text-xs">Description</Label>
-              <Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" rows={4} placeholder="Detailed description of the incident..." />
+              <Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
+                className="bg-[#0a1128] border-slate-700 text-white mt-1" rows={4}
+                placeholder="Detailed description of the incident..." />
             </div>
 
             {isEditing && (
@@ -209,7 +206,7 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
                 <Label className="text-slate-300 text-xs">Status</Label>
                 <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
                   <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-[#1a2744] border-slate-700">
+                  <SelectContent className="bg-[#1a2744] border-slate-700 z-[300]">
                     {STATUSES.map(s => <SelectItem key={s} value={s} className="text-white">{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -218,27 +215,34 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
 
             <div>
               <Label className="text-slate-300 text-xs">People Involved</Label>
-              <Textarea value={form.people_involved} onChange={e => setForm({ ...form, people_involved: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" rows={2} placeholder="Names and descriptions" />
+              <Textarea value={form.people_involved} onChange={e => setForm({ ...form, people_involved: e.target.value })}
+                className="bg-[#0a1128] border-slate-700 text-white mt-1" rows={2}
+                placeholder="Names and descriptions" />
             </div>
 
+            {/* Attachments */}
             <div>
-              <Label className="text-slate-300 text-xs">Attachments {form.attachments.length > 0 && `(${form.attachments.length})`}</Label>
+              <Label className="text-slate-300 text-xs">
+                Attachments {form.attachments.length > 0 && `(${form.attachments.length})`}
+              </Label>
               <button
                 type="button"
                 disabled={uploading}
                 onClick={() => fileInputRef.current?.click()}
-                className="mt-1 w-full flex items-center gap-2 cursor-pointer bg-[#0a1128] border border-dashed border-slate-600 rounded-lg p-3 hover:border-[#d4a843]/40 transition-colors disabled:opacity-50 select-none"
+                className="mt-1 w-full flex items-center gap-2 bg-[#0a1128] border border-dashed border-slate-600 rounded-lg p-3 hover:border-[#d4a843]/40 active:border-[#d4a843]/60 transition-colors disabled:opacity-50 touch-manipulation"
               >
                 <Upload className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <span className="text-xs text-slate-400">{uploading ? "Uploading..." : "Tap to add photos, videos, or documents (up to 500MB each)"}</span>
+                <span className="text-xs text-slate-400 text-left">
+                  {uploading ? "Uploading... please wait" : "Tap to add photos, videos, or documents"}
+                </span>
               </button>
 
               {form.attachments.length > 0 && (
                 <div className="flex gap-2 mt-2 flex-wrap">
                   {form.attachments.map((url, i) => {
                     const filename = decodeURIComponent(url.split("/").pop().split("?")[0]);
-                    const isImage = url.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-                    const isVideo = url.match(/\.(mp4|mov|avi|webm|mkv|m4v|wmv|flv|3gp|ts|mts)$/i);
+                    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+                    const isVideo = /\.(mp4|mov|avi|webm|mkv|m4v)$/i.test(url);
                     return (
                       <div key={i} className="relative group">
                         {isImage ? (
@@ -251,16 +255,13 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
                           </div>
                         ) : (
                           <a href={url} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-2 bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2 hover:border-[#d4a843]/40 transition-colors max-w-[200px]">
+                            className="flex items-center gap-2 bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2 hover:border-[#d4a843]/40 max-w-[180px]">
                             <FileText className="w-4 h-4 text-[#d4a843] flex-shrink-0" />
                             <span className="text-xs text-slate-300 truncate">{filename}</span>
                           </a>
                         )}
-                        <button
-                          type="button"
-                          onClick={() => removeAttachment(i)}
-                          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 active:opacity-100 transition-opacity z-10"
-                        >
+                        <button type="button" onClick={() => removeAttachment(i)}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 active:opacity-100 transition-opacity z-10 touch-manipulation">
                           <X className="w-3 h-3 text-white" />
                         </button>
                       </div>
@@ -272,8 +273,8 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
           </div>
 
           {/* Footer */}
-          <div className="flex gap-2 p-5 pt-0">
-            <Button variant="ghost" onClick={onClose} className="flex-1 text-slate-400">Cancel</Button>
+          <div className="flex gap-2 px-5 py-4 border-t border-slate-700 shrink-0">
+            <Button variant="ghost" onClick={safeClose} className="flex-1 text-slate-400">Cancel</Button>
             <Button
               onClick={handleSave}
               disabled={saving || uploading || !form.title || !form.category || !form.severity || !form.location || !form.description}
