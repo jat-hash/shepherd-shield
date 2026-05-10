@@ -34,6 +34,19 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
   const fileInputRef = useRef(null);
   const uploadingRef = useRef(false);
   const wasOpenRef = useRef(false);
+  const filePickerActiveRef = useRef(false);
+
+  // On mobile, the file picker hides the page briefly — prevent any close during that window
+  useEffect(() => {
+    const onVisible = () => {
+      if (filePickerActiveRef.current) {
+        // Page came back from file picker — keep a brief lock so pointer events don't close modal
+        setTimeout(() => { filePickerActiveRef.current = false; }, 500);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
 
   // Only reset form on open transition
   useEffect(() => {
@@ -55,6 +68,7 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
   }, [open]);
 
   const handleFileUpload = async (e) => {
+    filePickerActiveRef.current = false;
     const files = Array.from(e.target.files || []);
     e.target.value = "";
     if (files.length === 0) return;
@@ -104,9 +118,9 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
     onClose();
   };
 
-  // Guard: never close if uploading
+  // Guard: never close if uploading or file picker was just used
   const safeClose = () => {
-    if (uploadingRef.current || uploading) return;
+    if (uploadingRef.current || uploading || filePickerActiveRef.current) return;
     onClose();
   };
 
@@ -228,7 +242,10 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
               <button
                 type="button"
                 disabled={uploading}
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => {
+                filePickerActiveRef.current = true;
+                fileInputRef.current?.click();
+              }}
                 className="mt-1 w-full flex items-center gap-2 bg-[#0a1128] border border-dashed border-slate-600 rounded-lg p-3 hover:border-[#d4a843]/40 active:border-[#d4a843]/60 transition-colors disabled:opacity-50 touch-manipulation"
               >
                 <Upload className="w-4 h-4 text-slate-400 flex-shrink-0" />
