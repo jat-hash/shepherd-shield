@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-// Entity automation: triggers on Incident update when status changes to Resolved or Closed.
-// Sends push notifications + in-app notifications to all users.
+// Entity automation: triggers on Incident update.
+// Sends in-app notifications + FCM push (Android/desktop) to all users.
 
 Deno.serve(async (req) => {
   try {
@@ -16,6 +16,12 @@ Deno.serve(async (req) => {
       return Response.json({ skipped: true, reason: `Status is ${status}, not Resolved/Closed` });
     }
 
+    // Only notify if status actually changed
+    const oldStatus = payload.old_data?.status;
+    if (oldStatus === status) {
+      return Response.json({ skipped: true, reason: 'Status did not change' });
+    }
+
     const firebaseServerKey = Deno.env.get('FIREBASE_SERVER_KEY');
 
     const title = status === 'Resolved'
@@ -24,11 +30,10 @@ Deno.serve(async (req) => {
 
     const body = `${incident.category} at ${incident.location || 'unknown location'} has been marked ${status}.`;
 
-    // Get all users
     const allUsers = await base44.asServiceRole.entities.User.list();
 
     await Promise.all(allUsers.map(async (user) => {
-      // In-app notification
+      // In-app notification — works on ALL platforms including iOS
       await base44.asServiceRole.entities.Notification.create({
         user_email: user.email,
         title,
@@ -37,7 +42,7 @@ Deno.serve(async (req) => {
         read: false
       }).catch(() => {});
 
-      // FCM push notification
+      // FCM push — works on Android/desktop (iOS does not support FCM)
       if (firebaseServerKey) {
         const devices = await base44.asServiceRole.entities.UserDevice.filter({ user_email: user.email }).catch(() => []);
         const tokens = (devices || []).map(d => d.fcm_token).filter(Boolean);

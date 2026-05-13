@@ -83,7 +83,7 @@ export default function Communications() {
       }).catch(() => {});
       if (navigator.onLine) {
         // Load only DM channels the current user is a participant in (secure backend function)
-        base44.functions.invoke('getMyDMChannels').then(res => {
+        base44.functions.invoke('getMyDMChannels', { caller_email: u.email }).then(res => {
           setDmChannels(res?.data?.channels || []);
         }).catch(() => {});
         // Pre-cache users for offline DM selector
@@ -115,7 +115,7 @@ export default function Communications() {
       // Reload DM channels from server
       if (user) {
         try {
-          const res = await base44.functions.invoke('getMyDMChannels');
+          const res = await base44.functions.invoke('getMyDMChannels', { caller_email: user?.email });
           setDmChannels(res?.data?.channels || []);
         } catch (e) {
           console.error('Failed to reload DM channels:', e);
@@ -156,7 +156,7 @@ export default function Communications() {
 
     // Use secure backend function for DM channels, direct query only for group channels
     const fetchMsgs = activeChannel.type === 'dm'
-      ? base44.functions.invoke('getDMMessages', { channel: currentChannel }).then(res => (res?.data?.messages || []).reverse())
+      ? base44.functions.invoke('getDMMessages', { channel: currentChannel, caller_email: user?.email }).then(res => (res?.data?.messages || []).reverse())
       : base44.entities.TeamMessage.filter({ channel: currentChannel }, "-created_date", 100).then(msgs => msgs.reverse());
 
     fetchMsgs.then(sorted => {
@@ -330,7 +330,7 @@ export default function Communications() {
     }
     setLoading(true);
     const fetchMsgsReload = activeChannel.type === 'dm'
-      ? base44.functions.invoke('getDMMessages', { channel: activeChannel.name }).then(res => (res?.data?.messages || []).reverse())
+      ? base44.functions.invoke('getDMMessages', { channel: activeChannel.name, caller_email: user?.email }).then(res => (res?.data?.messages || []).reverse())
       : base44.entities.TeamMessage.filter({ channel: activeChannel.name }, "-created_date", 100).then(msgs => msgs.reverse());
     fetchMsgsReload.then(sorted => {
         setMessages(sorted.filter(m => !m.is_pinned));
