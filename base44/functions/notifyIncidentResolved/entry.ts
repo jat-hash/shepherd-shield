@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 // Entity automation: triggers on Incident update.
-// Sends in-app notifications + FCM push (Android/desktop) to all users.
+// Sends in-app notifications + FCM push to all users on any status change.
 
 Deno.serve(async (req) => {
   try {
@@ -9,27 +9,31 @@ Deno.serve(async (req) => {
     const payload = await req.json();
 
     const incident = payload.data;
+    const oldIncident = payload.old_data;
+
     if (!incident) return Response.json({ skipped: true, reason: 'No incident data' });
 
-    const status = incident.status;
-    if (status !== 'Resolved' && status !== 'Closed') {
-      return Response.json({ skipped: true, reason: `Status is ${status}, not Resolved/Closed` });
-    }
+    // Notify on any field change — build a meaningful message
+    const oldStatus = oldIncident?.status;
+    const newStatus = incident.status;
+    const statusChanged = oldStatus && oldStatus !== newStatus;
 
-    // Only notify if status actually changed
-    const oldStatus = payload.old_data?.status;
-    if (oldStatus === status) {
-      return Response.json({ skipped: true, reason: 'Status did not change' });
-    }
+    const statusEmoji = {
+      'Open': '🔴',
+      'Under Review': '🟡',
+      'Resolved': '✅',
+      'Closed': '🔒'
+    };
+
+    const title = statusChanged
+      ? `${statusEmoji[newStatus] || '📋'} Incident Update: ${incident.title}`
+      : `📋 Incident Updated: ${incident.title}`;
+
+    const body = statusChanged
+      ? `Status changed from "${oldStatus}" to "${newStatus}" — ${incident.category} at ${incident.location || 'unknown location'}.`
+      : `"${incident.title}" (${incident.category}) has been updated. Current status: ${newStatus || 'Unknown'}.`;
 
     const firebaseServerKey = Deno.env.get('FIREBASE_SERVER_KEY');
-
-    const title = status === 'Resolved'
-      ? `✅ Incident Resolved: ${incident.title}`
-      : `🔒 Incident Closed: ${incident.title}`;
-
-    const body = `${incident.category} at ${incident.location || 'unknown location'} has been marked ${status}.`;
-
     const allUsers = await base44.asServiceRole.entities.User.list();
 
     await Promise.all(allUsers.map(async (user) => {
@@ -42,7 +46,7 @@ Deno.serve(async (req) => {
         read: false
       }).catch(() => {});
 
-      // FCM push — works on Android/desktop (iOS does not support FCM)
+      // FCM push — works on Android/desktop
       if (firebaseServerKey) {
         const devices = await base44.asServiceRole.entities.UserDevice.filter({ user_email: user.email }).catch(() => []);
         const tokens = (devices || []).map(d => d.fcm_token).filter(Boolean);
@@ -64,8 +68,8 @@ Deno.serve(async (req) => {
       }
     }));
 
-    console.log(`Incident ${status} notifications sent to ${allUsers.length} users`);
-    return Response.json({ success: true, notified: allUsers.length, status });
+    console.log(`Incident update notifications sent to ${allUsers.length} users`);
+    return Response.json({ success: true, notified: allUsers.length, statusChanged, newStatus });
   } catch (error) {
     console.error('notifyIncidentResolved error:', error);
     return Response.json({ error: error.message }, { status: 500 });
