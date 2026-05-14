@@ -15,8 +15,15 @@ function getNotificationRoute(notification) {
     if (notification.dm_channel) {
       return `/Communications?channel=${encodeURIComponent(notification.dm_channel)}`;
     }
-    // Incident keywords
-    if (title.includes("incident") || msg.includes("incident") || title.includes("alert") && msg.includes("reported")) {
+    // Incident keywords (check first — broad match on title emojis and keywords)
+    if (
+      title.includes("incident") || msg.includes("incident") ||
+      title.includes("document added") || title.includes("attachment") ||
+      msg.includes("attachment") || msg.includes("status changed") ||
+      (title.includes("alert") && msg.includes("reported")) ||
+      title.includes("severity") || msg.includes("severity") ||
+      msg.includes("reported at") || msg.includes("incident report")
+    ) {
       return "/Incidents";
     }
     // Equipment keywords
@@ -35,7 +42,7 @@ function getNotificationRoute(notification) {
     if (msg.includes("message") || title.includes("message")) {
       return "/Communications";
     }
-    return "/Communications";
+    return null;
   }
   return null;
 }
@@ -108,7 +115,7 @@ export default function NotificationToast({ userEmail }) {
     // Use functional update in timeout to avoid stale closure
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t._toastId !== toastId));
-    }, 10000);
+    }, 30000);
   };
 
   const dismissToast = (toastId) => {
