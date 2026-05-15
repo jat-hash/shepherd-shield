@@ -57,64 +57,111 @@ export default function PocketMode() {
     };
     document.addEventListener("visibilitychange", handleVisibility);
 
-    // ── Camera brightness detection ──────────────────────────────────────────
-    // Grab a rear-camera stream, sample a frame every 500ms, compute average brightness.
-    // If brightness < threshold for 1 second → pocket mode on.
+    // ── Proximity Sensor (most reliable for pocket detection) ────────────────
+    // Firefox/Android supports deviceproximity; some browsers support ProximitySensor API
+    let proximitySensor = null;
+
+    const handleProximity = (e) => {
+      // e.near = true means something is close (in pocket)
+      // e.value in cm; max is device max range
+      if (e.near || (e.value !== undefined && e.value < 5)) {
+        enablePocketMode();
+      } else {
+        disablePocketMode();
+      }
+    };
+
+    window.addEventListener("deviceproximity", handleProximity);
+    window.addEventListener("userproximity", handleProximity);
+
+    // Generic ProximitySensor API (Chrome on Android)
+    if ("ProximitySensor" in window) {
+      try {
+        proximitySensor = new window.ProximitySensor();
+        proximitySensor.addEventListener("reading", () => {
+          if (proximitySensor.near) enablePocketMode();
+          else disablePocketMode();
+        });
+        proximitySensor.start();
+      } catch (_) { proximitySensor = null; }
+    }
+
+    // ── Camera brightness detection (fallback) ───────────────────────────────
     let videoStream = null;
     let videoEl = null;
-    let canvasEl = null;
     let sampleInterval = null;
-    let darkFrameCount = 0;
-    const DARK_THRESHOLD = 15;   // avg pixel brightness 0-255; covered camera ≈ 0-10
-    const FRAMES_TO_ACTIVATE = 2; // consecutive dark frames before activating (~1s)
-    const FRAMES_TO_DEACTIVATE = 2; // consecutive bright frames before deactivating
-
-    let brightFrameCount = 0;
+    let darkCount = 0;
+    let brightCount = 0;
+    // Very aggressive threshold — a covered camera in a dark pocket reads ~0-5
+    // A camera in normal room light reads 80-200+
+    const DARK_THRESHOLD = 20;
+    const BRIGHT_THRESHOLD = 30;
+    const FRAMES_TO_ACTIVATE = 3;  // ~1.5s of darkness
+    const FRAMES_TO_DEACTIVATE = 3;
 
     async function startCameraDetection() {
       try {
         videoStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" }, width: 16, height: 16 },
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 8 },
+            height: { ideal: 8 },
+          },
           audio: false,
         });
 
         videoEl = document.createElement("video");
         videoEl.srcObject = videoStream;
         videoEl.setAttribute("playsinline", "true");
-        videoEl.setAttribute("muted", "true");
         videoEl.muted = true;
-        Object.assign(videoEl.style, { position: "absolute", opacity: "0", pointerEvents: "none", width: "1px", height: "1px" });
+        Object.assign(videoEl.style, {
+          position: "fixed",
+          opacity: "0.01", // must be > 0 or browser may suspend it
+          pointerEvents: "none",
+          width: "1px",
+          height: "1px",
+          top: "-10px",
+          left: "-10px",
+        });
         document.body.appendChild(videoEl);
-        await videoEl.play();
 
-        canvasEl = document.createElement("canvas");
-        canvasEl.width = 16;
-        canvasEl.height = 16;
-        const ctx = canvasEl.getContext("2d", { willReadFrequently: true });
+        // Wait for video to be ready
+        await new Promise((resolve) => {
+          videoEl.onloadedmetadata = resolve;
+          videoEl.play().then(resolve).catch(resolve);
+          setTimeout(resolve, 2000); // fallback timeout
+        });
+
+        const canvas = document.createElement("canvas");
+        canvas.width = 8;
+        canvas.height = 8;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
 
         sampleInterval = setInterval(() => {
           if (!videoEl || videoEl.readyState < 2) return;
-          ctx.drawImage(videoEl, 0, 0, 16, 16);
-          const data = ctx.getImageData(0, 0, 16, 16).data;
-          let sum = 0;
-          for (let i = 0; i < data.length; i += 4) {
-            // perceived brightness
-            sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-          }
-          const avg = sum / (16 * 16);
+          try {
+            ctx.drawImage(videoEl, 0, 0, 8, 8);
+            const data = ctx.getImageData(0, 0, 8, 8).data;
+            let sum = 0;
+            const pixels = data.length / 4;
+            for (let i = 0; i < data.length; i += 4) {
+              sum += (data[i] + data[i + 1] + data[i + 2]) / 3;
+            }
+            const avg = sum / pixels;
 
-          if (avg < DARK_THRESHOLD) {
-            brightFrameCount = 0;
-            darkFrameCount++;
-            if (darkFrameCount >= FRAMES_TO_ACTIVATE) enablePocketMode();
-          } else {
-            darkFrameCount = 0;
-            brightFrameCount++;
-            if (brightFrameCount >= FRAMES_TO_DEACTIVATE) disablePocketMode();
-          }
+            if (avg < DARK_THRESHOLD) {
+              brightCount = 0;
+              darkCount++;
+              if (darkCount >= FRAMES_TO_ACTIVATE) enablePocketMode();
+            } else if (avg > BRIGHT_THRESHOLD) {
+              darkCount = 0;
+              brightCount++;
+              if (brightCount >= FRAMES_TO_DEACTIVATE) disablePocketMode();
+            }
+          } catch (_) {}
         }, 500);
       } catch (_) {
-        // Permission denied or not available — fall back silently
+        // No camera permission — silent fail, other sensors still work
       }
     }
 
@@ -126,18 +173,18 @@ export default function PocketMode() {
 
     startCameraDetection();
 
-    // ── Ambient Light Sensor fallback ─────────────────────────────────────────
+    // ── Ambient Light Sensor (where supported) ────────────────────────────────
     let lightSensor = null;
     let lightTimer = null;
     if ("AmbientLightSensor" in window) {
       try {
         lightSensor = new window.AmbientLightSensor({ frequency: 2 });
         lightSensor.addEventListener("reading", () => {
-          if (lightSensor.illuminance < 5) {
+          if (lightSensor.illuminance < 3) {
             if (!lightTimer) lightTimer = setTimeout(() => enablePocketMode(), 800);
           } else {
             if (lightTimer) { clearTimeout(lightTimer); lightTimer = null; }
-            disablePocketMode();
+            if (lightSensor.illuminance > 10) disablePocketMode();
           }
         });
         lightSensor.start();
@@ -146,6 +193,9 @@ export default function PocketMode() {
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("deviceproximity", handleProximity);
+      window.removeEventListener("userproximity", handleProximity);
+      if (proximitySensor) proximitySensor.stop();
       if (lightTimer) clearTimeout(lightTimer);
       if (lightSensor) lightSensor.stop();
       stopCameraDetection();
