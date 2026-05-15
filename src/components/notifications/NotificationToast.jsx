@@ -112,10 +112,6 @@ export default function NotificationToast({ userEmail }) {
     playSound();
     const toastId = `${notification.id}_${Date.now()}`;
     setToasts(prev => [...prev, { ...notification, _toastId: toastId }]);
-    // Use functional update in timeout to avoid stale closure
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t._toastId !== toastId));
-    }, 30000);
   };
 
   const dismissToast = (toastId) => {
