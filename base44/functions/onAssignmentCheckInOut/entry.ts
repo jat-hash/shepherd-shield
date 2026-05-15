@@ -30,14 +30,24 @@ Deno.serve(async (req) => {
       const today = new Date().toISOString().split('T')[0];
       const now = new Date().toISOString();
       
-      await base44.asServiceRole.entities.PersonalCheckIn.create({
+      // Only create a PersonalCheckIn if one doesn't already exist (open) for today
+      // This prevents duplicates when user already checked in via the dashboard
+      const existingCheckIns = await base44.asServiceRole.entities.PersonalCheckIn.filter({
         user_email: data.assigned_to_email,
-        user_name: data.assigned_to_name,
         check_in_date: today,
-        check_in_time: data.check_in_time || now,
-        latitude: data.check_in_latitude,
-        longitude: data.check_in_longitude,
       });
+      const alreadyOpen = existingCheckIns.find(r => !r.check_out_time);
+      
+      if (!alreadyOpen) {
+        await base44.asServiceRole.entities.PersonalCheckIn.create({
+          user_email: data.assigned_to_email,
+          user_name: data.assigned_to_name,
+          check_in_date: today,
+          check_in_time: data.check_in_time || now,
+          latitude: data.check_in_latitude,
+          longitude: data.check_in_longitude,
+        });
+      }
       
       // Create or update live location
       const existingLive = await base44.asServiceRole.entities.LiveLocation.filter({ user_email: data.assigned_to_email });

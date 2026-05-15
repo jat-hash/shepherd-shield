@@ -85,7 +85,7 @@ export default function PersonalCheckIn({ user }) {
         setRecordId(local.recordId || null);
       }
 
-      // Try server if online
+      // Always validate against server if online — overrides stale local cache
       if (navigator.onLine) {
         try {
           const todayLocal = new Date();
@@ -96,20 +96,20 @@ export default function PersonalCheckIn({ user }) {
             setCheckedIn(true);
             setCheckInTime(open.check_in_time);
             setRecordId(open.id);
-            // Resume live tracking if we have a live location record
+            // Resume live location id if active
             const existingLive = await base44.entities.LiveLocation.filter({ user_email: user.email, is_active: true }).catch(() => []);
             if (existingLive.length > 0) {
               setLiveLocationId(existingLive[0].id);
-              // Do NOT auto-resume watchPosition on load — this triggers Safari location prompts
-              // without user interaction. Location will resume next time user checks in.
             }
             await savePersonalCheckInState({ checkedIn: true, recordId: open.id, checkInTime: open.check_in_time });
-          } else if (!local?.checkedIn) {
+          } else {
+            // Server says not checked in — override any stale local cache
             setCheckedIn(false);
             setRecordId(null);
+            setCheckInTime(null);
             await savePersonalCheckInState({ checkedIn: false });
           }
-        } catch (e) { /* use local state */ }
+        } catch (e) { /* use local state on error */ }
       }
       setLoading(false);
     };
