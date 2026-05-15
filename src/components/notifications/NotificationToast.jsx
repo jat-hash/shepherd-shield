@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Bell, X, ExternalLink, MessageSquare, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { triggerNotificationEffect } from "@/lib/notificationEffects";
 
 function getNotificationRoute(notification) {
   const type = notification.type || "";
@@ -91,25 +92,9 @@ export default function NotificationToast({ userEmail }) {
     return () => unsub();
   }, [userEmail]);
 
-  const playSound = () => {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.value = 660;
-      osc.type = 'sine';
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.3);
-    } catch (e) {}
-    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-  };
-
   const addToast = (notification) => {
-    playSound();
+    const isDM = notification.dm_channel || notification.type === 'general';
+    triggerNotificationEffect(isDM ? 'dm' : 'assignment');
     const toastId = `${notification.id}_${Date.now()}`;
     setToasts(prev => [...prev, { ...notification, _toastId: toastId }]);
   };

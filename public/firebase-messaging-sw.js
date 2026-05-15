@@ -1,68 +1,79 @@
-importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
+// Firebase Cloud Messaging Service Worker
+importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
+// Initialize Firebase — config values are public/safe in SW context
 firebase.initializeApp({
-  apiKey: "AIzaSyD7BE-xvRYRzxh1gaHpEqIBw7k49J4xAoo",
-  authDomain: "shepherd-shield.firebaseapp.com",
-  projectId: "shepherd-shield",
-  storageBucket: "shepherd-shield.firebasestorage.app",
-  messagingSenderId: "983431306545",
-  appId: "1:983431306545:web:6d79ca922449a63187a410"
+  apiKey: "AIzaSyExample",
+  authDomain: "example.firebaseapp.com",
+  projectId: "example",
+  storageBucket: "example.appspot.com",
+  messagingSenderId: "000000000000",
+  appId: "1:000000000000:web:0000000000000000"
 });
 
 const messaging = firebase.messaging();
 
-// Handle background messages (app closed or in background)
+// Background message handler
 messaging.onBackgroundMessage((payload) => {
-  console.log('[SW] Background message:', payload);
+  const data = payload.data || {};
+  const notif = payload.notification || {};
 
-  const title = payload.notification?.title || payload.data?.title || '🚨 Shepherd Shield Alert';
-  const body = payload.notification?.body || payload.data?.body || 'New alert received';
-  const priority = payload.data?.priority || 'medium';
+  const title = notif.title || data.title || 'Shepherd Shield';
+  const body = notif.body || data.body || '';
+  const isDM = data.notification_type === 'dm' || !!data.dm_channel;
+  const isEmergency = !!data.alertId || title.includes('EMERGENCY');
 
-  const vibrate = priority === 'high'
-    ? [300, 100, 300, 100, 300, 100, 300]
-    : priority === 'medium'
-    ? [200, 100, 200]
-    : [100];
+  const clickUrl = data.click_url || (data.dm_channel
+    ? `/Communications?channel=${encodeURIComponent(data.dm_channel)}`
+    : isEmergency ? '/' : '/Communications');
 
-  return self.registration.showNotification(title, {
+  const options = {
     body,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    vibrate,
-    requireInteraction: priority === 'high',
-    tag: 'shepherd-alert-' + Date.now(),
-    data: payload.data || {},
-    actions: priority === 'high' ? [
-      { action: 'open', title: 'Open App' },
-      { action: 'dismiss', title: 'Dismiss' }
-    ] : []
-  });
+    icon: '/icon-192x192.png',
+    badge: '/icon-192x192.png',
+    tag: data.dm_channel ? `dm-${data.dm_channel}` : (data.alertId ? `alert-${data.alertId}` : `fcm-${Date.now()}`),
+    renotify: true,
+    silent: false,
+    requireInteraction: isEmergency,
+    vibrate: isEmergency ? [1000, 200, 1000, 200, 1000] : isDM ? [200, 100, 200] : [100],
+    data: {
+      ...data,
+      click_url: clickUrl
+    }
+  };
+
+  return self.registration.showNotification(title, options);
 });
 
-// Handle notification click — open/focus the app
+// Notification click handler for FCM-delivered notifications
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  if (event.action === 'dismiss') return;
+  const data = event.notification.data || {};
+
+  let targetUrl = '/';
+  if (data.click_url) {
+    targetUrl = data.click_url;
+  } else if (data.dm_channel) {
+    targetUrl = `/Communications?channel=${encodeURIComponent(data.dm_channel)}`;
+  } else if (data.notification_type === 'group_message') {
+    targetUrl = '/Communications';
+  } else if (data.alertId) {
+    targetUrl = '/';
+  }
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if ('focus' in client) return client.focus();
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+      for (const client of clients) {
+        if ('focus' in client) {
+          client.focus();
+          client.navigate(targetUrl).catch(() => {});
+          return;
+        }
       }
-      if (clients.openWindow) return clients.openWindow('/');
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
     })
   );
-});
-
-// Periodic background sync — poll for new alerts when app is not open
-self.addEventListener('periodicsync', (event) => {
-  if (event.tag === 'shepherd-poll') {
-    event.waitUntil(
-      clients.matchAll({ type: 'window' }).then((clientList) => {
-        clientList.forEach(client => client.postMessage({ type: 'POLL_NOTIFICATIONS' }));
-      })
-    );
-  }
 });

@@ -4,7 +4,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    const { recipient_email, title, body, alert_id } = await req.json();
+    const { recipient_email, title, body, alert_id, dm_channel, notification_type } = await req.json();
 
     if (!recipient_email || !title || !body) {
       return Response.json({ error: 'recipient_email, title, and body required' }, { status: 400 });
@@ -43,7 +43,12 @@ Deno.serve(async (req) => {
           sound: 'default'
         },
         data: {
-          alertId: alert_id || ''
+          alertId: alert_id || '',
+          dm_channel: dm_channel || '',
+          notification_type: notification_type || '',
+          click_url: dm_channel
+            ? `/Communications?channel=${encodeURIComponent(dm_channel)}`
+            : (alert_id ? '/' : '/Communications')
         },
         priority: 'high'
       })

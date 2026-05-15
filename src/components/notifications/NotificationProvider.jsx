@@ -7,6 +7,7 @@ import EmergencyOverlay from "./EmergencyOverlay";
 import OfflineIndicator from "./OfflineIndicator";
 import UrgentAlertSystem from "./UrgentAlertSystem";
 import { cacheData, syncPendingMessages } from "@/lib/offlineStorage";
+import { triggerNotificationEffect } from "@/lib/notificationEffects";
 
 export default function NotificationProvider({ children }) {
   const { user } = useAuth();
@@ -46,15 +47,8 @@ export default function NotificationProvider({ children }) {
         // Cache alert for offline access
         cacheData('alerts', event.data);
 
-        // INTENSE vibration pattern (like Amber Alert)
-        if (navigator.vibrate) {
-          // Long vibration bursts - 10 seconds of vibration
-          navigator.vibrate([
-            1000, 200, 1000, 200, 1000, 200,
-            1000, 200, 1000, 200, 1000, 200,
-            1000, 200, 1000, 200, 1000
-          ]);
-        }
+        // INTENSE vibration + screen flash (works on iOS too)
+        triggerNotificationEffect('emergency');
 
         // Send alert to service worker to open app automatically
         if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
@@ -112,9 +106,7 @@ export default function NotificationProvider({ children }) {
           setEmergencyAlert(null);
         } else {
           setEmergencyAlert(event.data);
-          if (navigator.vibrate) {
-            navigator.vibrate([1000, 200, 1000, 200, 1000, 200, 1000]);
-          }
+          triggerNotificationEffect('emergency');
         }
       }
     });
@@ -148,10 +140,7 @@ export default function NotificationProvider({ children }) {
                                msg.content?.toLowerCase().includes(user.email?.toLowerCase());
 
         if (isHighPriority) {
-          // Vibrate
-          if (navigator.vibrate) {
-            navigator.vibrate(msg.message_type === 'alert' ? [200, 100, 200] : [100]);
-          }
+          triggerNotificationEffect(msg.message_type === 'alert' ? 'alert' : 'dm');
           
           toast.info(
             <div className="flex items-start gap-3">
@@ -204,10 +193,7 @@ export default function NotificationProvider({ children }) {
         const today = new Date().toISOString().split("T")[0];
         const isToday = assignment.service_date === today;
 
-        // Vibrate
-        if (navigator.vibrate) {
-          navigator.vibrate(isToday ? [200, 100, 200] : [100]);
-        }
+        triggerNotificationEffect('assignment');
 
         toast.success(
           <div className="flex items-start gap-3">

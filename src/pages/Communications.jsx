@@ -40,8 +40,11 @@ export default function Communications() {
       setActiveChannel({ name: channelParam, type: "dm", displayName: "" });
       setChannel(channelParam);
       setDmChannels(prev => prev.includes(channelParam) ? prev : [...prev, channelParam]);
+      // Clean the URL so back-button doesn't re-open the same DM
+      window.history.replaceState({}, '', window.location.pathname);
     } else if (params.get("tab") === "dm") {
       setPendingDmOpen(true);
+      window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
 

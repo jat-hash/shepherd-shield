@@ -57,6 +57,8 @@ Deno.serve(async (req) => {
           recipient_email: notif.user_email,
           title: pushTitle,
           body: pushBody,
+          dm_channel: isDM ? data.channel : undefined,
+          notification_type: isDM ? 'dm' : 'group_message',
         }).catch(err => console.log('FCM push failed for', notif.user_email, err.message));
 
         // WhatsApp for all messages (DM and group)
