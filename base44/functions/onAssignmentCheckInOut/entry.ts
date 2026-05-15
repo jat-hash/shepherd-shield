@@ -58,11 +58,19 @@ Deno.serve(async (req) => {
       }
     }
     
-    // Mark live location as inactive when checking out
+    // Mark live location as inactive and close PersonalCheckIn when checking out
     if (action === 'out') {
+      const now = new Date().toISOString();
       const existingLive = await base44.asServiceRole.entities.LiveLocation.filter({ user_email: data.assigned_to_email });
       if (existingLive.length > 0) {
-        await base44.asServiceRole.entities.LiveLocation.update(existingLive[0].id, { is_active: false, last_updated: new Date().toISOString() });
+        await base44.asServiceRole.entities.LiveLocation.update(existingLive[0].id, { is_active: false, last_updated: now });
+      }
+      // Close any open PersonalCheckIn for today
+      const today = now.split('T')[0];
+      const openCheckIns = await base44.asServiceRole.entities.PersonalCheckIn.filter({ user_email: data.assigned_to_email, check_in_date: today });
+      const open = openCheckIns.find(r => !r.check_out_time);
+      if (open) {
+        await base44.asServiceRole.entities.PersonalCheckIn.update(open.id, { check_out_time: now });
       }
     }
 

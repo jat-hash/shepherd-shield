@@ -22,7 +22,8 @@ export default function AssignmentCard({ assignment, onUpdate }) {
   }
 
   const handleCheckIn = async () => {
-    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const nowDate = new Date();
+    const nowTime = nowDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     let lat = null, lng = null;
     if (navigator.geolocation) {
       await new Promise(resolve => navigator.geolocation.getCurrentPosition(
@@ -34,10 +35,11 @@ export default function AssignmentCard({ assignment, onUpdate }) {
     try {
       await base44.entities.Assignment.update(assignment.id, {
         checked_in: true,
-        check_in_time: now,
+        check_in_time: nowTime,
         status: "Confirmed",
         ...(lat !== null && { check_in_latitude: lat, check_in_longitude: lng })
       });
+      // onAssignmentCheckInOut automation handles PersonalCheckIn + LiveLocation sync
       toast.success("Checked in successfully");
       onUpdate?.();
     } catch (error) {

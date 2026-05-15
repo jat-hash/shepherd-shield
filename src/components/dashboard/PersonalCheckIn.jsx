@@ -54,6 +54,26 @@ export default function PersonalCheckIn({ user }) {
     return () => { window.removeEventListener("online", onOnline); window.removeEventListener("offline", onOffline); };
   }, [user]);
 
+  // Subscribe to real-time PersonalCheckIn changes so manual assignment check-ins sync here
+  useEffect(() => {
+    if (!user?.email) return;
+    const unsub = base44.entities.PersonalCheckIn.subscribe(async (event) => {
+      if (event.data?.user_email !== user.email) return;
+      if (event.type === 'create' && !event.data.check_out_time) {
+        setCheckedIn(true);
+        setCheckInTime(event.data.check_in_time);
+        setRecordId(event.data.id);
+        await savePersonalCheckInState({ checkedIn: true, recordId: event.data.id, checkInTime: event.data.check_in_time });
+      } else if (event.type === 'update' && event.data.check_out_time) {
+        setCheckedIn(false);
+        setRecordId(null);
+        setCheckInTime(null);
+        await savePersonalCheckInState({ checkedIn: false });
+      }
+    });
+    return () => unsub();
+  }, [user]);
+
   useEffect(() => {
     if (!user?.email) return;
     const load = async () => {

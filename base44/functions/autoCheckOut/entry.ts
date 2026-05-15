@@ -201,10 +201,20 @@ Deno.serve(async (req) => {
         }
 
         if (shouldCheckOut) {
+          const checkOutTime = now.toISOString();
           await base44.asServiceRole.entities.Assignment.update(assignment.id, {
             checked_out: true,
-            check_out_time: now.toISOString()
+            check_out_time: checkOutTime
           });
+          // Also close any open PersonalCheckIn for today
+          const openCheckIns = await base44.asServiceRole.entities.PersonalCheckIn.filter({
+            user_email: assignment.assigned_to_email,
+            check_in_date: today
+          });
+          const open = openCheckIns.find(r => !r.check_out_time);
+          if (open) {
+            await base44.asServiceRole.entities.PersonalCheckIn.update(open.id, { check_out_time: checkOutTime });
+          }
           autoCheckedOut++;
           console.log(`Auto checkout (${reason}): ${assignment.assigned_to_name}`);
         }
