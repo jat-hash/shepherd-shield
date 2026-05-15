@@ -136,7 +136,11 @@ export default function Communications() {
     setLoading(true);
     const currentChannel = activeChannel.name;
 
-    // Guard: if this is a DM channel, ensure current user is a participant
+    // Guard: if this is a DM channel, wait for user to load before enforcing participation check
+    if (activeChannel.type === "dm" && !user) {
+      setLoading(false);
+      return;
+    }
     if (activeChannel.type === "dm" && user?.email && !currentChannel.includes(user.email)) {
       setMessages([]);
       setPinnedMessages([]);
@@ -225,7 +229,7 @@ export default function Communications() {
       }
     });
     return unsub;
-  }, [activeChannel.name, user]);
+  }, [activeChannel.name, user?.email]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
