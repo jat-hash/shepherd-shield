@@ -1,10 +1,16 @@
 import { useEffect } from "react";
 
+// ── Vote-based Pocket Mode ────────────────────────────────────────────────────
+// Each sensor votes "dark" (true) or "light" (false).
+// Pocket mode ACTIVATES if ANY sensor votes dark.
+// Pocket mode DEACTIVATES only when ALL sensors vote light (or user taps unlock).
+// User tap sets a manual unlock that prevents re-activation for 3 seconds.
+
 export default function PocketMode() {
   useEffect(() => {
     if (!/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) return;
 
-    // ── Overlay ──────────────────────────────────────────────────────────────
+    // ── Overlay ───────────────────────────────────────────────────────────────
     const overlay = document.createElement("div");
     overlay.id = "pocket-overlay";
     Object.assign(overlay.style, {
@@ -18,86 +24,139 @@ export default function PocketMode() {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      transition: "opacity 0.4s ease",
+      transition: "opacity 0.3s ease",
     });
     const label = document.createElement("div");
     Object.assign(label.style, {
-      color: "rgba(255,255,255,0.3)",
+      color: "rgba(255,255,255,0.35)",
       fontSize: "14px",
       fontFamily: "sans-serif",
       userSelect: "none",
+      pointerEvents: "none",
     });
     label.textContent = "Tap to unlock";
     overlay.appendChild(label);
     document.body.appendChild(overlay);
 
-    let pocketActive = false;
+    // ── Vote registry ─────────────────────────────────────────────────────────
+    const votes = {
+      visibility: false,
+      proximity: false,
+      camera: false,
+      ambientLight: false,
+    };
 
-    function enablePocketMode() {
-      if (pocketActive) return;
-      pocketActive = true;
-      overlay.style.opacity = "1";
-      overlay.style.pointerEvents = "all";
+    let pocketActive = false;
+    let manualUnlockUntil = 0; // timestamp: suppress re-activation until this time
+
+    function updateState() {
+      const anyDark = Object.values(votes).some(Boolean);
+      const now = Date.now();
+
+      if (anyDark && now >= manualUnlockUntil) {
+        if (!pocketActive) {
+          pocketActive = true;
+          overlay.style.opacity = "1";
+          overlay.style.pointerEvents = "all";
+        }
+      } else if (!anyDark) {
+        if (pocketActive) {
+          pocketActive = false;
+          overlay.style.opacity = "0";
+          overlay.style.pointerEvents = "none";
+        }
+      }
     }
 
-    function disablePocketMode() {
-      if (!pocketActive) return;
+    function setVote(sensor, isDark) {
+      votes[sensor] = isDark;
+      updateState();
+    }
+
+    function manualUnlock() {
+      // User tapped — clear all votes, suppress re-activation for 3s
+      manualUnlockUntil = Date.now() + 3000;
+      Object.keys(votes).forEach(k => { votes[k] = false; });
       pocketActive = false;
       overlay.style.opacity = "0";
       overlay.style.pointerEvents = "none";
     }
 
-    overlay.addEventListener("click", disablePocketMode);
-    overlay.addEventListener("touchend", (e) => { e.preventDefault(); disablePocketMode(); });
+    overlay.addEventListener("click", manualUnlock);
+    overlay.addEventListener("touchend", (e) => { e.preventDefault(); manualUnlock(); });
 
-    // ── Visibility API (screen off / backgrounded) ───────────────────────────
+    // ── 1. Visibility API ─────────────────────────────────────────────────────
     const handleVisibility = () => {
-      if (document.hidden) enablePocketMode();
-      else setTimeout(disablePocketMode, 500);
+      setVote("visibility", document.hidden);
     };
     document.addEventListener("visibilitychange", handleVisibility);
 
-    // ── Proximity Sensor (most reliable for pocket detection) ────────────────
-    // Firefox/Android supports deviceproximity; some browsers support ProximitySensor API
-    let proximitySensor = null;
-
-    const handleProximity = (e) => {
-      // e.near = true means something is close (in pocket)
-      // e.value in cm; max is device max range
-      if (e.near || (e.value !== undefined && e.value < 5)) {
-        enablePocketMode();
-      } else {
-        disablePocketMode();
-      }
+    // ── 2. Proximity sensors ──────────────────────────────────────────────────
+    const handleProximityEvent = (e) => {
+      const near = e.near === true || (typeof e.value === "number" && e.value < 5);
+      setVote("proximity", near);
     };
+    window.addEventListener("deviceproximity", handleProximityEvent);
+    window.addEventListener("userproximity", handleProximityEvent);
 
-    window.addEventListener("deviceproximity", handleProximity);
-    window.addEventListener("userproximity", handleProximity);
-
-    // Generic ProximitySensor API (Chrome on Android)
+    let proximitySensor = null;
     if ("ProximitySensor" in window) {
       try {
         proximitySensor = new window.ProximitySensor();
         proximitySensor.addEventListener("reading", () => {
-          if (proximitySensor.near) enablePocketMode();
-          else disablePocketMode();
+          setVote("proximity", proximitySensor.near === true);
         });
         proximitySensor.start();
       } catch (_) { proximitySensor = null; }
     }
 
-    // ── Camera brightness detection (fallback) ───────────────────────────────
+    // ── 3. Ambient Light Sensor ───────────────────────────────────────────────
+    // Activates if illuminance drops near zero for 1+ seconds; stays active
+    // until light clearly returns. Does NOT cancel if camera says dark.
+    let lightSensor = null;
+    let lightDarkTimer = null;
+    const LIGHT_DARK_LUX = 3;    // lux below which we consider it dark
+    const LIGHT_BRIGHT_LUX = 8;  // lux above which we consider it bright again
+    const LIGHT_DARK_DELAY = 1000; // ms of darkness before activating
+
+    if ("AmbientLightSensor" in window) {
+      try {
+        lightSensor = new window.AmbientLightSensor({ frequency: 4 });
+        lightSensor.addEventListener("reading", () => {
+          const lux = lightSensor.illuminance;
+          if (lux <= LIGHT_DARK_LUX) {
+            // Start dark timer if not already running
+            if (!lightDarkTimer) {
+              lightDarkTimer = setTimeout(() => {
+                setVote("ambientLight", true);
+              }, LIGHT_DARK_DELAY);
+            }
+          } else {
+            // Cancel pending dark timer
+            if (lightDarkTimer) { clearTimeout(lightDarkTimer); lightDarkTimer = null; }
+            // Only clear vote if sufficiently bright
+            if (lux >= LIGHT_BRIGHT_LUX) {
+              setVote("ambientLight", false);
+            }
+          }
+        });
+        lightSensor.start();
+      } catch (_) { lightSensor = null; }
+    }
+
+    // ── 4. Camera brightness detection ───────────────────────────────────────
+    // Samples the rear camera at 8x8. Activates if avg brightness < threshold
+    // for N consecutive frames. Deactivates only when bright for N frames AND
+    // no other sensor is voting dark.
     let videoStream = null;
     let videoEl = null;
     let sampleInterval = null;
-    let darkCount = 0;
-    let brightCount = 0;
-    // Very aggressive threshold — a covered camera in a dark pocket reads ~0-5
-    // A camera in normal room light reads 80-200+
-    const DARK_THRESHOLD = 20;
-    const BRIGHT_THRESHOLD = 30;
-    const FRAMES_TO_ACTIVATE = 3;  // ~1.5s of darkness
-    const FRAMES_TO_DEACTIVATE = 3;
+    let darkFrames = 0;
+    let brightFrames = 0;
+    const CAM_DARK_THRESHOLD = 15;   // avg pixel value 0-255
+    const CAM_BRIGHT_THRESHOLD = 25;
+    const CAM_FRAMES_ON = 3;         // consecutive dark frames to activate (~1.5s)
+    const CAM_FRAMES_OFF = 4;        // consecutive bright frames to deactivate (~2s)
 
     async function startCameraDetection() {
       try {
@@ -116,25 +175,20 @@ export default function PocketMode() {
         videoEl.muted = true;
         Object.assign(videoEl.style, {
           position: "fixed",
-          opacity: "0.01", // must be > 0 or browser may suspend it
+          opacity: "0.01",
           pointerEvents: "none",
-          width: "1px",
-          height: "1px",
-          top: "-10px",
-          left: "-10px",
+          width: "1px", height: "1px",
+          top: "-10px", left: "-10px",
         });
         document.body.appendChild(videoEl);
 
-        // Wait for video to be ready
         await new Promise((resolve) => {
-          videoEl.onloadedmetadata = resolve;
-          videoEl.play().then(resolve).catch(resolve);
-          setTimeout(resolve, 2000); // fallback timeout
+          videoEl.onloadedmetadata = () => { videoEl.play().then(resolve).catch(resolve); };
+          setTimeout(resolve, 3000);
         });
 
         const canvas = document.createElement("canvas");
-        canvas.width = 8;
-        canvas.height = 8;
+        canvas.width = 8; canvas.height = 8;
         const ctx = canvas.getContext("2d", { willReadFrequently: true });
 
         sampleInterval = setInterval(() => {
@@ -145,23 +199,23 @@ export default function PocketMode() {
             let sum = 0;
             const pixels = data.length / 4;
             for (let i = 0; i < data.length; i += 4) {
-              sum += (data[i] + data[i + 1] + data[i + 2]) / 3;
+              sum += (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
             }
             const avg = sum / pixels;
 
-            if (avg < DARK_THRESHOLD) {
-              brightCount = 0;
-              darkCount++;
-              if (darkCount >= FRAMES_TO_ACTIVATE) enablePocketMode();
-            } else if (avg > BRIGHT_THRESHOLD) {
-              darkCount = 0;
-              brightCount++;
-              if (brightCount >= FRAMES_TO_DEACTIVATE) disablePocketMode();
+            if (avg < CAM_DARK_THRESHOLD) {
+              brightFrames = 0;
+              darkFrames = Math.min(darkFrames + 1, CAM_FRAMES_ON + 1);
+              if (darkFrames >= CAM_FRAMES_ON) setVote("camera", true);
+            } else if (avg > CAM_BRIGHT_THRESHOLD) {
+              darkFrames = 0;
+              brightFrames = Math.min(brightFrames + 1, CAM_FRAMES_OFF + 1);
+              if (brightFrames >= CAM_FRAMES_OFF) setVote("camera", false);
             }
           } catch (_) {}
         }, 500);
       } catch (_) {
-        // No camera permission — silent fail, other sensors still work
+        // Camera unavailable — other sensors still operate
       }
     }
 
@@ -173,31 +227,14 @@ export default function PocketMode() {
 
     startCameraDetection();
 
-    // ── Ambient Light Sensor (where supported) ────────────────────────────────
-    let lightSensor = null;
-    let lightTimer = null;
-    if ("AmbientLightSensor" in window) {
-      try {
-        lightSensor = new window.AmbientLightSensor({ frequency: 2 });
-        lightSensor.addEventListener("reading", () => {
-          if (lightSensor.illuminance < 3) {
-            if (!lightTimer) lightTimer = setTimeout(() => enablePocketMode(), 800);
-          } else {
-            if (lightTimer) { clearTimeout(lightTimer); lightTimer = null; }
-            if (lightSensor.illuminance > 10) disablePocketMode();
-          }
-        });
-        lightSensor.start();
-      } catch (_) { lightSensor = null; }
-    }
-
+    // ── Cleanup ───────────────────────────────────────────────────────────────
     return () => {
       document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("deviceproximity", handleProximity);
-      window.removeEventListener("userproximity", handleProximity);
-      if (proximitySensor) proximitySensor.stop();
-      if (lightTimer) clearTimeout(lightTimer);
-      if (lightSensor) lightSensor.stop();
+      window.removeEventListener("deviceproximity", handleProximityEvent);
+      window.removeEventListener("userproximity", handleProximityEvent);
+      if (proximitySensor) { try { proximitySensor.stop(); } catch (_) {} }
+      if (lightDarkTimer) clearTimeout(lightDarkTimer);
+      if (lightSensor) { try { lightSensor.stop(); } catch (_) {} }
       stopCameraDetection();
       overlay.remove();
     };
