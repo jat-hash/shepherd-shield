@@ -95,8 +95,11 @@ export default function NotificationToast({ userEmail }) {
   }, [userEmail]);
 
   const addToast = (notification) => {
-    const isDM = !!(notification.dm_channel || (notification.title || '').toLowerCase().includes('message from'));
-    triggerNotificationEffect(isDM ? 'dm' : 'assignment');
+    const title = (notification.title || '').toLowerCase();
+    const isDM = !!(notification.dm_channel || title.includes('message from'));
+    const isIncident = title.includes('incident') || title.includes('alert') || title.includes('severity');
+    const effectType = isIncident ? 'alert' : isDM ? 'dm' : 'assignment';
+    triggerNotificationEffect(effectType);
     const toastId = `${notification.id}_${Date.now()}`;
     setToasts(prev => [...prev, { ...notification, _toastId: toastId }]);
   };

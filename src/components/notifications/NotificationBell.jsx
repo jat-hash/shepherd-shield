@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "../../utils";
+import { triggerNotificationEffect } from "@/lib/notificationEffects";
 
 function extractUrl(text) {
   if (!text) return null;
@@ -64,21 +65,18 @@ export default function NotificationBell({ userEmail }) {
   const prevUnreadCount = useRef(0);
   const navigate = useNavigate();
 
-  const playNotificationSound = () => {
-    try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      oscillator.frequency.value = 660;
-      oscillator.type = 'sine';
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.3);
-    } catch (e) {}
-    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+  const playNotificationSound = (notification) => {
+    const title = (notification?.title || "").toLowerCase();
+    const type = notification?.type || "";
+    const isDM = !!(notification?.dm_channel || title.includes("message from"));
+    const isIncident = title.includes("incident") || title.includes("alert") || title.includes("severity");
+    if (isIncident) {
+      triggerNotificationEffect('alert');
+    } else if (isDM) {
+      triggerNotificationEffect('dm');
+    } else {
+      triggerNotificationEffect('assignment');
+    }
   };
 
   useEffect(() => {
@@ -118,7 +116,9 @@ export default function NotificationBell({ userEmail }) {
       setNotifications(allNotifications);
       const newUnread = allNotifications.filter(n => !n.read).length;
       if (newUnread > prevUnreadCount.current) {
-        playNotificationSound();
+        // Find the newest unread notification to determine effect type
+        const newestUnread = allNotifications.find(n => !n.read);
+        playNotificationSound(newestUnread);
       }
       prevUnreadCount.current = newUnread;
       setUnreadCount(newUnread);

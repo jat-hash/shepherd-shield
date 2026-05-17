@@ -31,26 +31,44 @@ export function vibrateOrBeep(pattern = 'short') {
   }
 }
 
+// Shared AudioContext — reuse to avoid iOS "too many contexts" limit
+let _sharedAudioCtx = null;
+function _getAudioCtx() {
+  try {
+    if (!_sharedAudioCtx || _sharedAudioCtx.state === 'closed') {
+      _sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return _sharedAudioCtx;
+  } catch (_) {
+    return null;
+  }
+}
+
 function _playAudioTone(pattern) {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const pulseCount = pattern === 'emergency' ? 5 : pattern === 'double' ? 2 : 1;
-    const freq = pattern === 'emergency' ? 880 : 660;
+    const ctx = _getAudioCtx();
+    if (!ctx) return;
 
-    for (let i = 0; i < pulseCount; i++) {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      const startAt = ctx.currentTime + i * 0.35;
-      const duration = pattern === 'emergency' ? 0.25 : 0.12;
-      gain.gain.setValueAtTime(0.3, startAt);
-      gain.gain.exponentialRampToValueAtTime(0.001, startAt + duration);
-      osc.start(startAt);
-      osc.stop(startAt + duration);
-    }
+    const resume = ctx.state === 'suspended' ? ctx.resume() : Promise.resolve();
+    resume.then(() => {
+      const pulseCount = pattern === 'emergency' ? 5 : pattern === 'double' ? 2 : 1;
+      const freq = pattern === 'emergency' ? 880 : 660;
+
+      for (let i = 0; i < pulseCount; i++) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        const startAt = ctx.currentTime + i * 0.35;
+        const duration = pattern === 'emergency' ? 0.25 : 0.12;
+        gain.gain.setValueAtTime(0.3, startAt);
+        gain.gain.exponentialRampToValueAtTime(0.001, startAt + duration);
+        osc.start(startAt);
+        osc.stop(startAt + duration);
+      }
+    }).catch(() => {});
   } catch (_) {}
 }
 
