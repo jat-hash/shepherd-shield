@@ -79,6 +79,7 @@ class ErrorBoundary extends React.Component {
 }
 
 import NotificationProvider from '@/components/notifications/NotificationProvider';
+import MinimizedAppBar from '@/components/MinimizedAppBar';
 import PWAInstaller from '@/components/PWAInstaller';
 import WakeLock from '@/components/WakeLock';
 import PocketMode from '@/components/PocketMode';
@@ -182,6 +183,7 @@ const AuthenticatedApp = () => {
 
     return (
       <ErrorBoundary>
+        <MinimizedAppBar>
         <NotificationProvider>
           <ErrorBoundary>
             <WakeLock />
@@ -215,6 +217,7 @@ const AuthenticatedApp = () => {
             <Route path="*" element={<PageNotFound />} />
           </Routes>
         </NotificationProvider>
+        </MinimizedAppBar>
       </ErrorBoundary>
     );
   } catch (err) {
