@@ -71,29 +71,31 @@ export default function NotificationToast({ userEmail }) {
     if (!userEmail) return;
 
     // Pre-seed seenIds with existing notifications so we never toast them on load
-    base44.entities.Notification.filter({ user_email: userEmail }, '-created_date', 50)
-      .then(existing => {
-        existing.forEach(n => seenIds.current.add(n.id));
-        isFirstLoad.current = false;
-      })
-      .catch(() => { isFirstLoad.current = false; });
-
+    // Subscribe FIRST, then pre-seed — any notification arriving during pre-seed
+    // gets added to seenIds so it won't double-fire after isFirstLoad is cleared.
     const unsub = base44.entities.Notification.subscribe((event) => {
-      // Only fire on brand-new creates for this user
       if (event.type !== "create") return;
       if (event.data?.user_email !== userEmail) return;
-      if (isFirstLoad.current) return;
       const n = event.data;
       if (seenIds.current.has(n.id)) return;
       seenIds.current.add(n.id);
+      // If still loading, mark as seen but don't toast (it's a pre-existing notification)
+      if (isFirstLoad.current) return;
       addToast(n);
     });
+
+    base44.entities.Notification.filter({ user_email: userEmail }, '-created_date', 50)
+      .then(existing => {
+        existing.forEach(n => seenIds.current.add(n.id));
+      })
+      .catch(() => {})
+      .finally(() => { isFirstLoad.current = false; });
 
     return () => unsub();
   }, [userEmail]);
 
   const addToast = (notification) => {
-    const isDM = notification.dm_channel || notification.type === 'general';
+    const isDM = !!(notification.dm_channel || (notification.title || '').toLowerCase().includes('message from'));
     triggerNotificationEffect(isDM ? 'dm' : 'assignment');
     const toastId = `${notification.id}_${Date.now()}`;
     setToasts(prev => [...prev, { ...notification, _toastId: toastId }]);
