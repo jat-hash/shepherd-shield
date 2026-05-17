@@ -156,6 +156,57 @@ Deno.serve(async (req) => {
     // ── 1. Assignment alerts & hard fallback checkout ─────────────────────────
     const todayAssignments = await base44.asServiceRole.entities.Assignment.filter({ service_date: today });
 
+    // ── 1a. Supervisor alert: member not on campus 15 min after shift start ───
+    for (const assignment of todayAssignments) {
+      if (!assignment.service_date || !assignment.start_time || !assignment.supervisor) continue;
+      const startDT = parseServiceTime(assignment.service_date, assignment.start_time);
+      const fifteenAfterStart = new Date(startDT.getTime() + 15 * 60 * 1000);
+
+      // Only fire in the window: 15–45 min after start (avoid repeat spam)
+      if (now < fifteenAfterStart || now > new Date(startDT.getTime() + 45 * 60 * 1000)) continue;
+
+      // Check if the member has a live location within the 3-mile boundary
+      const memberLocs = await base44.asServiceRole.entities.LiveLocation.filter({
+        user_email: assignment.assigned_to_email,
+        is_active: true
+      });
+      const memberLoc = memberLocs?.[0];
+      const isOnCampus = memberLoc?.latitude && memberLoc?.longitude &&
+        distanceMiles(memberLoc.latitude, memberLoc.longitude, CAMPUS_LAT, CAMPUS_LON) <= CAMPUS_RADIUS_MILES;
+
+      if (isOnCampus) continue; // They're here, all good
+
+      // Find supervisor user by name or email match
+      const supervisorEmail = assignment.supervisor.includes('@')
+        ? assignment.supervisor
+        : allUsers.find(u =>
+            (u.full_name || '').toLowerCase().includes(assignment.supervisor.toLowerCase()) ||
+            (u.display_name || '').toLowerCase().includes(assignment.supervisor.toLowerCase())
+          )?.email;
+
+      if (!supervisorEmail) {
+        console.log(`No supervisor email found for: ${assignment.supervisor}`);
+        continue;
+      }
+
+      const noShowTitle = `⚠️ No-Show Alert: ${assignment.assigned_to_name}`;
+      const alreadySent = await alreadyNotified(base44, supervisorEmail, noShowTitle, 60 * 60 * 1000);
+      if (alreadySent) continue;
+
+      const noShowMsg = `${assignment.assigned_to_name} has not arrived on campus within 15 minutes of their shift start (${assignment.start_time}) for position "${assignment.position_name}" on ${assignment.service_date}. Please follow up.`;
+
+      await base44.asServiceRole.entities.Notification.create({
+        user_email: supervisorEmail,
+        title: noShowTitle,
+        message: noShowMsg,
+        type: 'general',
+        assignment_id: assignment.id,
+        read: false
+      });
+      await sendPush(base44, supervisorEmail, noShowTitle, noShowMsg);
+      console.log(`No-show alert sent to supervisor (${supervisorEmail}) for: ${assignment.assigned_to_name}`);
+    }
+
     for (const assignment of todayAssignments) {
       if (!assignment.service_date || !assignment.start_time || !assignment.end_time) continue;
 
