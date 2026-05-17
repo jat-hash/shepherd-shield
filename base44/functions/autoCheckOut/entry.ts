@@ -201,6 +201,16 @@ Deno.serve(async (req) => {
         }
 
         if (shouldCheckOut) {
+          // Re-fetch the assignment to confirm it's still not checked out (avoid race/cache issues)
+          const freshList = await base44.asServiceRole.entities.Assignment.filter({
+            service_date: today,
+            assigned_to_email: assignment.assigned_to_email
+          });
+          const fresh = freshList?.find(a => a.id === assignment.id);
+          if (!fresh || fresh.checked_out) {
+            console.log(`Skipping auto-checkout for ${assignment.assigned_to_name}: already checked out (fresh check)`);
+            continue;
+          }
           const checkOutTime = now.toISOString();
           await base44.asServiceRole.entities.Assignment.update(assignment.id, {
             checked_out: true,

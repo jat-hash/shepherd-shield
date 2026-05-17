@@ -78,13 +78,7 @@ function AlertToast({ alert, onDismiss }) {
 
   useEffect(() => {
     setTimeout(() => setVisible(true), 10);
-    if (alert.priority !== "high") {
-      const timer = setTimeout(() => {
-        setVisible(false);
-        setTimeout(onDismiss, 300);
-      }, 4000);
-      return () => clearTimeout(timer);
-    }
+    // All toasts stay open until user explicitly dismisses them
   }, []);
 
   const handleAcknowledge = () => {

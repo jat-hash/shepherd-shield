@@ -102,26 +102,30 @@ export default function NotificationToast({ userEmail }) {
     triggerNotificationEffect(effectType);
     const toastId = `${notification.id}_${Date.now()}`;
     setToasts(prev => [...prev, { ...notification, _toastId: toastId }]);
-    setTimeout(() => dismissToast(toastId), 5000);
+    // No auto-dismiss — stays open until user taps it
   };
 
-  const dismissToast = (toastId) => {
+  const dismissToast = (toastId, notifId) => {
     setToasts(prev => prev.filter(t => t._toastId !== toastId));
+    if (notifId) {
+      base44.entities.Notification.update(notifId, { read: true }).catch(() => {});
+    }
   };
 
   const handleClick = (toast) => {
     const url = extractUrl(toast.message);
     if (url) {
       window.open(url, "_blank");
-      dismissToast(toast._toastId);
+      dismissToast(toast._toastId, toast.id);
       return;
     }
     const route = getNotificationRoute(toast);
     if (route) {
       navigate(route);
-      setTimeout(() => dismissToast(toast._toastId), 300);
+      setTimeout(() => dismissToast(toast._toastId, toast.id), 300);
+    } else {
+      dismissToast(toast._toastId, toast.id);
     }
-    // Don't dismiss if no route — let user see it
   };
 
   if (toasts.length === 0) return null;
@@ -155,7 +159,7 @@ export default function NotificationToast({ userEmail }) {
               )}
             </div>
             <button
-              onClick={(e) => { e.stopPropagation(); dismissToast(toast._toastId); }}
+              onClick={(e) => { e.stopPropagation(); dismissToast(toast._toastId, toast.id); }}
               className="flex-shrink-0 text-slate-500 hover:text-white transition-colors p-0.5"
             >
               <X className="w-4 h-4" />

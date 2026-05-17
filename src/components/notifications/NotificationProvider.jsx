@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
-import { AlertTriangle, MessageSquare, CalendarCheck } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import EmergencyOverlay from "./EmergencyOverlay";
 import OfflineIndicator from "./OfflineIndicator";
 import UrgentAlertSystem from "./UrgentAlertSystem";
@@ -134,40 +134,13 @@ export default function NotificationProvider({ children }) {
         const isDM = msg.channel?.startsWith('DM: ');
         if (isDM && !msg.channel.includes(user.email)) return;
 
-        // Show if it's in a relevant channel or mentions user
-        const isHighPriority = msg.message_type === "alert" || 
-                               msg.content?.toLowerCase().includes(user.full_name?.toLowerCase()) ||
-                               msg.content?.toLowerCase().includes(user.email?.toLowerCase());
-
-        if (isHighPriority) {
-          triggerNotificationEffect(msg.message_type === 'alert' ? 'alert' : 'dm');
-          
-          toast.info(
-            <div className="flex items-start gap-3">
-              <MessageSquare className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold text-sm">New Message - {msg.channel}</p>
-                <p className="text-xs mt-1 text-slate-600">{msg.sender_name}</p>
-                <p className="text-xs mt-1 line-clamp-2">{msg.content}</p>
-              </div>
-            </div>,
-            {
-              duration: 6000,
-              position: "top-right",
-              className: "border-blue-500 bg-blue-50",
-            }
-          );
-
-          // Browser notification
-          if ('Notification' in window && window.Notification?.permission === 'granted') {
-            try { new window.Notification(`Message from ${msg.sender_name}`, {
-              body: msg.content.substring(0, 100),
-              vibrate: msg.message_type === 'alert' ? [200, 100, 200] : [100],
-              tag: 'message-' + msg.id,
-              silent: false
-            }); } catch (_) {}
-          }
+        // Only trigger sensory effect for alert-type messages (not DMs — those come via Notification entity)
+        const isAlertMessage = msg.message_type === "alert";
+        if (isAlertMessage) {
+          triggerNotificationEffect('alert');
         }
+        // DM and general message toasts are handled by NotificationToast via the Notification entity
+        // to avoid duplicates. We only handle alert-type messages here.
       }
     });
     return unsubscribe;
@@ -188,61 +161,10 @@ export default function NotificationProvider({ children }) {
         cacheData('assignments', event.data);
       }
 
+      // Only trigger sensory effects here — toasts are handled by NotificationToast
+      // via the Notification entity to avoid duplicates
       if (event.type === "create") {
-        const assignment = event.data;
-        const today = new Date().toISOString().split("T")[0];
-        const isToday = assignment.service_date === today;
-
         triggerNotificationEffect('assignment');
-
-        toast.success(
-          <div className="flex items-start gap-3">
-            <CalendarCheck className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-bold text-sm">
-                {isToday ? "🔔 URGENT: " : ""}New Assignment
-              </p>
-              <p className="text-xs mt-1 text-slate-600">{assignment.position_name}</p>
-              <p className="text-xs mt-1">
-                {new Date(assignment.service_date).toLocaleDateString()} • {assignment.start_time} - {assignment.end_time}
-              </p>
-            </div>
-          </div>,
-          {
-            duration: isToday ? 10000 : 6000,
-            position: "top-right",
-            className: isToday ? "border-amber-500 bg-amber-50" : "border-emerald-500 bg-emerald-50",
-          }
-        );
-        
-        // Browser notification
-        if ('Notification' in window && window.Notification?.permission === 'granted') {
-          try { new window.Notification(isToday ? '🔔 URGENT: New Assignment' : 'New Assignment', {
-            body: `${assignment.position_name} - ${new Date(assignment.service_date).toLocaleDateString()}`,
-            vibrate: isToday ? [200, 100, 200] : [100],
-            tag: 'assignment-' + assignment.id,
-            silent: false
-          }); } catch (_) {}
-        }
-      } else if (event.type === "update") {
-        const assignment = event.data;
-        const statusChanged = event.data?.status !== event.old_data?.status;
-
-        if (statusChanged && assignment.status === "Confirmed") {
-          toast.success(
-            <div className="flex items-start gap-3">
-              <CalendarCheck className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold text-sm">Assignment Confirmed</p>
-                <p className="text-xs mt-1">{assignment.position_name}</p>
-              </div>
-            </div>,
-            {
-              duration: 5000,
-              position: "top-right",
-            }
-          );
-        }
       }
     });
     return unsubscribe;
