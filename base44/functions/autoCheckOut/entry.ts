@@ -117,6 +117,42 @@ Deno.serve(async (req) => {
     let autoCheckedIn = 0;
     let autoCheckedOut = 0;
 
+    // ── 0. Campus boundary arrival notifications ──────────────────────────────
+    // Notify leaders when a team member's live location crosses INTO the 3-mile campus boundary.
+    const allLiveLocations = await base44.asServiceRole.entities.LiveLocation.filter({ is_active: true });
+    const allUsers = await base44.asServiceRole.entities.User.list();
+    const leaderPatterns = ['james lim', 'wilbert ryan'];
+    const leaderRoles = ['security_chief', 'security chief', 'chief', 'admin'];
+    const leaders = allUsers.filter(u => {
+      const name = (u.full_name || u.display_name || '').toLowerCase();
+      const role = (u.role || '').toLowerCase();
+      return leaderPatterns.some(p => name.includes(p)) || leaderRoles.some(r => role.includes(r));
+    });
+
+    for (const loc of allLiveLocations) {
+      if (!loc.latitude || !loc.longitude) continue;
+      const dist = distanceMiles(loc.latitude, loc.longitude, CAMPUS_LAT, CAMPUS_LON);
+      const isOnCampus = dist <= CAMPUS_RADIUS_MILES;
+      if (!isOnCampus) continue;
+
+      // Only notify once per person per day (use a 12-hour window)
+      const arrivalTitle = `📍 On Campus: ${loc.user_name}`;
+      const alreadySent = await alreadyNotified(base44, leaders[0]?.email || '', arrivalTitle, 12 * 60 * 60 * 1000);
+      if (alreadySent) continue;
+
+      const arrivalMsg = `${loc.user_name} has arrived on campus (${dist.toFixed(2)} mi from campus center).`;
+      await Promise.all(leaders.map(leader =>
+        base44.asServiceRole.entities.Notification.create({
+          user_email: leader.email,
+          title: arrivalTitle,
+          message: arrivalMsg,
+          type: 'general',
+          read: false
+        })
+      ));
+      console.log(`Campus arrival notified for: ${loc.user_name}`);
+    }
+
     // ── 1. Assignment alerts & hard fallback checkout ─────────────────────────
     const todayAssignments = await base44.asServiceRole.entities.Assignment.filter({ service_date: today });
 
