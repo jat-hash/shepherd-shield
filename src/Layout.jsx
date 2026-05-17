@@ -7,6 +7,7 @@ import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bel
 
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { cacheUserVibrationPrefs } from "@/lib/notificationEffects";
+import EmergencyOverrideFlash from "@/components/notifications/EmergencyOverrideFlash";
 import AlertNotificationSystem from "@/components/notifications/AlertNotificationSystem";
 import UserSwitcher from "@/components/UserSwitcher";
 import NotificationToast from "@/components/notifications/NotificationToast";
@@ -438,6 +439,10 @@ export default function Layout({ children, currentPageName }) {
       </nav>
     </div>
     <NotificationToast userEmail={user?.email} />
+    {/* Emergency Override: persistent non-dismissible flash for users who opted in */}
+    {user?.emergency_override && alerts.length > 0 && (
+      <EmergencyOverrideFlash alert={alerts[0]} />
+    )}
     <EmergencyOverlay
       alert={overlayAlert}
       onDismiss={() => {

@@ -266,6 +266,24 @@ export default function Profile() {
             />
           </div>
 
+          {/* Emergency Override */}
+          <div className="border border-red-500/30 rounded-xl p-4 bg-red-500/5 space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-red-300 text-sm font-bold flex items-center gap-1.5">
+                  🚨 Emergency Override
+                </Label>
+                <p className="text-xs text-slate-500 mt-0.5 leading-snug">
+                  Forces a persistent, non-dismissible full-screen flash for emergency alerts. Only a team leader can clear it.
+                </p>
+              </div>
+              <Switch
+                checked={user?.emergency_override ?? false}
+                onCheckedChange={(val) => handleNotificationToggle('emergency_override', val)}
+              />
+            </div>
+          </div>
+
           <div className="border-t border-[rgba(212,168,67,0.08)] pt-4 space-y-3">
             <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Notify me about:</p>
             
