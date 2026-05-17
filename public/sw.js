@@ -1,15 +1,12 @@
+// Shepherd Shield Service Worker
 const CACHE_NAME = 'shepherd-shield-v3';
-const STATIC_ASSETS = ['/', '/index.html'];
 
-// ── Install ───────────────────────────────────────────────────────────────────
+// Install
 self.addEventListener('install', (event) => {
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS).catch(() => {}))
-  );
 });
 
-// ── Activate ──────────────────────────────────────────────────────────────────
+// Activate
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then(keys =>
@@ -18,120 +15,114 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// ── Fetch — network first, cache fallback ─────────────────────────────────────
+// Fetch (network-first for API, cache for assets)
 self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/functions/')) return;
+
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))
   );
 });
 
-// ── Notification click ────────────────────────────────────────────────────────
+// ── Push Notification Click Handler ──────────────────────────────────────────
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = event.notification.data?.url || '/';
+
+  const data = event.notification.data || {};
+  let targetUrl = '/';
+
+  // Priority 1: explicit click_url from FCM data payload
+  if (data.click_url) {
+    targetUrl = data.click_url;
+  }
+  // Priority 2: dm_channel field
+  else if (data.dm_channel) {
+    targetUrl = `/Communications?channel=${encodeURIComponent(data.dm_channel)}`;
+  }
+  // Priority 3: notification_type
+  else if (data.notification_type === 'group_message') {
+    targetUrl = '/Communications';
+  }
+  // Priority 4: alertId
+  else if (data.alertId) {
+    targetUrl = '/';
+  }
+
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
-      const existing = clients.find(c => c.url.includes(self.location.origin));
-      if (existing) {
-        existing.focus();
-        existing.navigate(targetUrl);
-      } else {
-        self.clients.openWindow(targetUrl);
+      // If the app is already open, focus it and navigate
+      for (const client of clients) {
+        if ('focus' in client) {
+          client.focus();
+          client.navigate(targetUrl).catch(() => {});
+          return;
+        }
+      }
+      // Otherwise open a new window
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
       }
     })
   );
 });
 
-// ── Push (FCM fallback) ───────────────────────────────────────────────────────
+// ── Push Event (background push) ─────────────────────────────────────────────
 self.addEventListener('push', (event) => {
-  let data = {};
-  try { data = event.data?.json() || {}; } catch (_) {}
+  if (!event.data) return;
 
-  const notification = data.notification || {};
-  const title = notification.title || 'Shepherd Shield Alert';
-  const body = notification.body || 'New alert';
-  const isEmergency = data.data?.isEmergency === 'true' || title.toLowerCase().includes('emergency');
-
-  event.waitUntil(
-    self.registration.showNotification(title, {
-      body,
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      tag: isEmergency ? 'emergency' : `alert-${Date.now()}`,
-      requireInteraction: isEmergency,
-      vibrate: isEmergency ? [500, 200, 500, 200, 800] : [200, 100, 200],
-      data: { url: data.data?.url || '/' },
-    })
-  );
-});
-
-// ── Message from app (keepalive + emergency) ──────────────────────────────────
-self.addEventListener('message', (event) => {
-  if (event.data?.type === 'KEEPALIVE') {
-    // Just receiving this prevents the SW from being terminated.
-    // Optionally ping all clients so they know SW is alive.
-    self.clients.matchAll().then(clients => {
-      clients.forEach(c => c.postMessage({ type: 'SW_ALIVE' }));
-    });
-    return;
+  let payload = {};
+  try { payload = event.data.json(); } catch (_) {
+    payload = { notification: { title: 'Shepherd Shield', body: event.data.text() } };
   }
 
+  const notif = payload.notification || {};
+  const data = payload.data || {};
+
+  const title = notif.title || 'Shepherd Shield';
+  const body = notif.body || '';
+  const isDM = data.notification_type === 'dm' || !!data.dm_channel;
+  const isEmergency = data.alertId || title.includes('EMERGENCY');
+
+  const options = {
+    body,
+    icon: '/icon-192x192.png',
+    badge: '/icon-192x192.png',
+    tag: data.dm_channel ? `dm-${data.dm_channel}` : (data.alertId ? `alert-${data.alertId}` : `msg-${Date.now()}`),
+    renotify: true,
+    silent: false,
+    requireInteraction: isEmergency,
+    vibrate: isEmergency ? [1000, 200, 1000, 200, 1000] : isDM ? [200, 100, 200] : [100],
+    data: {
+      ...data,
+      click_url: data.click_url || (data.dm_channel
+        ? `/Communications?channel=${encodeURIComponent(data.dm_channel)}`
+        : isEmergency ? '/' : '/Communications')
+    }
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// ── Message from App ──────────────────────────────────────────────────────────
+self.addEventListener('message', (event) => {
   if (event.data?.type === 'EMERGENCY_ALERT') {
-    const { title, body } = event.data;
-    self.registration.showNotification(title || '🚨 EMERGENCY ALERT', {
-      body: body || 'Immediate action required',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      tag: 'emergency',
+    const alert = event.data.alert;
+    self.registration.showNotification('🚨 EMERGENCY ALERT', {
+      body: `${alert.alert_type?.toUpperCase()} — ${alert.message}`,
+      icon: '/icon-192x192.png',
+      badge: '/icon-192x192.png',
+      vibrate: [1000, 200, 1000, 200, 1000, 200, 1000],
+      tag: 'emergency-' + alert.id,
       requireInteraction: true,
-      vibrate: [800, 200, 800, 200, 800, 200, 1000],
-      data: { url: '/' },
+      renotify: true,
+      silent: false,
+      data: { click_url: '/', alertId: alert.id }
     });
   }
 
   if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting();
-  }
-});
-
-// ── Periodic Background Sync ──────────────────────────────────────────────────
-// Fires even when the app is closed (Chrome/Android, if permission granted).
-self.addEventListener('periodicsync', (event) => {
-  if (event.tag === 'shepherd-poll' || event.tag === 'shepherd-incidents' || event.tag === 'shepherd-locations') {
-    event.waitUntil(
-      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
-        if (clients.length > 0) {
-          // App is open — tell it to refresh
-          clients.forEach(c => c.postMessage({ type: 'BACKGROUND_SYNC', tag: event.tag }));
-        } else {
-          // App is closed — show a silent keepalive notification (immediately closed)
-          // so the browser knows we're doing useful work
-          return self.registration.showNotification('Shepherd Shield', {
-            body: 'Checking for new alerts…',
-            silent: true,
-            tag: 'silent-keepalive',
-            icon: '/icon-192.png',
-          }).then(() => {
-            setTimeout(() => {
-              self.registration.getNotifications({ tag: 'silent-keepalive' })
-                .then(notifs => notifs.forEach(n => n.close()));
-            }, 1000);
-          });
-        }
-      })
-    );
-  }
-});
-
-// ── Background Sync (one-shot, triggered by app) ──────────────────────────────
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'shepherd-sync') {
-    event.waitUntil(
-      self.clients.matchAll().then(clients => {
-        clients.forEach(c => c.postMessage({ type: 'SYNC_NOW' }));
-      })
-    );
   }
 });

@@ -94,14 +94,12 @@ export default function ServiceWorkerRegister() {
         initializedRef.current = true;
         addLog('Token saved! ✅');
 
-        // Register periodic background sync for incidents + location updates
+        // Register periodic background sync (poll every 5 min when app is closed)
         if ('periodicSync' in swRegistration) {
           try {
             const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
             if (status.state === 'granted') {
-              await swRegistration.periodicSync.register('shepherd-poll', { minInterval: 3 * 60 * 1000 });
-              await swRegistration.periodicSync.register('shepherd-incidents', { minInterval: 2 * 60 * 1000 });
-              await swRegistration.periodicSync.register('shepherd-locations', { minInterval: 60 * 1000 });
+              await swRegistration.periodicSync.register('shepherd-poll', { minInterval: 5 * 60 * 1000 });
               addLog('Periodic background sync registered ✅');
             } else {
               addLog('Periodic sync permission: ' + status.state);
@@ -110,15 +108,6 @@ export default function ServiceWorkerRegister() {
             addLog('Periodic sync not supported: ' + e.message);
           }
         }
-
-        // Keep-alive: when tab is hidden, post a message every 20s so SW can ping
-        const keepAliveInterval = setInterval(() => {
-          if (document.visibilityState === 'hidden' && swRegistration.active) {
-            swRegistration.active.postMessage({ type: 'KEEPALIVE' });
-          }
-        }, 20_000);
-        // Store so it's accessible for cleanup (attached to window temporarily)
-        window.__swKeepAliveInterval = keepAliveInterval;
 
         // Listen for foreground messages and play alarm
         try {
@@ -163,21 +152,9 @@ export default function ServiceWorkerRegister() {
     };
     window.addEventListener('push:register', handlePushRegister);
 
-    // Handle background sync messages from SW — dispatch app-level refresh event
-    const handleSWMessage = (event) => {
-      const type = event.data?.type;
-      if (type === 'BACKGROUND_SYNC' || type === 'SYNC_NOW') {
-        addLog('Background sync: ' + (event.data?.tag || 'general'));
-        window.dispatchEvent(new CustomEvent('app:refresh'));
-      }
-    };
-    navigator.serviceWorker.addEventListener('message', handleSWMessage);
-
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('push:register', handlePushRegister);
-      navigator.serviceWorker.removeEventListener('message', handleSWMessage);
-      if (window.__swKeepAliveInterval) clearInterval(window.__swKeepAliveInterval);
     };
   }, []);
 
