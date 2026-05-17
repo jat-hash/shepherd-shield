@@ -111,38 +111,44 @@ export default function PocketMode() {
     }
 
     // ── 3. Ambient Light Sensor ───────────────────────────────────────────────
-    // Activates if illuminance drops near zero for 1+ seconds; stays active
-    // until light clearly returns. Does NOT cancel if camera says dark.
     let lightSensor = null;
     let lightDarkTimer = null;
-    const LIGHT_DARK_LUX = 3;    // lux below which we consider it dark
-    const LIGHT_BRIGHT_LUX = 8;  // lux above which we consider it bright again
-    const LIGHT_DARK_DELAY = 1000; // ms of darkness before activating
+    const LIGHT_DARK_LUX = 3;
+    const LIGHT_BRIGHT_LUX = 8;
+    const LIGHT_DARK_DELAY = 1000;
 
-    if ("AmbientLightSensor" in window) {
+    function handleLuxReading(lux) {
+      if (typeof lux !== "number" || isNaN(lux)) return;
+      if (lux <= LIGHT_DARK_LUX) {
+        if (!lightDarkTimer) {
+          lightDarkTimer = setTimeout(() => setVote("ambientLight", true), LIGHT_DARK_DELAY);
+        }
+      } else {
+        if (lightDarkTimer) { clearTimeout(lightDarkTimer); lightDarkTimer = null; }
+        if (lux >= LIGHT_BRIGHT_LUX) setVote("ambientLight", false);
+      }
+    }
+
+    // devicelight — wide support on older Android/Firefox
+    const handleDeviceLight = (e) => handleLuxReading(e.value);
+    window.addEventListener("devicelight", handleDeviceLight);
+
+    // Generic Sensors API — requires permissions policy
+    async function startAmbientLightSensor() {
+      if (!("AmbientLightSensor" in window)) return;
       try {
+        // Request permission if the Permissions API supports it
+        if (navigator.permissions) {
+          const status = await navigator.permissions.query({ name: "ambient-light-sensor" }).catch(() => null);
+          if (status && status.state === "denied") return;
+        }
         lightSensor = new window.AmbientLightSensor({ frequency: 4 });
-        lightSensor.addEventListener("reading", () => {
-          const lux = lightSensor.illuminance;
-          if (lux <= LIGHT_DARK_LUX) {
-            // Start dark timer if not already running
-            if (!lightDarkTimer) {
-              lightDarkTimer = setTimeout(() => {
-                setVote("ambientLight", true);
-              }, LIGHT_DARK_DELAY);
-            }
-          } else {
-            // Cancel pending dark timer
-            if (lightDarkTimer) { clearTimeout(lightDarkTimer); lightDarkTimer = null; }
-            // Only clear vote if sufficiently bright
-            if (lux >= LIGHT_BRIGHT_LUX) {
-              setVote("ambientLight", false);
-            }
-          }
-        });
+        lightSensor.addEventListener("reading", () => handleLuxReading(lightSensor.illuminance));
+        lightSensor.addEventListener("error", () => { lightSensor = null; });
         lightSensor.start();
       } catch (_) { lightSensor = null; }
     }
+    startAmbientLightSensor();
 
     // ── 4. Camera brightness detection ───────────────────────────────────────
     // Samples the rear camera at 8x8. Activates if avg brightness < threshold
@@ -233,6 +239,7 @@ export default function PocketMode() {
       window.removeEventListener("deviceproximity", handleProximityEvent);
       window.removeEventListener("userproximity", handleProximityEvent);
       if (proximitySensor) { try { proximitySensor.stop(); } catch (_) {} }
+      window.removeEventListener("devicelight", handleDeviceLight);
       if (lightDarkTimer) clearTimeout(lightDarkTimer);
       if (lightSensor) { try { lightSensor.stop(); } catch (_) {} }
       stopCameraDetection();
