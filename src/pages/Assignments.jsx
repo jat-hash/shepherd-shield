@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { Plus, CheckCircle, Clock, XCircle, ChevronLeft, ChevronRight, Calendar, WifiOff, LayoutGrid } from "lucide-react";
+import { Plus, CheckCircle, Clock, XCircle, ChevronLeft, ChevronRight, Calendar, WifiOff, LayoutGrid, ArrowLeftRight } from "lucide-react";
 import ShiftScheduler from "@/components/assignments/ShiftScheduler";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import AssignmentForm from "@/components/assignments/AssignmentForm";
+import ShiftSwapModal from "@/components/assignments/ShiftSwapModal";
 import useOfflineData from "@/hooks/useOfflineData";
 
 export default function Assignments() {
@@ -15,6 +16,7 @@ export default function Assignments() {
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
   const [schedulerView, setSchedulerView] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [swapAssignment, setSwapAssignment] = useState(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const todayRef = useRef(null);
 
@@ -195,17 +197,30 @@ export default function Assignments() {
             const otherAssignments = isSunday ? dayAssignments.filter(a => a.service_type !== "Sunday AM" && a.service_type !== "Sunday PM") : dayAssignments;
 
             const renderAssignment = (a) => (
-              <button
+              <div
                 key={a.id}
-                onClick={() => { if (isAdmin) { setEditData(a); setFormOpen(true); } }}
-                className={`flex items-center gap-1.5 bg-[#0a1128] rounded px-2 py-1.5 border border-transparent transition-all text-left ${isAdmin ? "hover:border-[#d4a843]/30 hover:bg-[#d4a843]/10 cursor-pointer" : "cursor-default"}`}
+                className="flex items-center gap-1 bg-[#0a1128] rounded px-2 py-1.5 border border-transparent"
               >
-                {statusIcon(a.status)}
-                <div>
-                  <p className="text-xs text-white font-medium">{a.position_name}</p>
-                  <p className="text-[10px] text-slate-400">{a.assigned_to_name} · {a.start_time}</p>
-                </div>
-              </button>
+                <button
+                  onClick={() => { if (isAdmin) { setEditData(a); setFormOpen(true); } }}
+                  className={`flex items-center gap-1.5 text-left flex-1 min-w-0 ${isAdmin ? "hover:opacity-80 cursor-pointer" : "cursor-default"}`}
+                >
+                  {statusIcon(a.status)}
+                  <div>
+                    <p className="text-xs text-white font-medium">{a.position_name}</p>
+                    <p className="text-[10px] text-slate-400">{a.assigned_to_name} · {a.start_time}</p>
+                  </div>
+                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => setSwapAssignment(a)}
+                    title="Swap shift"
+                    className="ml-1 shrink-0 p-1 rounded text-slate-500 hover:text-[#d4a843] hover:bg-[#d4a843]/10 transition-colors"
+                  >
+                    <ArrowLeftRight className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
             );
 
             return (
@@ -331,6 +346,12 @@ export default function Assignments() {
         onClose={() => { setFormOpen(false); setEditData(null); }}
         onSaved={loadData}
         editData={editData}
+      />
+      <ShiftSwapModal
+        open={!!swapAssignment}
+        assignment={swapAssignment}
+        currentUser={currentUser}
+        onClose={(saved) => { setSwapAssignment(null); if (saved) loadData(); }}
       />
     </div>
   );
