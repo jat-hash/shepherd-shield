@@ -49,6 +49,30 @@ export default function PocketMode() {
     let pocketActive = false;
     let manualUnlockUntil = 0; // timestamp: suppress re-activation until this time
 
+    // ── Background keepalive while in pocket ─────────────────────────────────
+    let wakeLock = null;
+    let keepAliveInterval = null;
+
+    async function startKeepalive() {
+      // 1. Wake lock — prevents JS timers from being throttled
+      if ("wakeLock" in navigator && !wakeLock) {
+        wakeLock = await navigator.wakeLock.request("screen").catch(() => null);
+      }
+      // 2. Post keepalive to SW every 15s so it stays alive
+      if (!keepAliveInterval) {
+        keepAliveInterval = setInterval(() => {
+          if (navigator.serviceWorker?.controller) {
+            navigator.serviceWorker.controller.postMessage({ type: "KEEPALIVE" });
+          }
+        }, 15_000);
+      }
+    }
+
+    function stopKeepalive() {
+      if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+      if (keepAliveInterval) { clearInterval(keepAliveInterval); keepAliveInterval = null; }
+    }
+
     function updateState() {
       const anyDark = Object.values(votes).some(Boolean);
       const now = Date.now();
@@ -58,12 +82,14 @@ export default function PocketMode() {
           pocketActive = true;
           overlay.style.opacity = "1";
           overlay.style.pointerEvents = "all";
+          startKeepalive();
         }
       } else if (!anyDark) {
         if (pocketActive) {
           pocketActive = false;
           overlay.style.opacity = "0";
           overlay.style.pointerEvents = "none";
+          stopKeepalive();
         }
       }
     }
@@ -235,6 +261,7 @@ export default function PocketMode() {
 
     // ── Cleanup ───────────────────────────────────────────────────────────────
     return () => {
+      stopKeepalive();
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("deviceproximity", handleProximityEvent);
       window.removeEventListener("userproximity", handleProximityEvent);
