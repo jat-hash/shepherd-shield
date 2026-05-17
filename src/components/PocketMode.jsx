@@ -19,7 +19,7 @@ export default function PocketMode() {
       width: "100%", height: "100%",
       background: "black",
       opacity: "0",
-      zIndex: "999999",
+      zIndex: "99998",  // Keep BELOW notification/alert layers (those use 9999x)
       pointerEvents: "none",
       display: "flex",
       alignItems: "center",
@@ -39,8 +39,10 @@ export default function PocketMode() {
     document.body.appendChild(overlay);
 
     // ── Vote registry ─────────────────────────────────────────────────────────
+    // NOTE: We intentionally do NOT include a "visibility" vote — page visibility
+    // is a browser signal, not a physical pocket sensor, and suppressing it would
+    // interfere with background notification processing.
     const votes = {
-      visibility: false,
       proximity: false,
       camera: false,
       ambientLight: false,
@@ -85,13 +87,7 @@ export default function PocketMode() {
     overlay.addEventListener("click", manualUnlock);
     overlay.addEventListener("touchend", (e) => { e.preventDefault(); manualUnlock(); });
 
-    // ── 1. Visibility API ─────────────────────────────────────────────────────
-    const handleVisibility = () => {
-      setVote("visibility", document.hidden);
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-
-    // ── 2. Proximity sensors ──────────────────────────────────────────────────
+    // ── 1. Proximity sensors ──────────────────────────────────────────────────
     const handleProximityEvent = (e) => {
       const near = e.near === true || (typeof e.value === "number" && e.value < 5);
       setVote("proximity", near);
@@ -235,7 +231,6 @@ export default function PocketMode() {
 
     // ── Cleanup ───────────────────────────────────────────────────────────────
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("deviceproximity", handleProximityEvent);
       window.removeEventListener("userproximity", handleProximityEvent);
       if (proximitySensor) { try { proximitySensor.stop(); } catch (_) {} }
