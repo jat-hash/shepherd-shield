@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, RotateCw } from "lucide-react";
 
 import NotificationBell from "@/components/notifications/NotificationBell";
+import { cacheUserVibrationPrefs } from "@/lib/notificationEffects";
 import AlertNotificationSystem from "@/components/notifications/AlertNotificationSystem";
 import UserSwitcher from "@/components/UserSwitcher";
 import NotificationToast from "@/components/notifications/NotificationToast";
@@ -45,7 +46,9 @@ export default function Layout({ children, currentPageName }) {
 
   useEffect(() => {
     if (!authUser) {
-      base44.auth.me().then(setFallbackUser).catch(() => {});
+      base44.auth.me().then(u => { setFallbackUser(u); cacheUserVibrationPrefs(u); }).catch(() => {});
+    } else {
+      cacheUserVibrationPrefs(authUser);
     }
   }, [authUser]);
 

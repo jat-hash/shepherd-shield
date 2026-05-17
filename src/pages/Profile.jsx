@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { toast } from "sonner";
+import VibrationSettings from "@/components/notifications/VibrationSettings";
 
 export default function Profile() {
   const { user: authUser } = useAuth();
@@ -294,6 +295,9 @@ export default function Profile() {
           </div>
         </div>
       </div>
+
+      {/* Vibration Settings */}
+      <VibrationSettings user={user} onSave={(updated) => setUser(prev => ({ ...prev, ...updated }))} />
 
       {/* Menu Items */}
       <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] divide-y divide-[rgba(212,168,67,0.08)]">

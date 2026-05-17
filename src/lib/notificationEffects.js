@@ -6,28 +6,52 @@
 
 const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
+// Named vibration patterns (ms: on, off, on, off...)
+const NAMED_PATTERNS = {
+  off:      null,
+  single:   [200],
+  double:   [200, 100, 200],
+  triple:   [150, 80, 150, 80, 150],
+  long:     [600],
+  sos:      [100,80,100,80,100,200,300,200,300,200,300,200,100,80,100,80,100],
+  escalate: [100, 100, 200, 100, 400],
+  // legacy keys
+  short:    [200],
+  emergency:[1000, 200, 1000, 200, 1000, 200, 1000, 200, 1000],
+};
+
+// Map notification type → user pref key → default pattern
+const TYPE_TO_PREF = {
+  dm:         { pref: 'vib_dm',        default: 'double'   },
+  general:    { pref: 'vib_team_msg',  default: 'single'   },
+  alert:      { pref: 'vib_incident',  default: 'escalate' },
+  emergency:  { pref: 'vib_emergency', default: 'sos'      },
+  assignment: { pref: 'vib_assignment',default: 'single'   },
+};
+
+// Cached user prefs (updated by cacheUserVibrationPrefs)
+let _userVibPrefs = {};
+
+/** Call this once after auth to cache the user's saved vibration prefs */
+export function cacheUserVibrationPrefs(userObj) {
+  if (!userObj) return;
+  _userVibPrefs = userObj;
+}
+
 /**
  * Vibrate on Android; play a short audio pulse on iOS as a substitute.
- * @param {'short'|'double'|'long'|'emergency'} pattern
+ * @param {string} patternKey  Named pattern key or legacy key
  */
-export function vibrateOrBeep(pattern = 'short') {
-  const patterns = {
-    short:     [200],
-    double:    [200, 100, 200, 100, 200],
-    long:      [400, 100, 400, 100, 400],
-    emergency: [1000, 200, 1000, 200, 1000, 200, 1000, 200, 1000],
-  };
-
-  const vibration = patterns[pattern] || patterns.short;
+export function vibrateOrBeep(patternKey = 'single') {
+  const vibration = NAMED_PATTERNS[patternKey] ?? NAMED_PATTERNS.single;
+  if (!vibration) return; // 'off'
 
   if (isIOS()) {
-    // iOS: play audio tones instead
-    _playAudioTone(pattern);
+    _playAudioTone(patternKey);
   } else if (navigator.vibrate) {
     navigator.vibrate(vibration);
   } else {
-    // Fallback for any other platform without vibration
-    _playAudioTone(pattern);
+    _playAudioTone(patternKey);
   }
 }
 
@@ -112,28 +136,33 @@ export function flashScreen(color = 'white', times = 2) {
 
 /**
  * Combined alert effect: vibrate/beep + screen flash.
- * @param {'dm'|'alert'|'emergency'|'assignment'} type
+ * Respects user's saved vibration pattern preferences.
+ * @param {'dm'|'alert'|'emergency'|'assignment'|'general'} type
  */
 export function triggerNotificationEffect(type = 'dm') {
+  const prefConfig = TYPE_TO_PREF[type] || TYPE_TO_PREF.general;
+  const patternKey = _userVibPrefs?.[prefConfig.pref] ?? prefConfig.default;
+
+  // Only vibrate if not set to 'off'
+  if (patternKey !== 'off') {
+    vibrateOrBeep(patternKey);
+  }
+
+  // Flash color/count by urgency
   switch (type) {
     case 'emergency':
-      vibrateOrBeep('emergency');
       flashScreen('red', 6);
       break;
     case 'alert':
-      vibrateOrBeep('long');
       flashScreen('red', 4);
       break;
     case 'dm':
-      vibrateOrBeep('double');
       flashScreen('white', 4);
       break;
     case 'assignment':
-      vibrateOrBeep('double');
       flashScreen('white', 2);
       break;
     default:
-      vibrateOrBeep('double');
       flashScreen('white', 2);
       break;
   }
