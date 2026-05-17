@@ -3,9 +3,9 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 // Church campus center: 21224 Orting Kapowsin Hwy E, Graham, WA 98338
 const CAMPUS_LAT = 47.0637;
 const CAMPUS_LON = -122.2525;
-// Campus boundary radius — 0.25 miles (~400m) covers the church property.
+// Campus boundary radius — 3 miles covers the church area.
 // Auto-checkout fires only when the user moves beyond this perimeter.
-const CAMPUS_RADIUS_MILES = 0.25;
+const CAMPUS_RADIUS_MILES = 3;
 
 const FIREBASE_SERVER_KEY = Deno.env.get("FIREBASE_SERVER_KEY");
 const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID");
