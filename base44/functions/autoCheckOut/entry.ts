@@ -124,7 +124,6 @@ Deno.serve(async (req) => {
       const startDateTime = parseServiceTime(assignment.service_date, assignment.start_time);
       const endDateTime = parseServiceTime(assignment.service_date, assignment.end_time);
       const fiveMinBeforeStart = new Date(startDateTime.getTime() - 5 * 60 * 1000);
-      const oneHourAfterEnd = new Date(endDateTime.getTime() + 60 * 60 * 1000);
 
       // 5-min pre-service alert
       if (!assignment.checked_in && now >= fiveMinBeforeStart && now < startDateTime) {
@@ -173,30 +172,22 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Auto check-out if: 1 hour after end OR user has left the 3-mile vicinity
+      // Auto check-out only if user has left the 3-mile vicinity (GPS-based only)
       if (assignment.checked_in && !assignment.checked_out) {
         let shouldCheckOut = false;
         let reason = '';
 
-        // 1) Hard cutoff: 1 hour after service end
-        if (now > oneHourAfterEnd) {
-          shouldCheckOut = true;
-          reason = 'hard cutoff (1hr after end)';
-        }
-
-        // 2) GPS: user left the 3-mile radius of the hub
-        if (!shouldCheckOut) {
-          const liveLocations = await base44.asServiceRole.entities.LiveLocation.filter({
-            user_email: assignment.assigned_to_email,
-            is_active: true
-          });
-          const loc = liveLocations?.[0];
-          if (loc?.latitude && loc?.longitude) {
-            const dist = distanceMiles(loc.latitude, loc.longitude, HUB_LAT, HUB_LON);
-            if (dist > VICINITY_MILES) {
-              shouldCheckOut = true;
-              reason = `left 3-mile radius (${dist.toFixed(1)} mi from hub)`;
-            }
+        // GPS: user left the 3-mile radius of the hub
+        const liveLocations = await base44.asServiceRole.entities.LiveLocation.filter({
+          user_email: assignment.assigned_to_email,
+          is_active: true
+        });
+        const loc = liveLocations?.[0];
+        if (loc?.latitude && loc?.longitude) {
+          const dist = distanceMiles(loc.latitude, loc.longitude, HUB_LAT, HUB_LON);
+          if (dist > VICINITY_MILES) {
+            shouldCheckOut = true;
+            reason = `left 3-mile radius (${dist.toFixed(1)} mi from hub)`;
           }
         }
 
