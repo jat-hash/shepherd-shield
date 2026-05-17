@@ -1,9 +1,11 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-// Church hub coordinates: 21224 Orting Kapowsin Hwy E, Graham, WA 98338
-const HUB_LAT = 47.0637;
-const HUB_LON = -122.2525;
-const VICINITY_MILES = 3;
+// Church campus center: 21224 Orting Kapowsin Hwy E, Graham, WA 98338
+const CAMPUS_LAT = 47.0637;
+const CAMPUS_LON = -122.2525;
+// Campus boundary radius — 0.25 miles (~400m) covers the church property.
+// Auto-checkout fires only when the user moves beyond this perimeter.
+const CAMPUS_RADIUS_MILES = 0.25;
 
 const FIREBASE_SERVER_KEY = Deno.env.get("FIREBASE_SERVER_KEY");
 const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID");
@@ -177,18 +179,21 @@ Deno.serve(async (req) => {
         let shouldCheckOut = false;
         let reason = '';
 
-        // GPS: user left the 3-mile radius of the hub
+        // GPS: user has left the campus boundary (0.25-mile radius around church property)
         const liveLocations = await base44.asServiceRole.entities.LiveLocation.filter({
           user_email: assignment.assigned_to_email,
           is_active: true
         });
         const loc = liveLocations?.[0];
         if (loc?.latitude && loc?.longitude) {
-          const dist = distanceMiles(loc.latitude, loc.longitude, HUB_LAT, HUB_LON);
-          if (dist > VICINITY_MILES) {
+          const dist = distanceMiles(loc.latitude, loc.longitude, CAMPUS_LAT, CAMPUS_LON);
+          if (dist > CAMPUS_RADIUS_MILES) {
             shouldCheckOut = true;
-            reason = `left 3-mile radius (${dist.toFixed(1)} mi from hub)`;
+            reason = `left campus boundary (${(dist * 5280).toFixed(0)} ft from campus center)`;
           }
+        } else {
+          // No live location available — skip auto-checkout, do not assume they left
+          console.log(`No live location for ${assignment.assigned_to_name} — skipping GPS auto-checkout`);
         }
 
         if (shouldCheckOut) {
