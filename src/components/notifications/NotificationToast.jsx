@@ -102,6 +102,7 @@ export default function NotificationToast({ userEmail }) {
     triggerNotificationEffect(effectType);
     const toastId = `${notification.id}_${Date.now()}`;
     setToasts(prev => [...prev, { ...notification, _toastId: toastId }]);
+    setTimeout(() => dismissToast(toastId), 5000);
   };
 
   const dismissToast = (toastId) => {
