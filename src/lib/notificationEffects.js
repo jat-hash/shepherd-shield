@@ -12,9 +12,9 @@ const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSSt
  */
 export function vibrateOrBeep(pattern = 'short') {
   const patterns = {
-    short:     [100],
-    double:    [100, 80, 100],
-    long:      [300],
+    short:     [200],
+    double:    [200, 100, 200, 100, 200],
+    long:      [400, 100, 400, 100, 400],
     emergency: [1000, 200, 1000, 200, 1000, 200, 1000, 200, 1000],
   };
 
@@ -88,7 +88,7 @@ export function flashScreen(color = 'white', times = 2) {
     inset: 0;
     z-index: 99999;
     pointer-events: none;
-    background: ${color === 'red' ? 'rgba(220,38,38,0.55)' : 'rgba(255,255,255,0.7)'};
+    background: ${color === 'red' ? 'rgba(220,38,38,0.75)' : 'rgba(255,255,255,0.9)'};
     opacity: 0;
     transition: none;
   `;
@@ -101,11 +101,11 @@ export function flashScreen(color = 'white', times = 2) {
       overlay.style.opacity = '0';
       count++;
       if (count < times) {
-        setTimeout(flashOnce, 180);
+        setTimeout(flashOnce, 150);
       } else {
         setTimeout(() => overlay.remove(), 300);
       }
-    }, 120);
+    }, 150);
   };
   flashOnce();
 }
@@ -118,22 +118,23 @@ export function triggerNotificationEffect(type = 'dm') {
   switch (type) {
     case 'emergency':
       vibrateOrBeep('emergency');
-      flashScreen('red', 4);
+      flashScreen('red', 6);
       break;
     case 'alert':
-      vibrateOrBeep('double');
-      flashScreen('red', 2);
+      vibrateOrBeep('long');
+      flashScreen('red', 4);
       break;
     case 'dm':
       vibrateOrBeep('double');
-      flashScreen('white', 1);
+      flashScreen('white', 4);
       break;
     case 'assignment':
-      vibrateOrBeep('short');
-      flashScreen('white', 1);
+      vibrateOrBeep('double');
+      flashScreen('white', 2);
       break;
     default:
-      vibrateOrBeep('short');
+      vibrateOrBeep('double');
+      flashScreen('white', 2);
       break;
   }
 }
