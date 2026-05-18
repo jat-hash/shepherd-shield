@@ -147,7 +147,7 @@ export default function PocketMode() {
     startAmbientLightSensor();
 
     // ── 4. Camera brightness detection ───────────────────────────────────────
-    // Samples the rear camera at 8x8. Activates if avg brightness < threshold
+    // Samples the FRONT camera at 8x8. Activates if avg brightness < threshold
     // for N consecutive frames. Deactivates only when bright for N frames AND
     // no other sensor is voting dark.
     let videoStream = null;
@@ -164,7 +164,7 @@ export default function PocketMode() {
       try {
         videoStream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: { ideal: "environment" },
+            facingMode: { ideal: "user" },
             width: { ideal: 8 },
             height: { ideal: 8 },
           },
