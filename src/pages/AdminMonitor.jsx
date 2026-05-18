@@ -103,34 +103,27 @@ export default function AdminMonitor() {
       });
       setLiveLocations(recentLocations);
 
-      // Build a map of personal check-ins by email — prefer open (no check_out_time) records,
-      // and within each category keep the most recently created one.
-      const personalByEmail = {};
+      // Build a map of personal check-ins by email — only keep the MOST RECENT record per person.
+      // We need this to know their current state (open = checked in, closed = checked out).
+      const latestPersonalByEmail = {};
       todayPersonalCheckIns.forEach(p => {
         if (!p.user_email) return;
         const key = p.user_email.toLowerCase();
-        const existing = personalByEmail[key];
-        if (!existing) { personalByEmail[key] = p; return; }
-        // Prefer open over closed
-        const pOpen = !p.check_out_time;
-        const existingOpen = !existing.check_out_time;
-        if (pOpen && !existingOpen) { personalByEmail[key] = p; return; }
-        if (!pOpen && existingOpen) return; // keep existing open
-        // Both same state — keep whichever is newer
-        if (new Date(p.check_in_time) > new Date(existing.check_in_time)) personalByEmail[key] = p;
+        const existing = latestPersonalByEmail[key];
+        if (!existing || new Date(p.check_in_time) > new Date(existing.check_in_time)) {
+          latestPersonalByEmail[key] = p;
+        }
       });
 
-      // Remove any closed records or stale records (check-in older than 12 hours)
-      const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
-      Object.keys(personalByEmail).forEach(k => {
-        const rec = personalByEmail[k];
-        if (rec.check_out_time) { delete personalByEmail[k]; return; }
-        if (rec.check_in_time && new Date(rec.check_in_time) < twelveHoursAgo) { delete personalByEmail[k]; }
+      // personalByEmail = only those whose most recent record is OPEN (currently checked in)
+      const personalByEmail = {};
+      Object.entries(latestPersonalByEmail).forEach(([key, rec]) => {
+        if (!rec.check_out_time) personalByEmail[key] = rec;
       });
 
       // Also treat users with active GPS as personally checked in (auto-synthesize)
-      // Only if they don't already have a real PersonalCheckIn record (open or closed)
-      const allPersonalEmails = new Set(todayPersonalCheckIns.map(p => (p.user_email || '').toLowerCase()));
+      // Only if they don't already have ANY real PersonalCheckIn record today (open or closed)
+      const allPersonalEmails = new Set(Object.keys(latestPersonalByEmail));
       recentLocations.forEach(ll => {
         if (!ll.user_email) return;
         const key = ll.user_email.toLowerCase();
@@ -148,21 +141,35 @@ export default function AdminMonitor() {
         }
       });
 
-      // Merge personal check-in status INTO assignments where the person checked in personally
-      // (e.g. they did a personal check-in but also have a formal assignment)
+      // Merge personal check-in status INTO assignments where the person has a personal record today
       const enrichedAssignments = todayAssignments.map(a => {
-        const personal = personalByEmail[(a.assigned_to_email || '').toLowerCase()];
-        // Only merge if the assignment isn't already checked in AND the personal record is open (no checkout)
-        if (personal && !a.checked_in && personal.check_in_time && !personal.check_out_time) {
-          return {
-            ...a,
-            checked_in: true,
-            check_in_time: personal.check_in_time,
-            checked_out: false,
-            check_out_time: null,
-            check_in_latitude: personal.latitude,
-            check_in_longitude: personal.longitude,
-          };
+        const emailKey = (a.assigned_to_email || '').toLowerCase();
+        const latest = latestPersonalByEmail[emailKey];
+        // Only override if the assignment itself hasn't been checked in yet
+        if (latest && !a.checked_in) {
+          if (!latest.check_out_time) {
+            // Currently checked in
+            return {
+              ...a,
+              checked_in: true,
+              check_in_time: latest.check_in_time,
+              checked_out: false,
+              check_out_time: null,
+              check_in_latitude: latest.latitude,
+              check_in_longitude: latest.longitude,
+            };
+          } else {
+            // Checked in and out today
+            return {
+              ...a,
+              checked_in: true,
+              check_in_time: latest.check_in_time,
+              checked_out: true,
+              check_out_time: latest.check_out_time,
+              check_in_latitude: latest.latitude,
+              check_in_longitude: latest.longitude,
+            };
+          }
         }
         return a;
       });
