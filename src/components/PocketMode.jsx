@@ -58,29 +58,55 @@ export default function PocketMode() {
     overlay.addEventListener("touchend", (e) => { e.preventDefault(); manualUnlock(); });
 
     // ── Proximity Sensor ──────────────────────────────────────────────────────
-    const handleProximityEvent = (e) => {
-      const near = e.near === true || (typeof e.value === "number" && e.value < 5);
-      near ? activate() : deactivate();
-    };
-    window.addEventListener("deviceproximity", handleProximityEvent);
-    window.addEventListener("userproximity", handleProximityEvent);
-
     let proximitySensor = null;
-    if ("ProximitySensor" in window) {
-      try {
-        proximitySensor = new window.ProximitySensor();
-        proximitySensor.addEventListener("reading", () => {
-          proximitySensor.near ? activate() : deactivate();
-        });
-        proximitySensor.start();
-      } catch (_) { proximitySensor = null; }
+    const cleanupFns = [];
+
+    async function startProximitySensor() {
+      // Modern Generic Sensor API (Android Chrome)
+      if ("ProximitySensor" in window) {
+        try {
+          // Request permission if needed
+          if (navigator.permissions) {
+            try {
+              const perm = await navigator.permissions.query({ name: "proximity" });
+              if (perm.state === "denied") return;
+            } catch (_) {
+              // permission query may not support 'proximity' — continue anyway
+            }
+          }
+          proximitySensor = new window.ProximitySensor({ frequency: 5 });
+          proximitySensor.addEventListener("reading", () => {
+            proximitySensor.near ? activate() : deactivate();
+          });
+          proximitySensor.addEventListener("error", () => {
+            proximitySensor = null;
+          });
+          proximitySensor.start();
+          cleanupFns.push(() => { try { proximitySensor.stop(); } catch (_) {} });
+          return; // success — don't fall through to legacy events
+        } catch (_) {
+          proximitySensor = null;
+        }
+      }
+
+      // Legacy events (Firefox on Android, older browsers)
+      const handleLegacy = (e) => {
+        const near = e.near === true || (typeof e.value === "number" && e.value < 5);
+        near ? activate() : deactivate();
+      };
+      window.addEventListener("deviceproximity", handleLegacy);
+      window.addEventListener("userproximity", handleLegacy);
+      cleanupFns.push(() => {
+        window.removeEventListener("deviceproximity", handleLegacy);
+        window.removeEventListener("userproximity", handleLegacy);
+      });
     }
+
+    startProximitySensor();
 
     // ── Cleanup ───────────────────────────────────────────────────────────────
     return () => {
-      window.removeEventListener("deviceproximity", handleProximityEvent);
-      window.removeEventListener("userproximity", handleProximityEvent);
-      if (proximitySensor) { try { proximitySensor.stop(); } catch (_) {} }
+      cleanupFns.forEach(fn => fn());
       overlay.remove();
     };
   }, []);
