@@ -60,15 +60,22 @@ export default function PersonalCheckIn({ user }) {
     const unsub = base44.entities.PersonalCheckIn.subscribe(async (event) => {
       if (event.data?.user_email !== user.email) return;
       if (event.type === 'create' && !event.data.check_out_time) {
+        // A new open check-in was created — sync to it
         setCheckedIn(true);
         setCheckInTime(event.data.check_in_time);
         setRecordId(event.data.id);
         await savePersonalCheckInState({ checkedIn: true, recordId: event.data.id, checkInTime: event.data.check_in_time });
       } else if (event.type === 'update' && event.data.check_out_time) {
-        setCheckedIn(false);
-        setRecordId(null);
-        setCheckInTime(null);
-        await savePersonalCheckInState({ checkedIn: false });
+        // Only clear state if the updated record is the one we're currently tracking
+        setRecordId(prev => {
+          if (prev === event.data.id) {
+            setCheckedIn(false);
+            setCheckInTime(null);
+            savePersonalCheckInState({ checkedIn: false });
+            return null;
+          }
+          return prev;
+        });
       }
     });
     return () => unsub();
@@ -152,18 +159,20 @@ export default function PersonalCheckIn({ user }) {
         const dist = distanceMiles(latitude, longitude, HUB_LAT, HUB_LON);
         if (dist > VICINITY_MILES) {
           console.log(`Auto checkout: ${dist.toFixed(1)} miles from hub`);
+          // Read fresh state to get the correct (possibly updated) recordId
+          const state = await getPersonalCheckInState();
+          if (!state?.checkedIn) return; // already checked out
           toast.info("👋 Auto Checked Out", {
             description: `You've moved ${dist.toFixed(1)} miles from the hub.`,
             duration: 6000,
           });
-          // Reuse handleCheckOut logic inline to avoid stale closure issues
           const now = new Date();
-          const state = await getPersonalCheckInState();
           if (state?.recordId && navigator.onLine) {
             try { await base44.entities.PersonalCheckIn.update(state.recordId, { check_out_time: now.toISOString() }); } catch (e) { /* silent */ }
           }
-          if (liveId) {
-            try { await base44.entities.LiveLocation.update(liveId, { is_active: false }); } catch (e) { /* silent */ }
+          const currentLiveId = state?.liveLocationId || liveId;
+          if (currentLiveId) {
+            try { await base44.entities.LiveLocation.update(currentLiveId, { is_active: false }); } catch (e) { /* silent */ }
           }
           navigator.geolocation.clearWatch(id);
           watchIdRef[0] = null;
