@@ -36,7 +36,7 @@ export default function AdminMonitor() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [checkInFilter, setCheckInFilter] = useState("all");
+  const [checkInFilter, setCheckInFilter] = useState("active");
   const [editingAssignment, setEditingAssignment] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [timeEditDialog, setTimeEditDialog] = useState(false);
@@ -347,12 +347,15 @@ export default function AdminMonitor() {
       filtered = filtered.filter(a => a.status === statusFilter);
     }
 
-    if (checkInFilter === "checked_in") {
+    if (checkInFilter === "active") {
+      // Active: currently checked in OR checked out today — exclude ghosts with no activity
+      filtered = filtered.filter(a => a.checked_in || a.checked_out);
+    } else if (checkInFilter === "checked_in") {
       filtered = filtered.filter(a => a.checked_in && !a.checked_out);
     } else if (checkInFilter === "checked_out") {
       filtered = filtered.filter(a => a.checked_out);
     } else if (checkInFilter === "not_checked_in") {
-      filtered = filtered.filter(a => !a.checked_in);
+      filtered = filtered.filter(a => !a.checked_in && !a._isGhost);
     }
 
     setFilteredAssignments(filtered);
@@ -622,8 +625,9 @@ export default function AdminMonitor() {
               <SelectValue placeholder="Filter by check-in" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Check-in States</SelectItem>
-              <SelectItem value="checked_in">Checked In</SelectItem>
+              <SelectItem value="active">Active (Today's Sessions)</SelectItem>
+              <SelectItem value="all">All Members</SelectItem>
+              <SelectItem value="checked_in">Currently Checked In</SelectItem>
               <SelectItem value="checked_out">Checked Out</SelectItem>
               <SelectItem value="not_checked_in">Not Checked In</SelectItem>
             </SelectContent>
