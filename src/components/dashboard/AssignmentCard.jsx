@@ -23,7 +23,7 @@ export default function AssignmentCard({ assignment, onUpdate }) {
 
   const handleCheckIn = async () => {
     const nowDate = new Date();
-    const nowTime = nowDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const nowISO = nowDate.toISOString();
     let lat = null, lng = null;
     if (navigator.geolocation) {
       await new Promise(resolve => navigator.geolocation.getCurrentPosition(
@@ -35,7 +35,7 @@ export default function AssignmentCard({ assignment, onUpdate }) {
     try {
       await base44.entities.Assignment.update(assignment.id, {
         checked_in: true,
-        check_in_time: nowTime,
+        check_in_time: nowISO,
         status: "Confirmed",
         ...(lat !== null && { check_in_latitude: lat, check_in_longitude: lng })
       });
@@ -48,7 +48,7 @@ export default function AssignmentCard({ assignment, onUpdate }) {
   };
 
   const handleCheckOut = async () => {
-    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const now = new Date().toISOString();
     try {
       await base44.entities.Assignment.update(assignment.id, {
         checked_out: true,
@@ -70,6 +70,13 @@ export default function AssignmentCard({ assignment, onUpdate }) {
     } catch (error) {
       toast.error("Failed to delete assignment");
     }
+  };
+
+  const fmtTime = (val) => {
+    if (!val) return '—';
+    const d = new Date(val);
+    if (isNaN(d)) return val; // fallback for old locale-string values already stored
+    return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   };
 
   const [year, month, day] = assignment.service_date.slice(0, 10).split('-').map(Number);
@@ -156,7 +163,7 @@ export default function AssignmentCard({ assignment, onUpdate }) {
             </>
           ) : (
             <div className="flex-1 text-center text-emerald-400 text-sm font-medium py-2">
-              ✓ Completed ({assignment.check_in_time} – {assignment.check_out_time})
+              ✓ Completed ({fmtTime(assignment.check_in_time)} – {fmtTime(assignment.check_out_time)})
             </div>
           )}
         </div>
