@@ -95,8 +95,11 @@ export default function PocketMode() {
         canvas.width = 16; canvas.height = 16;
         const ctx = canvas.getContext("2d");
 
-        // Darkness threshold — covered lens = very dark
-        const DARK_THRESHOLD = 12;
+        // Darkness threshold — must be very dark (lens fully covered), not just dim room
+        const DARK_THRESHOLD = 5;
+        // Require more consecutive frames to avoid flickering on transitions
+        const FRAMES_TO_LOCK = 6;   // ~1.8s of darkness before locking
+        const FRAMES_TO_UNLOCK = 8; // ~2.4s of light before unlocking
         let darkFrames = 0;
         let lightFrames = 0;
 
@@ -113,11 +116,11 @@ export default function PocketMode() {
           if (avg < DARK_THRESHOLD) {
             darkFrames++;
             lightFrames = 0;
-            if (darkFrames >= 3) activate();
+            if (darkFrames >= FRAMES_TO_LOCK) activate();
           } else {
             lightFrames++;
             darkFrames = 0;
-            if (lightFrames >= 3) deactivate();
+            if (lightFrames >= FRAMES_TO_UNLOCK) deactivate();
           }
         }, 300);
 
@@ -143,7 +146,7 @@ export default function PocketMode() {
               }
             } catch (_) {}
           }
-          proximitySensor = new window.ProximitySensor({ frequency: 5 });
+          proximitySensor = new window.ProximitySensor({ frequency: 2 });
           proximitySensor.addEventListener("reading", () => {
             proximityWorking = true;
             // Stop camera if proximity sensor kicked in — no need to run both
