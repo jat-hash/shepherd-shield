@@ -439,8 +439,8 @@ export default function Layout({ children, currentPageName }) {
       </nav>
     </div>
     <NotificationToast userEmail={user?.email} />
-    {/* Emergency Override: persistent non-dismissible flash for users who opted in */}
-    {user?.emergency_override && alerts.length > 0 && (
+    {/* Emergency Override: only for admins and Wilbert Ryan */}
+    {user?.emergency_override && alerts.length > 0 && (user?.role === 'admin' || user?.email === 'wilbert.ryan@gmail.com') && (
       <EmergencyOverrideFlash alert={alerts[0]} />
     )}
     <EmergencyOverlay
