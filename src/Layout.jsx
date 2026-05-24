@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, RotateCw } from "lucide-react";
 
 import NotificationBell from "@/components/notifications/NotificationBell";
-import { cacheUserVibrationPrefs } from "@/lib/notificationEffects";
+import { cacheUserVibrationPrefs, primeAudioContext } from "@/lib/notificationEffects";
 import EmergencyOverrideFlash from "@/components/notifications/EmergencyOverrideFlash";
 import AlertNotificationSystem from "@/components/notifications/AlertNotificationSystem";
 import UserSwitcher from "@/components/UserSwitcher";
@@ -59,8 +59,9 @@ export default function Layout({ children, currentPageName }) {
       if (vibrationPrimedRef.current) return;
       if (navigator.vibrate) {
         navigator.vibrate(1); // silent 1ms vibration to unlock the API
-        vibrationPrimedRef.current = true;
       }
+      primeAudioContext(); // unlock AudioContext for beep fallback (iOS + restricted browsers)
+      vibrationPrimedRef.current = true;
       window.removeEventListener("touchstart", prime);
       window.removeEventListener("click", prime);
     };

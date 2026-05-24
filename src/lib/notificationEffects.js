@@ -57,6 +57,19 @@ export function vibrateOrBeep(patternKey = 'single') {
 
 // Shared AudioContext — reuse to avoid iOS "too many contexts" limit
 let _sharedAudioCtx = null;
+
+/** Call this on any user gesture (click/touch) to pre-unlock the AudioContext */
+export function primeAudioContext() {
+  try {
+    if (!_sharedAudioCtx || _sharedAudioCtx.state === 'closed') {
+      _sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (_sharedAudioCtx.state === 'suspended') {
+      _sharedAudioCtx.resume().catch(() => {});
+    }
+  } catch (_) {}
+}
+
 function _getAudioCtx() {
   try {
     if (!_sharedAudioCtx || _sharedAudioCtx.state === 'closed') {
@@ -73,11 +86,10 @@ function _playAudioTone(pattern) {
     const ctx = _getAudioCtx();
     if (!ctx) return;
 
-    const resume = ctx.state === 'suspended' ? ctx.resume() : Promise.resolve();
-    resume.then(() => {
-      const pulseCount = pattern === 'emergency' ? 5 : pattern === 'double' ? 2 : 1;
-      const freq = pattern === 'emergency' ? 880 : 660;
+    const pulseCount = pattern === 'emergency' ? 5 : pattern === 'sos' ? 3 : pattern === 'double' || pattern === 'triple' ? 2 : 1;
+    const freq = pattern === 'emergency' || pattern === 'sos' ? 880 : pattern === 'escalate' || pattern === 'alert' ? 760 : 660;
 
+    const play = () => {
       for (let i = 0; i < pulseCount; i++) {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -86,13 +98,19 @@ function _playAudioTone(pattern) {
         osc.type = 'sine';
         osc.frequency.value = freq;
         const startAt = ctx.currentTime + i * 0.35;
-        const duration = pattern === 'emergency' ? 0.25 : 0.12;
-        gain.gain.setValueAtTime(0.3, startAt);
+        const duration = pattern === 'emergency' || pattern === 'sos' ? 0.25 : 0.15;
+        gain.gain.setValueAtTime(0.4, startAt);
         gain.gain.exponentialRampToValueAtTime(0.001, startAt + duration);
         osc.start(startAt);
         osc.stop(startAt + duration);
       }
-    }).catch(() => {});
+    };
+
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(play).catch(() => {});
+    } else {
+      play();
+    }
   } catch (_) {}
 }
 
@@ -112,11 +130,14 @@ export function flashScreen(color = 'white', times = 2) {
     inset: 0;
     z-index: 99999;
     pointer-events: none;
-    background: ${color === 'red' ? 'rgba(220,38,38,0.75)' : 'rgba(255,255,255,0.9)'};
+    background: ${color === 'red' ? 'rgba(220,38,38,0.8)' : 'rgba(255,255,255,0.92)'};
     opacity: 0;
-    transition: none;
+    transition: opacity 80ms ease-in-out;
   `;
   document.body.appendChild(overlay);
+
+  // Force a reflow so the initial opacity:0 is painted before we animate
+  void overlay.offsetHeight;
 
   let count = 0;
   const flashOnce = () => {
@@ -125,11 +146,11 @@ export function flashScreen(color = 'white', times = 2) {
       overlay.style.opacity = '0';
       count++;
       if (count < times) {
-        setTimeout(flashOnce, 150);
+        setTimeout(flashOnce, 200);
       } else {
         setTimeout(() => overlay.remove(), 300);
       }
-    }, 150);
+    }, 180);
   };
   flashOnce();
 }
