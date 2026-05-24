@@ -45,14 +45,8 @@ export default function VibrationSettings({ user, onSave }) {
   };
 
   const preview = (patternKey) => {
-    const p = PATTERNS[patternKey];
-    if (!p || !p.vibration) return;
-    if (navigator.vibrate) {
-      navigator.vibrate(p.vibration);
-    } else {
-      // iOS fallback — play a tone
-      vibrateOrBeep('double');
-    }
+    if (!patternKey || patternKey === 'off') return;
+    vibrateOrBeep(patternKey);
     flashScreen('white', 2);
   };
 
