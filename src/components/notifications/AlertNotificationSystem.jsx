@@ -119,9 +119,7 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
     unreadCountRef.current += 1;
     onUnreadCountChange?.(unreadCountRef.current);
 
-    // Use the proper cross-platform effect (handles iOS, user prefs, screen flash)
-    // 'general' type = team/DM messages — already handled by NotificationToast, skip here to avoid double-fire
-    if (notification.type === "general") return;
+    // AlertNotificationSystem owns effects for assignment/incident/emergency types only
     const effectType = priority === "high" ? "emergency" : priority === "medium" ? "alert" : "assignment";
     triggerNotificationEffect(effectType);
 
@@ -144,12 +142,13 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
       );
       notifications.forEach(n => {
         if (!seenIdsRef.current.has(n.id)) {
-          // Only alert for notifications created after this session started
-          if (n.created_date && new Date(n.created_date) >= new Date(mountTimeRef.current)) {
+          // Only alert for non-general notifications created after this session started
+          // 'general' (DM/team messages) are owned by NotificationToast
+          if (n.type !== "general" && n.created_date && new Date(n.created_date) >= new Date(mountTimeRef.current)) {
             triggerAlert({
               id: n.id,
               message: n.message || n.title,
-              priority: n.type === "general" ? "low" : n.type?.includes("reminder") ? "medium" : n.type?.includes("assignment") ? "medium" : "high",
+              priority: n.type?.includes("reminder") ? "medium" : n.type?.includes("assignment") ? "medium" : "high",
               type: n.type,
             });
           } else {
@@ -163,36 +162,29 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
   useEffect(() => {
     if (!user?.email) return;
 
-    let unsub = () => {};
     let cancelled = false;
 
-    // CRITICAL: seed ALL existing notification IDs first, mark them read, THEN subscribe
+    // Subscribe IMMEDIATELY so we never miss a real-time event during the seed fetch
+    // AlertNotificationSystem ONLY handles non-general types (assignments, incidents, emergencies)
+    const unsub = base44.entities.Notification.subscribe((event) => {
+      if (event.type === "create" && event.data?.user_email === user.email && event.data?.type !== "general") {
+        triggerAlert({
+          id: event.data.id,
+          message: event.data.message || event.data.title,
+          priority: event.data.type?.includes("reminder") ? "medium" : event.data.type?.includes("assignment") ? "medium" : "high",
+          type: event.data.type,
+        });
+      }
+    });
+
+    // Seed existing IDs so they never re-fire — subscribe is already live above
     base44.entities.Notification.filter({ user_email: user.email, read: false }, "-created_date", 500)
       .then(existing => {
-        // Seed all existing IDs — this alone prevents them from re-triggering
         existing.forEach(n => seenIdsRef.current.add(n.id));
         seededRef.current = true;
-
-        if (cancelled) return;
-
-        // Only subscribe AFTER seeding is complete
-        unsub = base44.entities.Notification.subscribe((event) => {
-          if (event.type === "create" && event.data?.user_email === user.email) {
-            triggerAlert({
-              id: event.data.id,
-              message: event.data.message || event.data.title,
-              priority: event.data.type === "general" ? "low" : event.data.type?.includes("reminder") ? "medium" : event.data.type?.includes("assignment") ? "medium" : "high",
-              type: event.data.type,
-            });
-          }
-        });
-
-        // Start polling fallback only after seeding
-        pollRef.current = setInterval(poll, 60000);
+        if (!cancelled) pollRef.current = setInterval(poll, 60000);
       })
-      .catch(() => {
-        seededRef.current = true;
-      });
+      .catch(() => { seededRef.current = true; });
 
     const handleVisibility = () => {
       if (document.visibilityState === "visible") poll();

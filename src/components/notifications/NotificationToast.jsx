@@ -70,24 +70,22 @@ export default function NotificationToast({ userEmail }) {
   useEffect(() => {
     if (!userEmail) return;
 
-    // Pre-seed seenIds with existing notifications so we never toast them on load
-    // Subscribe FIRST, then pre-seed — any notification arriving during pre-seed
-    // gets added to seenIds so it won't double-fire after isFirstLoad is cleared.
+    // Subscribe immediately — isFirstLoad gate prevents toasting pre-existing notifications
     const unsub = base44.entities.Notification.subscribe((event) => {
       if (event.type !== "create") return;
       if (event.data?.user_email !== userEmail) return;
+      // Only handle 'general' type (DM/team messages) — other types owned by AlertNotificationSystem
+      if (event.data?.type !== "general") return;
       const n = event.data;
       if (seenIds.current.has(n.id)) return;
       seenIds.current.add(n.id);
-      // If still loading, mark as seen but don't toast (it's a pre-existing notification)
       if (isFirstLoad.current) return;
       addToast(n);
     });
 
-    base44.entities.Notification.filter({ user_email: userEmail }, '-created_date', 50)
-      .then(existing => {
-        existing.forEach(n => seenIds.current.add(n.id));
-      })
+    // Seed existing IDs to suppress re-toasting on reconnect
+    base44.entities.Notification.filter({ user_email: userEmail, type: "general" }, '-created_date', 50)
+      .then(existing => { existing.forEach(n => seenIds.current.add(n.id)); })
       .catch(() => {})
       .finally(() => { isFirstLoad.current = false; });
 
@@ -97,9 +95,12 @@ export default function NotificationToast({ userEmail }) {
   const addToast = (notification) => {
     const title = (notification.title || '').toLowerCase();
     const isDM = !!(notification.dm_channel || title.includes('message from'));
-    const isIncident = title.includes('incident') || title.includes('alert') || title.includes('severity');
-    const effectType = isIncident ? 'alert' : isDM ? 'dm' : 'assignment';
-    triggerNotificationEffect(effectType);
+    // NotificationToast owns effects ONLY for 'general' (DM/team messages)
+    // Assignment/incident/emergency effects are owned by AlertNotificationSystem to avoid double-fire
+    if (notification.type === 'general') {
+      const effectType = isDM ? 'dm' : 'general';
+      triggerNotificationEffect(effectType);
+    }
     const toastId = `${notification.id}_${Date.now()}`;
     setToasts(prev => [...prev, { ...notification, _toastId: toastId }]);
     // No auto-dismiss — stays open until user taps it
