@@ -120,7 +120,9 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
     onUnreadCountChange?.(unreadCountRef.current);
 
     // Use the proper cross-platform effect (handles iOS, user prefs, screen flash)
-    const effectType = priority === "high" ? "emergency" : priority === "medium" ? "alert" : "general";
+    // 'general' type = team/DM messages — already handled by NotificationToast, skip here to avoid double-fire
+    if (notification.type === "general") return;
+    const effectType = priority === "high" ? "emergency" : priority === "medium" ? "alert" : "assignment";
     triggerNotificationEffect(effectType);
 
     // Browser notification (respects system DND)
@@ -147,7 +149,7 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
             triggerAlert({
               id: n.id,
               message: n.message || n.title,
-              priority: n.type === "general" ? "low" : n.type?.includes("reminder") ? "medium" : "high",
+              priority: n.type === "general" ? "low" : n.type?.includes("reminder") ? "medium" : n.type?.includes("assignment") ? "medium" : "high",
               type: n.type,
             });
           } else {
@@ -179,7 +181,7 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
             triggerAlert({
               id: event.data.id,
               message: event.data.message || event.data.title,
-              priority: event.data.type === "general" ? "low" : event.data.type?.includes("reminder") ? "medium" : "high",
+              priority: event.data.type === "general" ? "low" : event.data.type?.includes("reminder") ? "medium" : event.data.type?.includes("assignment") ? "medium" : "high",
               type: event.data.type,
             });
           }

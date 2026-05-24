@@ -183,27 +183,7 @@ export default function Communications() {
 
       if ((isForCurrentChannel && userIsParticipant) || isDeleteOfVisible) {
         if (event.type === "create") {
-          // Vibrate and play sound for new DM messages (not from self)
-          if (user?.email && event.data.sender_email !== user.email) {
-            if ('vibrate' in navigator) {
-              navigator.vibrate([200, 100, 200]); // Double pulse for DMs
-            }
-            // Play subtle notification sound
-            try {
-              const ctx = new (window.AudioContext || window.webkitAudioContext)();
-              const osc = ctx.createOscillator();
-              const gain = ctx.createGain();
-              osc.connect(gain);
-              gain.connect(ctx.destination);
-              osc.type = 'sine';
-              osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5 note
-              gain.gain.setValueAtTime(0.2, ctx.currentTime);
-              gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-              osc.start(ctx.currentTime);
-              osc.stop(ctx.currentTime + 0.3);
-            } catch (_) {}
-          }
-          
+          // Note: vibration/sound is handled globally by NotificationToast — no duplicate here
           if (event.data.is_pinned) {
             setPinnedMessages(prev => [...prev, event.data]);
           } else {
