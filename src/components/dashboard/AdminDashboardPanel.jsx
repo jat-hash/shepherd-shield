@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { CheckCircle, Clock, XCircle, Users, MapPin, ChevronRight, RefreshCw } from "lucide-react";
+import { CheckCircle, XCircle, Users, MapPin, ChevronRight, RefreshCw } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -23,12 +23,6 @@ function createMemberIcon(name, photoUrl) {
   });
 }
 
-function formatTime(val) {
-  if (!val) return '';
-  const d = new Date(val);
-  if (!isNaN(d.getTime())) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  return val;
-}
 
 export default function AdminDashboardPanel({ allUsers = [] }) {
   const [activeTab, setActiveTab] = useState("monitor");
@@ -42,12 +36,11 @@ export default function AdminDashboardPanel({ allUsers = [] }) {
     const today = `${todayLocal.getFullYear()}-${String(todayLocal.getMonth() + 1).padStart(2, '0')}-${String(todayLocal.getDate()).padStart(2, '0')}`;
 
     try {
-    // Stagger requests to avoid rate limiting
-    const assignments = await base44.entities.Assignment.filter({ service_date: today }, "-start_time", 200);
-    await new Promise(r => setTimeout(r, 500));
-    const personalCheckIns = await base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 100);
-    await new Promise(r => setTimeout(r, 500));
-    const liveLocations = await base44.entities.LiveLocation.filter({ is_active: true }, "-last_updated", 100);
+    const [assignments, personalCheckIns, liveLocations] = await Promise.all([
+      base44.entities.Assignment.filter({ service_date: today }, "-start_time", 200),
+      base44.entities.PersonalCheckIn.filter({ check_in_date: today }, "-check_in_time", 100),
+      base44.entities.LiveLocation.filter({ is_active: true }, "-last_updated", 100),
+    ]);
 
     const liveByEmail = {};
     liveLocations.forEach(l => { liveByEmail[(l.user_email || '').toLowerCase()] = l; });
@@ -167,10 +160,7 @@ export default function AdminDashboardPanel({ allUsers = [] }) {
                   <p className="text-white text-xs font-medium truncate">{a.assigned_to_name}</p>
                   <p className="text-slate-500 text-[10px] truncate">{a.position_name}</p>
                 </div>
-                <div className="flex items-center gap-1 text-emerald-400 text-[10px]">
-                  <CheckCircle className="w-3 h-3" />
-                  {formatTime(a.check_in_time)}
-                </div>
+                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
               </div>
             );
           })}
@@ -190,10 +180,7 @@ export default function AdminDashboardPanel({ allUsers = [] }) {
                   <p className="text-white text-xs font-medium truncate">{a.assigned_to_name}</p>
                   <p className="text-slate-500 text-[10px] truncate">{a.position_name}</p>
                 </div>
-                <div className="flex items-center gap-1 text-slate-500 text-[10px]">
-                  <Clock className="w-3 h-3" />
-                  Pending
-                </div>
+                <XCircle className="w-4 h-4 text-slate-500 flex-shrink-0" />
               </div>
             );
           })}
@@ -219,7 +206,7 @@ export default function AdminDashboardPanel({ allUsers = [] }) {
                       <div style={{ background: "#1a2744", color: "white", padding: "8px", borderRadius: "6px", minWidth: "130px", border: "1px solid rgba(212,168,67,0.2)", fontSize: "11px" }}>
                         <p style={{ fontWeight: "bold", margin: "0 0 2px" }}>{a.assigned_to_name}</p>
                         <p style={{ color: "#d4a843", margin: "0 0 2px" }}>{a.position_name}</p>
-                        <p style={{ color: "#10b981", margin: 0 }}>✓ {formatTime(a.check_in_time)}</p>
+                        <p style={{ color: "#10b981", margin: 0 }}>✓ Checked In</p>
                       </div>
                     </Popup>
                   </Marker>
