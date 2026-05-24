@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { X, AlertTriangle, Bell, Info, CheckCircle } from "lucide-react";
+import { triggerNotificationEffect } from "@/lib/notificationEffects";
 
 // --- Browser Notification ---
 function showBrowserNotification(message, priority) {
@@ -14,61 +15,6 @@ function showBrowserNotification(message, priority) {
       tag: `alert-${Date.now()}`,
       requireInteraction: priority === "high",
     });
-  } catch (_) {}
-}
-
-// --- Vibration Pattern ---
-function vibrate(priority) {
-  if (!('vibrate' in navigator)) return;
-  const patterns = {
-    high: [500, 200, 500, 200, 500], // Long vibrations for urgent alerts
-    medium: [300, 150, 300], // Medium pattern
-    low: [200], // Short pulse
-  };
-  navigator.vibrate(patterns[priority] || patterns.low);
-}
-
-// --- Audio Alert ---
-function playAudioAlert(priority) {
-  if (priority === 'low') return; // Skip audio for low priority
-  
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    
-    // Different tones for different priorities
-    const frequencies = {
-      high: 880, // Higher pitch for urgent
-      medium: 660, // Medium pitch
-    };
-    
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(frequencies[priority] || 660, ctx.currentTime);
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-    
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.5);
-    
-    // For high priority, play multiple beeps
-    if (priority === 'high') {
-      setTimeout(() => {
-        const osc2 = ctx.createOscillator();
-        const gain2 = ctx.createGain();
-        osc2.connect(gain2);
-        gain2.connect(ctx.destination);
-        osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(880, ctx.currentTime);
-        gain2.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-        osc2.start(ctx.currentTime);
-        osc2.stop(ctx.currentTime + 0.5);
-      }, 600);
-    }
   } catch (_) {}
 }
 
@@ -145,22 +91,12 @@ function AlertToast({ alert, onDismiss }) {
   );
 }
 
-// --- Screen Flash ---
-function ScreenFlash({ active }) {
-  if (!active) return null;
-  return (
-    <div
-      className="fixed inset-0 pointer-events-none z-[9999] animate-ping"
-      style={{ background: "rgba(220, 38, 38, 0.25)", animationDuration: "0.4s", animationIterationCount: 2 }}
-    />
-  );
-}
+
 
 // --- Main Component ---
 export default function AlertNotificationSystem({ onUnreadCountChange }) {
   const { user } = useAuth();
   const [toasts, setToasts] = useState([]);
-  const [screenFlash, setScreenFlash] = useState(false);
   const seenIdsRef = useRef(new Set());
   const seededRef = useRef(false);
   const mountTimeRef = useRef(new Date().toISOString());
@@ -183,19 +119,13 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
     unreadCountRef.current += 1;
     onUnreadCountChange?.(unreadCountRef.current);
 
-    // Vibration and audio alerts
-    vibrate(priority);
-    playAudioAlert(priority);
+    // Use the proper cross-platform effect (handles iOS, user prefs, screen flash)
+    const effectType = priority === "high" ? "emergency" : priority === "medium" ? "alert" : "general";
+    triggerNotificationEffect(effectType);
 
     // Browser notification (respects system DND)
     if (priority === "medium" || priority === "high") {
       showBrowserNotification(message, priority);
-    }
-
-    // Screen flash for high
-    if (priority === "high") {
-      setScreenFlash(true);
-      setTimeout(() => setScreenFlash(false), 1200);
     }
 
     const toastId = `${id}-${Date.now()}`;
@@ -287,7 +217,6 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
 
   return (
     <>
-      <ScreenFlash active={screenFlash} />
       <div className="fixed top-20 right-4 z-[9998] flex flex-col gap-2 pointer-events-none">
         {toasts.map(t => (
           <div key={t._toastId} className="pointer-events-auto">
