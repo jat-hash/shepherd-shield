@@ -26,7 +26,7 @@ export default function Profile() {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    if (authUser) {
+    if (authUser && !user) {
       setUser(authUser);
       setProfilePhoto(authUser.profile_photo || null);
     }
@@ -83,8 +83,12 @@ export default function Profile() {
   };
 
   const handleNotificationToggle = async (field, value) => {
-    await base44.auth.updateMe({ [field]: value });
+    // Optimistic update first
     setUser(prev => ({ ...prev, [field]: value }));
+    await base44.auth.updateMe({ [field]: value });
+    // Re-fetch to confirm persisted value
+    const fresh = await base44.auth.me();
+    setUser(fresh);
     toast.success("Notification preferences updated");
   };
 
