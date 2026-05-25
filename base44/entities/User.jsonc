@@ -41,6 +41,50 @@
       "type": "boolean",
       "default": true,
       "description": "Receive in-app notifications"
+    },
+    "notify_new_assignments": {
+      "type": "boolean",
+      "default": true
+    },
+    "notify_assignment_changes": {
+      "type": "boolean",
+      "default": true
+    },
+    "notify_upcoming_assignments": {
+      "type": "boolean",
+      "default": true
+    },
+    "emergency_override": {
+      "type": "boolean",
+      "default": false
+    },
+    "contact_email": {
+      "type": "string"
+    },
+    "vib_dm": {
+      "type": "string",
+      "default": "double"
+    },
+    "vib_team_msg": {
+      "type": "string",
+      "default": "single"
+    },
+    "vib_incident": {
+      "type": "string",
+      "default": "escalate"
+    },
+    "vib_emergency": {
+      "type": "string",
+      "default": "sos"
+    },
+    "vib_assignment": {
+      "type": "string",
+      "default": "single"
+    },
+    "vib_strength": {
+      "type": "integer",
+      "default": 1,
+      "description": "Vibration intensity multiplier: 1=Normal, 2=Strong, 3=Maximum"
     }
   },
   "required": [

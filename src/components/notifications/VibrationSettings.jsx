@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Vibrate, Play } from "lucide-react";
 import { toast } from "sonner";
 import { vibrateOrBeep, flashScreen } from "@/lib/notificationEffects";
+import { Slider } from "@/components/ui/slider";
 
 const PATTERNS = {
   off:       { label: "Off",              vibration: null,                  desc: "No vibration" },
@@ -22,8 +23,16 @@ const NOTIFICATION_TYPES = [
   { key: "vib_assignment", label: "Assignment Updates",  default: "single",  color: "text-emerald-400",icon: "📋" },
 ];
 
+const STRENGTH_LABELS = { 1: "Normal", 2: "Strong", 3: "Maximum" };
+const STRENGTH_DESCS = {
+  1: "Standard pulse",
+  2: "1.6× longer, louder",
+  3: "2.5× longer, max volume",
+};
+
 export default function VibrationSettings({ user, onSave }) {
   const [prefs, setPrefs] = useState({});
+  const [strength, setStrength] = useState(1);
   const [saving, setSaving] = useState(null);
 
   useEffect(() => {
@@ -32,6 +41,7 @@ export default function VibrationSettings({ user, onSave }) {
       loaded[t.key] = user?.[t.key] ?? t.default;
     });
     setPrefs(loaded);
+    setStrength(Math.max(1, Math.min(3, Number(user?.vib_strength) || 1)));
   }, [user]);
 
   const handleChange = async (key, value) => {
@@ -44,9 +54,17 @@ export default function VibrationSettings({ user, onSave }) {
     toast.success("Saved");
   };
 
+  const handleStrengthChange = async (val) => {
+    const s = val[0];
+    setStrength(s);
+    await base44.auth.updateMe({ vib_strength: s });
+    if (onSave) onSave({ vib_strength: s });
+    toast.success("Vibration strength saved");
+  };
+
   const preview = (patternKey) => {
     if (!patternKey || patternKey === 'off') return;
-    vibrateOrBeep(patternKey);
+    vibrateOrBeep(patternKey, strength);
     flashScreen('white', 2);
   };
 
@@ -58,6 +76,28 @@ export default function VibrationSettings({ user, onSave }) {
         <span className="text-[10px] text-slate-500 ml-auto">Feel the difference</span>
       </div>
       <p className="text-xs text-slate-500">Customize vibration so you can identify alert types without looking at your screen.</p>
+
+      {/* Strength Slider */}
+      <div className="bg-[#0a1128]/40 rounded-xl p-4 space-y-3 border border-[rgba(212,168,67,0.1)]">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold text-white">Vibration Strength</span>
+          <span className="text-xs font-bold text-[#d4a843] px-2 py-0.5 rounded bg-[#d4a843]/10 border border-[#d4a843]/20">
+            {STRENGTH_LABELS[strength]}
+          </span>
+        </div>
+        <Slider
+          min={1} max={3} step={1}
+          value={[strength]}
+          onValueChange={handleStrengthChange}
+          className="w-full"
+        />
+        <div className="flex justify-between text-[10px] text-slate-500">
+          <span>Normal</span>
+          <span>Strong</span>
+          <span>Maximum</span>
+        </div>
+        <p className="text-[11px] text-slate-400">{STRENGTH_DESCS[strength]} — use <span className="text-[#d4a843]">Test</span> buttons below to feel the difference.</p>
+      </div>
 
       <div className="space-y-4 pt-1">
         {NOTIFICATION_TYPES.map(type => {

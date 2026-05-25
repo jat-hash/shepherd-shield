@@ -31,27 +31,36 @@ const TYPE_TO_PREF = {
 
 // Cached user prefs (updated by cacheUserVibrationPrefs)
 let _userVibPrefs = {};
+// Vibration strength: 1 = normal, 2 = strong, 3 = max
+let _vibStrength = 1;
 
 /** Call this once after auth to cache the user's saved vibration prefs */
 export function cacheUserVibrationPrefs(userObj) {
   if (!userObj) return;
   _userVibPrefs = userObj;
+  _vibStrength = Math.max(1, Math.min(3, Number(userObj.vib_strength) || 1));
 }
 
 /**
  * Vibrate on Android; play a short audio pulse on iOS as a substitute.
  * @param {string} patternKey  Named pattern key or legacy key
  */
-export function vibrateOrBeep(patternKey = 'single') {
+export function vibrateOrBeep(patternKey = 'single', strengthOverride = null) {
   const vibration = NAMED_PATTERNS[patternKey] ?? NAMED_PATTERNS.single;
   if (!vibration) return; // 'off'
 
+  const strength = strengthOverride ?? _vibStrength;
+  // Scale vibration durations: strength 1=1x, 2=1.6x, 3=2.5x (only scale "on" pulses, not gaps)
+  const multipliers = [1, 1, 1.6, 2.5];
+  const mult = multipliers[Math.max(1, Math.min(3, strength))];
+  const scaled = vibration.map((ms, i) => i % 2 === 0 ? Math.round(ms * mult) : ms);
+
   if (isIOS()) {
-    _playAudioTone(patternKey);
+    _playAudioTone(patternKey, strength);
   } else if (navigator.vibrate) {
-    navigator.vibrate(vibration);
+    navigator.vibrate(scaled);
   } else {
-    _playAudioTone(patternKey);
+    _playAudioTone(patternKey, strength);
   }
 }
 
@@ -81,13 +90,16 @@ function _getAudioCtx() {
   }
 }
 
-function _playAudioTone(pattern) {
+function _playAudioTone(pattern, strength = 1) {
   try {
     const ctx = _getAudioCtx();
     if (!ctx) return;
 
     const pulseCount = pattern === 'emergency' ? 5 : pattern === 'sos' ? 3 : pattern === 'double' || pattern === 'triple' ? 2 : 1;
     const freq = pattern === 'emergency' || pattern === 'sos' ? 880 : pattern === 'escalate' || pattern === 'alert' ? 760 : 660;
+    // Scale audio gain: strength 1=0.4, 2=0.7, 3=1.0
+    const gainValues = [0.4, 0.4, 0.7, 1.0];
+    const gainVal = gainValues[Math.max(1, Math.min(3, strength))];
 
     const play = () => {
       for (let i = 0; i < pulseCount; i++) {
@@ -99,7 +111,7 @@ function _playAudioTone(pattern) {
         osc.frequency.value = freq;
         const startAt = ctx.currentTime + i * 0.35;
         const duration = pattern === 'emergency' || pattern === 'sos' ? 0.25 : 0.15;
-        gain.gain.setValueAtTime(0.4, startAt);
+        gain.gain.setValueAtTime(gainVal, startAt);
         gain.gain.exponentialRampToValueAtTime(0.001, startAt + duration);
         osc.start(startAt);
         osc.stop(startAt + duration);
@@ -166,7 +178,7 @@ export function triggerNotificationEffect(type = 'dm') {
 
   // Only vibrate if not set to 'off'
   if (patternKey !== 'off') {
-    vibrateOrBeep(patternKey);
+    vibrateOrBeep(patternKey, _vibStrength);
   }
 
   // Flash color/count by urgency
