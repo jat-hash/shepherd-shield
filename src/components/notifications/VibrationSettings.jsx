@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Vibrate, Play } from "lucide-react";
 import { toast } from "sonner";
-import { vibrateOrBeep, flashScreen } from "@/lib/notificationEffects";
+import { triggerNotificationEffect, cacheUserVibrationPrefs, vibrateOrBeep } from "@/lib/notificationEffects";
 import { Slider } from "@/components/ui/slider";
 
 const PATTERNS = {
@@ -62,10 +62,17 @@ export default function VibrationSettings({ user, onSave }) {
     toast.success("Vibration strength saved");
   };
 
-  const preview = (patternKey) => {
+  const preview = (patternKey, typeKey) => {
     if (!patternKey || patternKey === 'off') return;
-    vibrateOrBeep(patternKey, strength);
-    flashScreen('white', 2);
+    // Temporarily update cached prefs with current preview values so triggerNotificationEffect
+    // reads the right pattern + strength for coordinated flash+vibration
+    const typeMap = {
+      vib_dm: 'dm', vib_team_msg: 'general',
+      vib_incident: 'alert', vib_emergency: 'emergency', vib_assignment: 'assignment'
+    };
+    const tempUser = { ...prefs, [typeKey]: patternKey, vib_strength: strength };
+    cacheUserVibrationPrefs(tempUser);
+    triggerNotificationEffect(typeMap[typeKey] || 'dm');
   };
 
   return (
@@ -109,8 +116,8 @@ export default function VibrationSettings({ user, onSave }) {
                   {type.icon} {type.label}
                 </span>
                 <button
-                  onClick={() => preview(current)}
-                  disabled={current === 'off'}
+                 onClick={() => preview(current, type.key)}
+                 disabled={current === 'off'}
                   className="flex items-center gap-1 text-[10px] text-[#d4a843] hover:text-[#e0bb5e] disabled:opacity-30 disabled:cursor-not-allowed transition-colors px-2 py-1 rounded border border-[rgba(212,168,67,0.2)] hover:border-[rgba(212,168,67,0.5)]"
                   title="Preview this pattern"
                 >

@@ -75,6 +75,8 @@ function _flashCoordinated(color, pulses) {
   const existing = document.getElementById('__screen-flash__');
   if (existing) existing.remove();
 
+  const bg = color === 'red' ? 'rgba(220,38,38,0.85)' : 'rgba(255,255,255,0.92)';
+
   const overlay = document.createElement('div');
   overlay.id = '__screen-flash__';
   overlay.style.cssText = `
@@ -82,25 +84,29 @@ function _flashCoordinated(color, pulses) {
     inset: 0;
     z-index: 99999;
     pointer-events: none;
-    background: ${color === 'red' ? 'rgba(220,38,38,0.85)' : 'rgba(255,255,255,0.92)'};
+    background: ${bg};
     opacity: 0;
-    transition: opacity 60ms ease-in-out;
   `;
   document.body.appendChild(overlay);
-  void overlay.offsetHeight;
 
   pulses.forEach(({ start, duration }, idx) => {
-    // Flash on at pulse start
-    setTimeout(() => { overlay.style.opacity = '1'; }, start);
-    // Flash off after pulse duration (min 80ms visible so it's perceptible)
-    const offAt = start + Math.max(duration, 80);
+    const isLast = idx === pulses.length - 1;
+    const visibleMs = Math.max(duration, 60);
+
+    // Snap ON instantly at pulse start
     setTimeout(() => {
-      overlay.style.opacity = '0';
-      // Remove overlay after last pulse fades
-      if (idx === pulses.length - 1) {
-        setTimeout(() => overlay.remove(), 200);
-      }
-    }, offAt);
+      overlay.style.transition = 'none';
+      overlay.style.opacity = '1';
+
+      // Fade off over 80ms after the pulse duration
+      setTimeout(() => {
+        overlay.style.transition = 'opacity 80ms ease-out';
+        overlay.style.opacity = '0';
+        if (isLast) {
+          setTimeout(() => overlay.remove(), 150);
+        }
+      }, visibleMs);
+    }, start);
   });
 }
 
