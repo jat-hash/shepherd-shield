@@ -73,64 +73,9 @@ export default function PocketMode() {
       }
     }
 
-    // Front-camera darkness detection fallback
+    // Camera fallback intentionally disabled — no camera permission requests
     async function startCameraFallback() {
-      if (cameraStream) return; // already running
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user", width: 16, height: 16 },
-          audio: false,
-        });
-        cameraStream = stream;
-
-        const video = document.createElement("video");
-        video.srcObject = stream;
-        video.playsInline = true;
-        video.muted = true;
-        video.style.display = "none";
-        document.body.appendChild(video);
-        await video.play();
-
-        const canvas = document.createElement("canvas");
-        canvas.width = 16; canvas.height = 16;
-        const ctx = canvas.getContext("2d");
-
-        // Darkness threshold — must be very dark (lens fully covered), not just dim room
-        const DARK_THRESHOLD = 5;
-        // Require more consecutive frames to avoid flickering on transitions
-        const FRAMES_TO_LOCK = 6;   // ~1.8s of darkness before locking
-        const FRAMES_TO_UNLOCK = 8; // ~2.4s of light before unlocking
-        let darkFrames = 0;
-        let lightFrames = 0;
-
-        cameraInterval = setInterval(() => {
-          if (!cameraStream) return;
-          ctx.drawImage(video, 0, 0, 16, 16);
-          const data = ctx.getImageData(0, 0, 16, 16).data;
-          let total = 0;
-          for (let i = 0; i < data.length; i += 4) {
-            total += (data[i] + data[i + 1] + data[i + 2]) / 3;
-          }
-          const avg = total / (16 * 16);
-
-          if (avg < DARK_THRESHOLD) {
-            darkFrames++;
-            lightFrames = 0;
-            if (darkFrames >= FRAMES_TO_LOCK) activate();
-          } else {
-            lightFrames++;
-            darkFrames = 0;
-            if (lightFrames >= FRAMES_TO_UNLOCK) deactivate();
-          }
-        }, 300);
-
-        cleanupFns.push(() => {
-          stopCamera();
-          video.remove();
-        });
-      } catch (_) {
-        // Camera not available or permission denied — silently skip
-      }
+      // Do nothing: only hardware proximity sensor is used
     }
 
     async function startProximitySensor() {
