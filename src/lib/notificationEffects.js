@@ -1,7 +1,7 @@
 /**
  * Cross-platform notification effects.
  * iOS Safari does NOT support navigator.vibrate — we use Web Audio API tones instead.
- * Screen flash works on all platforms via a DOM overlay.
+ * Screen flashes are coordinated with vibration pulses so they fire in sync.
  */
 
 const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -22,11 +22,11 @@ const NAMED_PATTERNS = {
 
 // Map notification type → user pref key → default pattern
 const TYPE_TO_PREF = {
-  dm:         { pref: 'vib_dm',        default: 'double'   },
-  general:    { pref: 'vib_team_msg',  default: 'single'   },
-  alert:      { pref: 'vib_incident',  default: 'escalate' },
-  emergency:  { pref: 'vib_emergency', default: 'sos'      },
-  assignment: { pref: 'vib_assignment',default: 'single'   },
+  dm:         { pref: 'vib_dm',        default: 'double',   color: 'white' },
+  general:    { pref: 'vib_team_msg',  default: 'single',   color: 'white' },
+  alert:      { pref: 'vib_incident',  default: 'escalate', color: 'red'   },
+  emergency:  { pref: 'vib_emergency', default: 'sos',      color: 'red'   },
+  assignment: { pref: 'vib_assignment',default: 'single',   color: 'white' },
 };
 
 // Cached user prefs (updated by cacheUserVibrationPrefs)
@@ -42,18 +42,78 @@ export function cacheUserVibrationPrefs(userObj) {
 }
 
 /**
+ * Scale a vibration pattern by strength (only "on" pulses at even indices).
+ */
+function _scalePattern(vibration, strength) {
+  const multipliers = [1, 1, 1.6, 2.5];
+  const mult = multipliers[Math.max(1, Math.min(3, strength))];
+  return vibration.map((ms, i) => i % 2 === 0 ? Math.round(ms * mult) : ms);
+}
+
+/**
+ * Extract the start times (ms from now) of each "on" pulse in a pattern.
+ * Returns array of { start, duration } objects.
+ */
+function _getPulseTimes(scaledPattern) {
+  const pulses = [];
+  let t = 0;
+  for (let i = 0; i < scaledPattern.length; i++) {
+    if (i % 2 === 0) {
+      pulses.push({ start: t, duration: scaledPattern[i] });
+    }
+    t += scaledPattern[i];
+  }
+  return pulses;
+}
+
+/**
+ * Flash the screen in sync with vibration pulse timings.
+ * @param {'white'|'red'} color
+ * @param {{ start: number, duration: number }[]} pulses  Array of pulse timings
+ */
+function _flashCoordinated(color, pulses) {
+  const existing = document.getElementById('__screen-flash__');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = '__screen-flash__';
+  overlay.style.cssText = `
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    pointer-events: none;
+    background: ${color === 'red' ? 'rgba(220,38,38,0.85)' : 'rgba(255,255,255,0.92)'};
+    opacity: 0;
+    transition: opacity 60ms ease-in-out;
+  `;
+  document.body.appendChild(overlay);
+  void overlay.offsetHeight;
+
+  pulses.forEach(({ start, duration }, idx) => {
+    // Flash on at pulse start
+    setTimeout(() => { overlay.style.opacity = '1'; }, start);
+    // Flash off after pulse duration (min 80ms visible so it's perceptible)
+    const offAt = start + Math.max(duration, 80);
+    setTimeout(() => {
+      overlay.style.opacity = '0';
+      // Remove overlay after last pulse fades
+      if (idx === pulses.length - 1) {
+        setTimeout(() => overlay.remove(), 200);
+      }
+    }, offAt);
+  });
+}
+
+/**
  * Vibrate on Android; play a short audio pulse on iOS as a substitute.
- * @param {string} patternKey  Named pattern key or legacy key
+ * Returns the scaled pattern so callers can use it for coordinated flashing.
  */
 export function vibrateOrBeep(patternKey = 'single', strengthOverride = null) {
   const vibration = NAMED_PATTERNS[patternKey] ?? NAMED_PATTERNS.single;
-  if (!vibration) return; // 'off'
+  if (!vibration) return null; // 'off'
 
   const strength = strengthOverride ?? _vibStrength;
-  // Scale vibration durations: strength 1=1x, 2=1.6x, 3=2.5x (only scale "on" pulses, not gaps)
-  const multipliers = [1, 1, 1.6, 2.5];
-  const mult = multipliers[Math.max(1, Math.min(3, strength))];
-  const scaled = vibration.map((ms, i) => i % 2 === 0 ? Math.round(ms * mult) : ms);
+  const scaled = _scalePattern(vibration, strength);
 
   if (isIOS()) {
     _playAudioTone(patternKey, strength);
@@ -62,6 +122,8 @@ export function vibrateOrBeep(patternKey = 'single', strengthOverride = null) {
   } else {
     _playAudioTone(patternKey, strength);
   }
+
+  return scaled;
 }
 
 // Shared AudioContext — reuse to avoid iOS "too many contexts" limit
@@ -127,76 +189,41 @@ function _playAudioTone(pattern, strength = 1) {
 }
 
 /**
- * Flash the screen briefly — works on all platforms including iOS.
- * @param {'white'|'red'} color
- * @param {number} times  How many flashes
+ * Legacy standalone flash (kept for external callers like VibrationSettings preview).
  */
 export function flashScreen(color = 'white', times = 2) {
-  const existing = document.getElementById('__screen-flash__');
-  if (existing) existing.remove();
-
-  const overlay = document.createElement('div');
-  overlay.id = '__screen-flash__';
-  overlay.style.cssText = `
-    position: fixed;
-    inset: 0;
-    z-index: 99999;
-    pointer-events: none;
-    background: ${color === 'red' ? 'rgba(220,38,38,0.8)' : 'rgba(255,255,255,0.92)'};
-    opacity: 0;
-    transition: opacity 80ms ease-in-out;
-  `;
-  document.body.appendChild(overlay);
-
-  // Force a reflow so the initial opacity:0 is painted before we animate
-  void overlay.offsetHeight;
-
-  let count = 0;
-  const flashOnce = () => {
-    overlay.style.opacity = '1';
-    setTimeout(() => {
-      overlay.style.opacity = '0';
-      count++;
-      if (count < times) {
-        setTimeout(flashOnce, 200);
-      } else {
-        setTimeout(() => overlay.remove(), 300);
-      }
-    }, 180);
-  };
-  flashOnce();
+  // Build a simple equal-interval pulse list
+  const pulses = Array.from({ length: times }, (_, i) => ({ start: i * 380, duration: 180 }));
+  _flashCoordinated(color, pulses);
 }
 
 /**
- * Combined alert effect: vibrate/beep + screen flash.
- * Respects user's saved vibration pattern preferences.
+ * Combined alert effect: vibrate/beep + coordinated screen flash.
+ * Flashes fire in exact sync with each vibration pulse.
  * @param {'dm'|'alert'|'emergency'|'assignment'|'general'} type
  */
 export function triggerNotificationEffect(type = 'dm') {
   const prefConfig = TYPE_TO_PREF[type] || TYPE_TO_PREF.general;
   const patternKey = _userVibPrefs?.[prefConfig.pref] ?? prefConfig.default;
+  const color = prefConfig.color || 'white';
 
-  // Only vibrate if not set to 'off'
-  if (patternKey !== 'off') {
-    vibrateOrBeep(patternKey, _vibStrength);
+  if (patternKey === 'off') return;
+
+  const vibration = NAMED_PATTERNS[patternKey] ?? NAMED_PATTERNS.single;
+  if (!vibration) return;
+
+  const scaled = _scalePattern(vibration, _vibStrength);
+
+  // Trigger vibration/audio
+  if (isIOS()) {
+    _playAudioTone(patternKey, _vibStrength);
+  } else if (navigator.vibrate) {
+    navigator.vibrate(scaled);
+  } else {
+    _playAudioTone(patternKey, _vibStrength);
   }
 
-  // Flash color/count by urgency
-  switch (type) {
-    case 'emergency':
-      flashScreen('red', 6);
-      break;
-    case 'alert':
-      flashScreen('red', 4);
-      break;
-    case 'dm':
-      flashScreen('white', 4);
-      break;
-    case 'assignment':
-      flashScreen('white', 2);
-      break;
-    default:
-      flashScreen('white', 2);
-      break;
-  }
+  // Flash in sync with each vibration "on" pulse
+  const pulses = _getPulseTimes(scaled);
+  _flashCoordinated(color, pulses);
 }
