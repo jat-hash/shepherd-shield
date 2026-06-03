@@ -1,0 +1,44 @@
+{
+  "name": "Position",
+  "type": "object",
+  "title": "Position",
+  "description": "Security positions and their responsibilities",
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string"
+    },
+    "area_responsibilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "default_radio_channel": {
+      "type": "string"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "auto_rotate": {
+      "type": "boolean",
+      "default": false
+    },
+    "default_assigned_email": {
+      "type": "string",
+      "description": "Email of the member assigned to this position by default"
+    },
+    "default_assigned_name": {
+      "type": "string",
+      "description": "Name of the member assigned to this position by default"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

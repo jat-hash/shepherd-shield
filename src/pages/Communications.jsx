@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Send, Pin, X, Paperclip, Loader2 } from "lucide-react";
+import { Send, Pin, X, Paperclip, Loader2, Reply } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import DirectMessageSelector from "@/components/communications/DirectMessageSelector";
@@ -27,6 +27,7 @@ export default function Communications() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [allUsers, setAllUsers] = useState([]);
   const [pendingDmOpen, setPendingDmOpen] = useState(false);
+  const [replyTo, setReplyTo] = useState(null); // { id, sender_name, content }
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
   const fileInputRef = useRef(null);
@@ -231,6 +232,7 @@ export default function Communications() {
       message_type: messageType,
       attachment: attachment,
       read_by: [user.email],
+      ...(replyTo ? { reply_to_name: replyTo.sender_name, reply_to_content: replyTo.content } : {}),
     };
 
     try {
@@ -243,6 +245,7 @@ export default function Communications() {
     }
     
     setNewMsg("");
+    setReplyTo(null);
   };
 
   const handleFileUpload = async (e) => {
@@ -411,6 +414,7 @@ export default function Communications() {
                     isMe={msg.sender_email === user?.email}
                     currentUserEmail={user?.email}
                     onUpdate={loadMessages}
+                    onReply={(m) => setReplyTo({ sender_name: m.sender_name, content: m.content })}
                   />
                 ))}
               </div>
@@ -431,6 +435,7 @@ export default function Communications() {
                   isMe={msg.sender_email === user?.email}
                   currentUserEmail={user?.email}
                   onUpdate={loadMessages}
+                  onReply={(m) => setReplyTo({ sender_name: m.sender_name, content: m.content })}
                 />
               ))
             )}
@@ -446,6 +451,20 @@ export default function Communications() {
           </>
         )}
       </div>
+
+      {/* Reply Banner */}
+      {replyTo && (
+        <div className="px-4 py-2 bg-[#1a2744] border-t border-[#d4a843]/20 flex items-center gap-2">
+          <Reply className="w-3 h-3 text-[#d4a843] shrink-0" />
+          <div className="flex-1 min-w-0">
+            <span className="text-[10px] font-semibold text-[#d4a843]">Replying to {replyTo.sender_name}</span>
+            <p className="text-[10px] text-slate-400 truncate">{replyTo.content}</p>
+          </div>
+          <button onClick={() => setReplyTo(null)} className="text-slate-500 hover:text-white">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Input */}
       <div className="px-4 py-3 border-t border-[rgba(212,168,67,0.1)] bg-[#141f3d]">

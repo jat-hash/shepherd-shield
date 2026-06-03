@@ -1,0 +1,42 @@
+{
+  "name": "SOP",
+  "type": "object",
+  "title": "SOP",
+  "description": "Standard Operating Procedures",
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Emergency Evacuation",
+        "Active Threat",
+        "Parking Lot",
+        "Children's Wing",
+        "Medical Response",
+        "General Security",
+        "Other"
+      ]
+    },
+    "content": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string",
+      "default": "1.0"
+    },
+    "document_file": {
+      "type": "string"
+    },
+    "acknowledged_by": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "category",
+    "content"
+  ]
+}

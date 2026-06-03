@@ -1,0 +1,33 @@
+{
+  "name": "CommandPosition",
+  "type": "object",
+  "title": "Command Position",
+  "description": "Chain of command positions in the security team",
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Position title"
+    },
+    "order": {
+      "type": "integer",
+      "description": "Display order in hierarchy (lower numbers appear first)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description of responsibilities"
+    },
+    "assigned_to_email": {
+      "type": "string",
+      "description": "Email of the team member assigned to this position"
+    },
+    "assigned_to_name": {
+      "type": "string",
+      "description": "Name of the team member assigned to this position"
+    }
+  },
+  "required": [
+    "title",
+    "order"
+  ]
+}

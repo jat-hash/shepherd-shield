@@ -1,0 +1,72 @@
+{
+  "name": "SpecialEvent",
+  "type": "object",
+  "title": "Special Event",
+  "description": "Special events requiring security coordination",
+  "properties": {
+    "event_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "Wedding",
+        "Funeral",
+        "Concert",
+        "Conference",
+        "Youth Event",
+        "Community Outreach",
+        "Holiday Service",
+        "Other"
+      ]
+    },
+    "event_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "start_time": {
+      "type": "string"
+    },
+    "end_time": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "expected_attendance": {
+      "type": "integer"
+    },
+    "security_notes": {
+      "type": "string"
+    },
+    "coordinator_name": {
+      "type": "string"
+    },
+    "coordinator_contact": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Planned",
+        "Confirmed",
+        "In Progress",
+        "Completed",
+        "Cancelled"
+      ],
+      "default": "Planned"
+    },
+    "reminder_minutes": {
+      "type": "integer",
+      "description": "Minutes before event to send reminder (0 to disable)"
+    }
+  },
+  "required": [
+    "event_name",
+    "event_type",
+    "event_date",
+    "start_time",
+    "end_time"
+  ]
+}

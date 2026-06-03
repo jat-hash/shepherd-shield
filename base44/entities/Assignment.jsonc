@@ -1,0 +1,92 @@
+{
+  "name": "Assignment",
+  "type": "object",
+  "title": "Assignment",
+  "description": "Security team position assignments",
+  "properties": {
+    "position_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "service_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "service_type": {
+      "type": "string",
+      "enum": [
+        "Sunday AM",
+        "Sunday PM",
+        "Tuesday Bible Study",
+        "Thursday Services"
+      ]
+    },
+    "start_time": {
+      "type": "string"
+    },
+    "end_time": {
+      "type": "string"
+    },
+    "assigned_to_email": {
+      "type": "string"
+    },
+    "assigned_to_name": {
+      "type": "string"
+    },
+    "supervisor": {
+      "type": "string"
+    },
+    "radio_channel": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Confirmed",
+        "Pending",
+        "Declined"
+      ],
+      "default": "Pending"
+    },
+    "checked_in": {
+      "type": "boolean",
+      "default": false
+    },
+    "check_in_time": {
+      "type": "string"
+    },
+    "check_in_latitude": {
+      "type": "number",
+      "description": "GPS latitude at check-in"
+    },
+    "check_in_longitude": {
+      "type": "number",
+      "description": "GPS longitude at check-in"
+    },
+    "checked_out": {
+      "type": "boolean",
+      "default": false
+    },
+    "check_out_time": {
+      "type": "string"
+    },
+    "area_responsibilities": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "reminder_minutes": {
+      "type": "integer",
+      "description": "Minutes before assignment to send reminder (0 to disable)"
+    }
+  },
+  "required": [
+    "position_name",
+    "service_date",
+    "start_time",
+    "end_time",
+    "assigned_to_email",
+    "assigned_to_name"
+  ]
+}

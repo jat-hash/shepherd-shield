@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Bell, X, ExternalLink } from "lucide-react";
+import { Bell, X, ExternalLink, Reply, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "../../utils";
 import { triggerNotificationEffect } from "@/lib/notificationEffects";
+import { toast } from "sonner";
 
 function extractUrl(text) {
   if (!text) return null;
@@ -57,10 +58,23 @@ function getNotificationRoute(notification) {
   return null;
 }
 
+function isMessageNotification(notification) {
+  const type = notification.type || "";
+  const title = (notification.title || "").toLowerCase();
+  const msg = (notification.message || "").toLowerCase();
+  return !!(
+    notification.dm_channel ||
+    type === "general" && (msg.includes("message") || title.includes("message from"))
+  );
+}
+
 export default function NotificationBell({ userEmail }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null); // notification id
+  const [replyText, setReplyText] = useState("");
+  const [sendingReply, setSendingReply] = useState(false);
   const debounceTimer = useRef(null);
   const prevUnreadCount = useRef(0);
   const navigate = useNavigate();
@@ -146,6 +160,31 @@ export default function NotificationBell({ userEmail }) {
     await base44.entities.Notification.delete(notificationId);
     setNotifications(prev => prev.filter(n => n.id !== notificationId));
     setUnreadCount(prev => Math.max(0, prev - (notifications.find(n => n.id === notificationId)?.read ? 0 : 1)));
+  };
+
+  const sendQuickReply = async (notification) => {
+    if (!replyText.trim() || !userEmail) return;
+    setSendingReply(true);
+    try {
+      const me = await base44.auth.me();
+      const channel = notification.dm_channel || "All Team";
+      await base44.entities.TeamMessage.create({
+        channel,
+        content: replyText.trim(),
+        sender_name: me?.data?.display_name || me?.display_name || me?.full_name || userEmail,
+        sender_email: userEmail,
+        message_type: "text",
+        read_by: [userEmail],
+      });
+      setReplyText("");
+      setReplyingTo(null);
+      toast.success("Reply sent");
+      markAsRead(notification.id);
+    } catch {
+      toast.error("Failed to send reply");
+    } finally {
+      setSendingReply(false);
+    }
   };
 
   const handleNotificationClick = (notification) => {
@@ -234,13 +273,44 @@ export default function NotificationBell({ userEmail }) {
                         </p>
                       )}
                     </div>
-                    <button
-                      onClick={(e) => deleteNotification(e, notification.id)}
-                      className="text-slate-500 hover:text-red-400 transition-colors flex-shrink-0"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {isMessageNotification(notification) && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setReplyingTo(replyingTo === notification.id ? null : notification.id); setReplyText(""); }}
+                          className="text-slate-500 hover:text-[#d4a843] transition-colors"
+                          title="Quick reply"
+                        >
+                          <Reply className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => deleteNotification(e, notification.id)}
+                        className="text-slate-500 hover:text-red-400 transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
+
+                  {replyingTo === notification.id && (
+                    <div className="mt-2 flex gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        autoFocus
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendQuickReply(notification); } if (e.key === "Escape") { setReplyingTo(null); } }}
+                        placeholder="Type a reply..."
+                        className="flex-1 bg-[#0a1128] border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-slate-500 outline-none focus:border-[#d4a843]/50"
+                      />
+                      <button
+                        onClick={() => sendQuickReply(notification)}
+                        disabled={!replyText.trim() || sendingReply}
+                        className="px-2 py-1.5 rounded-lg bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] disabled:opacity-40 transition-colors"
+                      >
+                        {sendingReply ? <div className="w-3 h-3 border border-[#0a1128]/40 border-t-[#0a1128] rounded-full animate-spin" /> : <Send className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })

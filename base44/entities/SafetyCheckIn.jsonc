@@ -1,0 +1,43 @@
+{
+  "name": "SafetyCheckIn",
+  "type": "object",
+  "title": "Safety Check-In",
+  "description": "User safety check-in responses during emergency alerts",
+  "properties": {
+    "alert_id": {
+      "type": "string",
+      "description": "ID of the EmergencyAlert"
+    },
+    "user_email": {
+      "type": "string"
+    },
+    "user_phone": {
+      "type": "string",
+      "description": "Phone number used for WhatsApp confirmation"
+    },
+    "user_name": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "safe",
+        "need_help",
+        "unknown"
+      ],
+      "default": "unknown"
+    },
+    "latitude": {
+      "type": "number"
+    },
+    "longitude": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "alert_id",
+    "user_email",
+    "user_name",
+    "status"
+  ]
+}

@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Pin, MoreVertical, Check, CheckCheck, Trash2, Edit2 } from "lucide-react";
+import { Pin, MoreVertical, Check, CheckCheck, Trash2, Edit2, Reply } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
-export default function MessageBubble({ message, isMe, currentUserEmail, onUpdate }) {
+export default function MessageBubble({ message, isMe, currentUserEmail, onUpdate, onReply }) {
   const [hovering, setHovering] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(message.content);
@@ -70,6 +70,13 @@ export default function MessageBubble({ message, isMe, currentUserEmail, onUpdat
         }`}>
           {!isMe && (
             <p className="text-[10px] font-semibold text-[#d4a843] mb-0.5">{message.sender_name}</p>
+          )}
+          
+          {message.reply_to_name && (
+            <div className={`text-[10px] mb-1.5 px-2 py-1 rounded border-l-2 border-[#d4a843]/60 ${isMe ? "bg-[#0a1128]/20" : "bg-[#0a1128]/40"}`}>
+              <span className="font-semibold text-[#d4a843]/80">{message.reply_to_name}</span>
+              <p className="opacity-70 truncate">{message.reply_to_content}</p>
+            </div>
           )}
           
           {message.attachment && (
@@ -147,19 +154,31 @@ export default function MessageBubble({ message, isMe, currentUserEmail, onUpdat
       </div>
 
       {hovering && (
-        <div className="flex gap-1">
+        <div className={`flex gap-1 items-center ${isMe ? "order-1" : ""}`}>
+          <Button
+            size="icon" variant="ghost"
+            className="h-6 w-6 shrink-0 text-slate-400 hover:text-[#d4a843] hover:bg-[#d4a843]/10"
+            onClick={(e) => { e.stopPropagation(); onReply?.(message); }}
+            title="Reply"
+          >
+            <Reply className="w-3 h-3" />
+          </Button>
           {isMe && (
             <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0 text-red-400 hover:bg-red-500/10" onClick={(e) => { e.stopPropagation(); handleDelete(e); }} title="Delete message">
               <Trash2 className="w-3 h-3" />
             </Button>
           )}
           <DropdownMenu>
-            <DropdownMenuTrigger asChild className={isMe ? "order-1" : ""}>
+            <DropdownMenuTrigger asChild>
               <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0">
                 <MoreVertical className="w-3 h-3 text-slate-500" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="bg-[#1a2744] border-slate-700" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onReply?.(message); }} className="text-white hover:bg-white/10 cursor-pointer">
+                <Reply className="w-3 h-3 mr-2" />
+                Reply
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handlePin(); }} className="text-white hover:bg-white/10 cursor-pointer">
                 <Pin className="w-3 h-3 mr-2" />
                 {message.is_pinned ? "Unpin" : "Pin"} Message

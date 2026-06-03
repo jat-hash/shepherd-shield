@@ -1,0 +1,59 @@
+{
+  "name": "CalendarReminder",
+  "type": "object",
+  "title": "Calendar Reminder",
+  "description": "Reminders for assignments and special events",
+  "properties": {
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "assignment",
+        "special_event"
+      ],
+      "description": "Type of event this reminder is for"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "ID of the assignment or special event"
+    },
+    "user_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email of user to be reminded"
+    },
+    "reminder_time": {
+      "type": "integer",
+      "description": "Minutes before event to send reminder (e.g., 15, 60, 1440)"
+    },
+    "reminder_datetime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Calculated datetime when reminder should be sent"
+    },
+    "is_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this reminder has been sent"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the reminder was sent"
+    },
+    "event_title": {
+      "type": "string",
+      "description": "Title of the event for display purposes"
+    },
+    "event_datetime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the event starts"
+    }
+  },
+  "required": [
+    "event_type",
+    "event_id",
+    "user_email",
+    "reminder_time"
+  ]
+}

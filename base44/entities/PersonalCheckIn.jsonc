@@ -1,0 +1,38 @@
+{
+  "name": "PersonalCheckIn",
+  "type": "object",
+  "title": "Personal Check-In",
+  "description": "User check-in/out records independent of assignments",
+  "properties": {
+    "user_email": {
+      "type": "string"
+    },
+    "user_name": {
+      "type": "string"
+    },
+    "check_in_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "check_in_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "check_out_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "latitude": {
+      "type": "number"
+    },
+    "longitude": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "user_email",
+    "user_name",
+    "check_in_date",
+    "check_in_time"
+  ]
+}

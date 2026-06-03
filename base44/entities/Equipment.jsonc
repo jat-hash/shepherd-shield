@@ -1,0 +1,83 @@
+{
+  "name": "Equipment",
+  "type": "object",
+  "title": "Equipment",
+  "description": "Security equipment inventory",
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Radio",
+        "First Aid",
+        "Safety Gear",
+        "Camera",
+        "Signage",
+        "Other"
+      ]
+    },
+    "serial_number": {
+      "type": "string"
+    },
+    "qr_code": {
+      "type": "string"
+    },
+    "assigned_to": {
+      "type": "string"
+    },
+    "condition": {
+      "type": "string",
+      "enum": [
+        "Good",
+        "Fair",
+        "Needs Repair",
+        "Out of Service"
+      ],
+      "default": "Good"
+    },
+    "last_inspection_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "next_maintenance_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "maintenance_frequency_days": {
+      "type": "integer"
+    },
+    "inspection_photo": {
+      "type": "string"
+    },
+    "maintenance_notes": {
+      "type": "string"
+    },
+    "equipment_manual": {
+      "type": "string"
+    },
+    "usage_history": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "default": []
+    },
+    "checked_out": {
+      "type": "boolean",
+      "default": false
+    },
+    "checked_out_by": {
+      "type": "string"
+    },
+    "checked_out_at": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "category"
+  ]
+}

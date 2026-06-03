@@ -1,0 +1,27 @@
+{
+  "name": "UserDevice",
+  "type": "object",
+  "title": "User Device",
+  "description": "Stores Firebase Cloud Messaging tokens for user devices",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email of the user associated with this device"
+    },
+    "fcm_token": {
+      "type": "string",
+      "description": "Firebase Cloud Messaging registration token for the device",
+      "minLength": 1
+    },
+    "device_id": {
+      "type": "string",
+      "description": "Unique identifier for the device (optional, to support multiple devices per user)",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "user_email",
+    "fcm_token"
+  ]
+}

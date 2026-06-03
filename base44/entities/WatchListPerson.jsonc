@@ -1,0 +1,43 @@
+{
+  "name": "WatchListPerson",
+  "type": "object",
+  "title": "Watch List Person",
+  "description": "Persons of interest for security monitoring",
+  "properties": {
+    "full_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "photo": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Barred",
+        "Medical Alert",
+        "Monitor"
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "last_seen_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "full_name",
+    "status"
+  ]
+}

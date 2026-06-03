@@ -1,0 +1,56 @@
+{
+  "name": "TeamMessage",
+  "type": "object",
+  "title": "Team Message",
+  "description": "Team communication messages",
+  "properties": {
+    "channel": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string"
+    },
+    "sender_name": {
+      "type": "string"
+    },
+    "sender_email": {
+      "type": "string"
+    },
+    "message_type": {
+      "type": "string",
+      "enum": [
+        "text",
+        "alert",
+        "photo"
+      ],
+      "default": "text"
+    },
+    "attachment": {
+      "type": "string"
+    },
+    "read_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "is_pinned": {
+      "type": "boolean",
+      "default": false
+    },
+    "reply_to_name": {
+      "type": "string",
+      "description": "Sender name of the message being replied to"
+    },
+    "reply_to_content": {
+      "type": "string",
+      "description": "Content snippet of the message being replied to"
+    }
+  },
+  "required": [
+    "channel",
+    "content",
+    "sender_name"
+  ]
+}
