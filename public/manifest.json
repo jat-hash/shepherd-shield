@@ -1,12 +1,12 @@
 {
   "name": "Shepherd Shield",
   "short_name": "Shepherd Shield",
-  "description": "Church security team management and emergency alert system",
+  "description": "Church Security Team Management App",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a1128",
   "theme_color": "#0a1128",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -20,7 +20,5 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ],
-  "categories": ["security", "utilities"],
-  "prefer_related_applications": false
+  ]
 }
