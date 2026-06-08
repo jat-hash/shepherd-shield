@@ -233,6 +233,9 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Church Service Alert Buttons */}
+      <ChurchServiceAlerts user={user} />
+
       {/* My Check-in Status Banner */}
       {user && <MyCheckInStatus user={user} />}
 
@@ -241,9 +244,6 @@ export default function Dashboard() {
 
       {/* Admin: Team Status Panel */}
       {user?.role === 'admin' && <AdminDashboardPanel allUsers={allUsers} />}
-
-      {/* Church Service Alert Buttons */}
-      <ChurchServiceAlerts user={user} />
 
       <SpecialEventsDropdown />
 
