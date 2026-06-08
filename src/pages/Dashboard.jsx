@@ -15,6 +15,7 @@ import QuickEquipmentCheckIn from "@/components/dashboard/QuickEquipmentCheckIn"
 import PersonalCheckIn from "@/components/dashboard/PersonalCheckIn";
 import AdminDashboardPanel from "@/components/dashboard/AdminDashboardPanel";
 import MyCheckInStatus from "@/components/dashboard/MyCheckInStatus";
+import ChurchServiceAlerts from "@/components/dashboard/ChurchServiceAlerts";
 
 export default function Dashboard() {
   const { user: authUser } = useAuth();
@@ -240,6 +241,9 @@ export default function Dashboard() {
 
       {/* Admin: Team Status Panel */}
       {user?.role === 'admin' && <AdminDashboardPanel allUsers={allUsers} />}
+
+      {/* Church Service Alert Buttons */}
+      <ChurchServiceAlerts user={user} />
 
       <SpecialEventsDropdown />
 
