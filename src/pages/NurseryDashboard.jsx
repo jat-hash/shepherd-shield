@@ -11,6 +11,7 @@ import CheckOutByCode from "@/components/nursery/CheckOutByCode";
 import ParentRequestForm from "@/components/nursery/ParentRequestForm";
 import NurseryChat from "@/components/nursery/NurseryChat";
 import NurseryDirectory from "@/components/nursery/NurseryDirectory";
+import NurseryStaffStatus from "@/components/nursery/NurseryStaffStatus";
 import { toast } from "sonner";
 
 const AGE_COLORS = {
@@ -182,6 +183,9 @@ export default function NurseryDashboard() {
             <p className="text-xs text-slate-400 mt-0.5">{hasAlerts ? "Active Alerts" : "All Clear"}</p>
           </div>
         </div>
+
+        {/* Staff On Duty */}
+        <NurseryStaffStatus />
 
         {/* Quick Action Buttons */}
         <div className="grid grid-cols-3 gap-3">
