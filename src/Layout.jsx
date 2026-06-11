@@ -40,12 +40,13 @@ export default function Layout({ children, currentPageName }) {
 
   const user = authUser || fallbackUser;
 
-  // Nursery users: lock to nursery page. Non-nursery users: block from nursery page.
+  // Nursery users: lock to nursery page. Admins + Wilbert can visit freely. Others blocked.
   useEffect(() => {
     if (!user) return;
+    const canSeeNursery = user.role === 'nursery' || user.role === 'admin' || user.email === 'wilbert.ryan@gmail.com';
     if (user.role === 'nursery' && location.pathname !== '/NurseryDashboard') {
       navigate('/NurseryDashboard', { replace: true });
-    } else if (user.role !== 'nursery' && location.pathname === '/NurseryDashboard') {
+    } else if (!canSeeNursery && location.pathname === '/NurseryDashboard') {
       navigate('/', { replace: true });
     }
   }, [user, location.pathname]);
@@ -123,6 +124,8 @@ export default function Layout({ children, currentPageName }) {
 
   const noLayoutPages = ["Login"];
   if (noLayoutPages.includes(currentPageName)) return children;
+
+  const canSeeNursery = user?.role === 'nursery' || user?.role === 'admin' || user?.email === 'wilbert.ryan@gmail.com';
 
   // Nursery users only see the NurseryDashboard with no layout wrapper
   if (user?.role === 'nursery') return <>{children}</>;
@@ -247,6 +250,20 @@ export default function Layout({ children, currentPageName }) {
             })}
 
             <div className="border-t border-[rgba(212,168,67,0.15)] mt-4 pt-4">
+              {canSeeNursery && (
+                <Link
+                  to="/NurseryDashboard"
+                  onClick={() => setSidebarOpen(false)}
+                  className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-all ${
+                    currentPageName === "NurseryDashboard"
+                      ? "text-[#d4a843] bg-[rgba(212,168,67,0.08)] border-r-2 border-[#d4a843]"
+                      : "text-slate-400 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Baby className="w-4 h-4" />
+                  Nursery
+                </Link>
+              )}
               {user?.role === 'admin' && (
                 <Link
                   to={createPageUrl("AdminMonitor")}
@@ -365,6 +382,19 @@ export default function Layout({ children, currentPageName }) {
         })}
 
         <div className="border-t border-[rgba(212,168,67,0.15)] mt-4 pt-4">
+          {canSeeNursery && (
+            <Link
+              to="/NurseryDashboard"
+              className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-all ${
+                currentPageName === "NurseryDashboard"
+                  ? "text-[#d4a843] bg-[rgba(212,168,67,0.08)] border-r-2 border-[#d4a843]"
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <Baby className="w-4 h-4" />
+              Nursery
+            </Link>
+          )}
           {user?.role === 'admin' && (
             <Link
               to={createPageUrl("AdminMonitor")}
