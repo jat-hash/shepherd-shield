@@ -10,7 +10,11 @@
     },
     "check_in_code": {
       "type": "string",
-      "description": "Unique code given to parent at check-in"
+      "description": "Unique alphanumeric security code given to parent at check-in"
+    },
+    "pin_code": {
+      "type": "string",
+      "description": "4-digit numeric PIN for secure parent/staff verification at check-out"
     },
     "parent_name": {
       "type": "string"
