@@ -3,13 +3,14 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import {
   Baby, LogIn, LogOut, Bell, CheckCircle, Clock,
-  AlertCircle, RefreshCw, Users, MessageSquare, ShieldAlert
+  AlertCircle, RefreshCw, Users, MessageSquare, ShieldAlert, BookUser
 } from "lucide-react";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import ChildCheckInForm from "@/components/nursery/ChildCheckInForm";
 import CheckOutByCode from "@/components/nursery/CheckOutByCode";
 import ParentRequestForm from "@/components/nursery/ParentRequestForm";
 import NurseryChat from "@/components/nursery/NurseryChat";
+import NurseryDirectory from "@/components/nursery/NurseryDirectory";
 import { toast } from "sonner";
 
 const AGE_COLORS = {
@@ -22,6 +23,7 @@ const AGE_COLORS = {
 const TABS = [
   { id: "children", label: "Children", icon: Baby },
   { id: "requests", label: "Requests", icon: Bell },
+  { id: "directory", label: "Directory", icon: BookUser },
   { id: "chat", label: "Chat", icon: MessageSquare },
   { id: "alerts", label: "Alerts", icon: ShieldAlert },
 ];
@@ -322,6 +324,11 @@ export default function NurseryDashboard() {
                 ))
               )}
             </div>
+          )}
+
+          {/* DIRECTORY TAB */}
+          {activeTab === "directory" && (
+            <NurseryDirectory />
           )}
 
           {/* CHAT TAB */}
