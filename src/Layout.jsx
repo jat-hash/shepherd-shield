@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
@@ -27,6 +27,8 @@ const NAV_ITEMS = [
 export default function Layout({ children, currentPageName }) {
   const { user: authUser } = useAuth();
   const [fallbackUser, setFallbackUser] = useState(null);
+  const navigate = useNavigate();
+  const location = useLocation();
   const [alerts, setAlerts] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
@@ -39,6 +41,13 @@ export default function Layout({ children, currentPageName }) {
   const vibrationPrimedRef = useRef(false);
 
   const user = authUser || fallbackUser;
+
+  // Nursery users: redirect to nursery page if they try to access other pages
+  useEffect(() => {
+    if (user?.role === 'nursery' && location.pathname !== '/NurseryDashboard') {
+      navigate('/NurseryDashboard', { replace: true });
+    }
+  }, [user, location.pathname]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -113,6 +122,10 @@ export default function Layout({ children, currentPageName }) {
 
   const noLayoutPages = ["Login"];
   if (noLayoutPages.includes(currentPageName)) return children;
+
+  // Nursery users only see the NurseryDashboard with no layout wrapper
+  if (user?.role === 'nursery') return <>{children}</>;
+
 
   return (
     <>
