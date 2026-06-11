@@ -1,0 +1,59 @@
+{
+  "name": "NurseryChild",
+  "type": "object",
+  "title": "Nursery Child",
+  "description": "Children checked into the nursery",
+  "properties": {
+    "child_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "check_in_code": {
+      "type": "string",
+      "description": "Unique code given to parent at check-in"
+    },
+    "parent_name": {
+      "type": "string"
+    },
+    "parent_phone": {
+      "type": "string"
+    },
+    "age_group": {
+      "type": "string",
+      "enum": [
+        "Infant (0-12m)",
+        "Toddler (1-2y)",
+        "Pre-K (3-4y)",
+        "Kindergarten (5y)"
+      ]
+    },
+    "allergies_notes": {
+      "type": "string"
+    },
+    "checked_in": {
+      "type": "boolean",
+      "default": true
+    },
+    "check_in_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "check_out_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "checked_in_by": {
+      "type": "string"
+    },
+    "service_date": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "child_name",
+    "check_in_code",
+    "parent_name",
+    "service_date"
+  ]
+}

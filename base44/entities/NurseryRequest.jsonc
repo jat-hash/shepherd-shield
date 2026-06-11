@@ -1,0 +1,50 @@
+{
+  "name": "NurseryRequest",
+  "type": "object",
+  "title": "Nursery Request",
+  "description": "Parent call requests from nursery staff",
+  "properties": {
+    "child_name": {
+      "type": "string"
+    },
+    "child_id": {
+      "type": "string"
+    },
+    "request_type": {
+      "type": "string",
+      "enum": [
+        "Parent Needed",
+        "Diaper Change",
+        "Feeding",
+        "Medical",
+        "Pick Up",
+        "Other"
+      ]
+    },
+    "message": {
+      "type": "string"
+    },
+    "requested_by": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Pending",
+        "Acknowledged",
+        "Resolved"
+      ],
+      "default": "Pending"
+    },
+    "service_date": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "child_name",
+    "request_type",
+    "requested_by",
+    "service_date"
+  ]
+}

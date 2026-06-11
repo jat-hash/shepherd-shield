@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, RotateCw } from "lucide-react";
+import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, RotateCw, Baby } from "lucide-react";
 
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { cacheUserVibrationPrefs, primeAudioContext } from "@/lib/notificationEffects";
@@ -21,6 +21,7 @@ const NAV_ITEMS = [
 
   { name: "Members", icon: User, page: "Members" },
   { name: "Team Map", icon: MapPin, page: "TeamMap" },
+  { name: "Nursery", icon: Baby, page: "NurseryDashboard" },
 ];
 
 export default function Layout({ children, currentPageName }) {
