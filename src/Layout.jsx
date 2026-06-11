@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, RotateCw, Baby } from "lucide-react";
+import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, RotateCw, Baby, MonitorCheck } from "lucide-react";
 
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { cacheUserVibrationPrefs, primeAudioContext } from "@/lib/notificationEffects";
@@ -264,6 +264,20 @@ export default function Layout({ children, currentPageName }) {
                   Nursery
                 </Link>
               )}
+              {(user?.role === 'admin' || user?.email === 'wilbert.ryan@gmail.com') && (
+                <Link
+                  to="/NurseryMonitor"
+                  onClick={() => setSidebarOpen(false)}
+                  className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-all ${
+                    currentPageName === "NurseryMonitor"
+                      ? "text-[#d4a843] bg-[rgba(212,168,67,0.08)] border-r-2 border-[#d4a843]"
+                      : "text-slate-400 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <MonitorCheck className="w-4 h-4" />
+                  Nursery Monitor
+                </Link>
+              )}
               {user?.role === 'admin' && (
                 <Link
                   to={createPageUrl("AdminMonitor")}
@@ -393,6 +407,19 @@ export default function Layout({ children, currentPageName }) {
             >
               <Baby className="w-4 h-4" />
               Nursery
+            </Link>
+          )}
+          {(user?.role === 'admin' || user?.email === 'wilbert.ryan@gmail.com') && (
+            <Link
+              to="/NurseryMonitor"
+              className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-all ${
+                currentPageName === "NurseryMonitor"
+                  ? "text-[#d4a843] bg-[rgba(212,168,67,0.08)] border-r-2 border-[#d4a843]"
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <MonitorCheck className="w-4 h-4" />
+              Nursery Monitor
             </Link>
           )}
           {user?.role === 'admin' && (
