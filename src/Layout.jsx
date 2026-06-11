@@ -18,10 +18,8 @@ const NAV_ITEMS = [
   { name: "Comm", icon: MessageSquare, page: "Communications" },
   { name: "Assign", icon: CalendarDays, page: "Assignments" },
   { name: "Reports", icon: FileText, page: "Incidents" },
-
   { name: "Members", icon: User, page: "Members" },
   { name: "Team Map", icon: MapPin, page: "TeamMap" },
-  { name: "Nursery", icon: Baby, page: "NurseryDashboard" },
 ];
 
 export default function Layout({ children, currentPageName }) {
@@ -42,10 +40,13 @@ export default function Layout({ children, currentPageName }) {
 
   const user = authUser || fallbackUser;
 
-  // Nursery users: redirect to nursery page if they try to access other pages
+  // Nursery users: lock to nursery page. Non-nursery users: block from nursery page.
   useEffect(() => {
-    if (user?.role === 'nursery' && location.pathname !== '/NurseryDashboard') {
+    if (!user) return;
+    if (user.role === 'nursery' && location.pathname !== '/NurseryDashboard') {
       navigate('/NurseryDashboard', { replace: true });
+    } else if (user.role !== 'nursery' && location.pathname === '/NurseryDashboard') {
+      navigate('/', { replace: true });
     }
   }, [user, location.pathname]);
 
