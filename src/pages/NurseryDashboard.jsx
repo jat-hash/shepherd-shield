@@ -12,6 +12,7 @@ import ParentRequestForm from "@/components/nursery/ParentRequestForm";
 import NurseryChat from "@/components/nursery/NurseryChat";
 import NurseryDirectory from "@/components/nursery/NurseryDirectory";
 import NurseryStaffStatus from "@/components/nursery/NurseryStaffStatus";
+import DailySummary from "@/components/nursery/DailySummary";
 import { toast } from "sonner";
 
 const AGE_COLORS = {
@@ -250,8 +251,9 @@ export default function NurseryDashboard() {
 
           {/* CHILDREN TAB */}
           {activeTab === "children" && (
-            <div className="space-y-2">
-              <h2 className="text-xs uppercase tracking-widest text-[#d4a843] font-semibold flex items-center gap-2">
+            <div className="space-y-3">
+              <DailySummary />
+              <h2 className="text-xs uppercase tracking-widest text-[#d4a843] font-semibold flex items-center gap-2 pt-1">
                 <Users className="w-3.5 h-3.5" /> Children Checked In ({children.length})
               </h2>
               {children.length === 0 ? (
