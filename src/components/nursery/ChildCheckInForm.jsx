@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { X, Baby, RefreshCw, Copy, CheckCircle2, Phone } from "lucide-react";
+import { X, Baby, RefreshCw, Copy, CheckCircle2, Phone, Search, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
 function generateCode() {
@@ -25,9 +25,28 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
   const [code, setCode] = useState(() => generateCode());
   const [pin, setPin] = useState(() => generatePIN());
   const [loading, setLoading] = useState(false);
-  const [checkedInChild, setCheckedInChild] = useState(null); // show confirmation screen
+  const [checkedInChild, setCheckedInChild] = useState(null);
+  const [pastChildren, setPastChildren] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [search, setSearch] = useState("");
 
   const todayStr = new Date().toISOString().slice(0, 10);
+
+  // Load previously registered children (deduplicated by child_name+parent_name)
+  useEffect(() => {
+    base44.entities.NurseryChild.list("-created_date", 200).then(records => {
+      const seen = new Set();
+      const unique = [];
+      for (const r of records) {
+        const key = `${r.child_name}|${r.parent_name}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          unique.push(r);
+        }
+      }
+      setPastChildren(unique);
+    }).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -154,6 +173,65 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-3">
+
+          {/* Previously Registered Children Dropdown */}
+          {pastChildren.length > 0 && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowDropdown(v => !v)}
+                className="w-full flex items-center justify-between bg-[#0a1128] border border-[#d4a843]/30 rounded-lg px-3 py-2.5 text-sm text-[#d4a843] hover:border-[#d4a843]/60 transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <Search className="w-3.5 h-3.5" />
+                  Select a returning child...
+                </span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${showDropdown ? "rotate-180" : ""}`} />
+              </button>
+              {showDropdown && (
+                <div className="absolute z-10 w-full mt-1 bg-[#1a2744] border border-[rgba(212,168,67,0.2)] rounded-xl shadow-2xl max-h-56 overflow-hidden flex flex-col">
+                  <div className="p-2 border-b border-[rgba(212,168,67,0.1)]">
+                    <input
+                      autoFocus
+                      className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-[#d4a843]/60 placeholder-slate-500"
+                      placeholder="Search by name..."
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                    />
+                  </div>
+                  <div className="overflow-y-auto flex-1">
+                    {pastChildren
+                      .filter(c => !search || c.child_name.toLowerCase().includes(search.toLowerCase()) || c.parent_name.toLowerCase().includes(search.toLowerCase()))
+                      .map(c => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => {
+                            setForm({
+                              child_name: c.child_name,
+                              parent_name: c.parent_name,
+                              parent_phone: c.parent_phone || "",
+                              age_group: c.age_group || "Toddler (1-2y)",
+                              allergies_notes: c.allergies_notes || "",
+                            });
+                            setShowDropdown(false);
+                            setSearch("");
+                          }}
+                          className="w-full text-left px-4 py-2.5 hover:bg-[rgba(212,168,67,0.08)] transition-colors border-b border-[rgba(212,168,67,0.05)] last:border-0"
+                        >
+                          <p className="text-white text-sm font-medium">{c.child_name}</p>
+                          <p className="text-slate-400 text-xs">{c.parent_name}{c.parent_phone ? ` · ${c.parent_phone}` : ""} · {c.age_group}</p>
+                        </button>
+                      ))}
+                    {pastChildren.filter(c => !search || c.child_name.toLowerCase().includes(search.toLowerCase()) || c.parent_name.toLowerCase().includes(search.toLowerCase())).length === 0 && (
+                      <p className="text-slate-500 text-sm text-center py-4">No matches found</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Security Code + PIN Preview */}
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-[#0a1128] rounded-xl border border-[#d4a843]/30 px-3 py-3 flex items-center justify-between">
