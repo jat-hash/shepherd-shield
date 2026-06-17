@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { Bell, X, ExternalLink, Reply, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -79,20 +79,6 @@ export default function NotificationBell({ userEmail }) {
   const prevUnreadCount = useRef(0);
   const navigate = useNavigate();
 
-  const playNotificationSound = (notification) => {
-    const title = (notification?.title || "").toLowerCase();
-    const type = notification?.type || "";
-    const isDM = !!(notification?.dm_channel || title.includes("message from"));
-    const isIncident = title.includes("incident") || title.includes("alert") || title.includes("severity");
-    if (isIncident) {
-      triggerNotificationEffect('alert');
-    } else if (isDM) {
-      triggerNotificationEffect('dm');
-    } else {
-      triggerNotificationEffect('assignment');
-    }
-  };
-
   useEffect(() => {
     if (!userEmail) return;
     loadNotifications();
@@ -100,13 +86,35 @@ export default function NotificationBell({ userEmail }) {
     let unsub;
     try {
       unsub = base44.entities.Notification.subscribe((event) => {
-        // Only reload on create/delete, not updates (avoids loops with toast marking)
-        if (event.type === "update") return;
-        if (event.data?.user_email === userEmail || event.old_data?.user_email === userEmail) {
-          clearTimeout(debounceTimer.current);
-          debounceTimer.current = setTimeout(() => {
-            loadNotifications();
-          }, 500);
+        if (event.data?.user_email !== userEmail && event.old_data?.user_email !== userEmail) return;
+        if (event.type === "create" && event.data?.user_email === userEmail) {
+          // Update state immediately without a full reload — no effect here, effects are owned by AlertNotificationSystem / NotificationToast
+          setNotifications(prev => {
+            if (prev.find(n => n.id === event.data.id)) return prev;
+            return [event.data, ...prev].slice(0, 20);
+          });
+          setUnreadCount(prev => {
+            const newCount = prev + 1;
+            prevUnreadCount.current = newCount;
+            return newCount;
+          });
+        } else if (event.type === "update") {
+          setNotifications(prev => prev.map(n => n.id === event.data?.id ? event.data : n));
+          // Recalculate unread
+          setNotifications(prev => {
+            const newUnread = prev.filter(n => !n.read).length;
+            prevUnreadCount.current = newUnread;
+            setUnreadCount(newUnread);
+            return prev;
+          });
+        } else if (event.type === "delete") {
+          setNotifications(prev => {
+            const updated = prev.filter(n => n.id !== event.id);
+            const newUnread = updated.filter(n => !n.read).length;
+            prevUnreadCount.current = newUnread;
+            setUnreadCount(newUnread);
+            return updated;
+          });
         }
       });
     } catch (error) {
@@ -129,11 +137,6 @@ export default function NotificationBell({ userEmail }) {
       );
       setNotifications(allNotifications);
       const newUnread = allNotifications.filter(n => !n.read).length;
-      if (newUnread > prevUnreadCount.current) {
-        // Find the newest unread notification to determine effect type
-        const newestUnread = allNotifications.find(n => !n.read);
-        playNotificationSound(newestUnread);
-      }
       prevUnreadCount.current = newUnread;
       setUnreadCount(newUnread);
     } catch (error) {

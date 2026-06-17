@@ -71,14 +71,14 @@ function _getPulseTimes(scaledPattern) {
  * @param {'white'|'red'} color
  * @param {{ start: number, duration: number }[]} pulses  Array of pulse timings
  */
-function _flashCoordinated(color, pulses) {
-  const existing = document.getElementById('__screen-flash__');
-  if (existing) existing.remove();
+let _flashCounter = 0;
 
+function _flashCoordinated(color, pulses) {
   const bg = color === 'red' ? 'rgba(220,38,38,0.85)' : 'rgba(255,255,255,0.92)';
+  const flashId = `__screen-flash__${++_flashCounter}`;
 
   const overlay = document.createElement('div');
-  overlay.id = '__screen-flash__';
+  overlay.id = flashId;
   overlay.style.cssText = `
     position: fixed;
     inset: 0;
@@ -91,14 +91,12 @@ function _flashCoordinated(color, pulses) {
 
   pulses.forEach(({ start, duration }, idx) => {
     const isLast = idx === pulses.length - 1;
-    const visibleMs = Math.max(duration, 60);
+    const visibleMs = Math.max(duration, 80);
 
-    // Snap ON instantly at pulse start
     setTimeout(() => {
       overlay.style.transition = 'none';
       overlay.style.opacity = '1';
 
-      // Fade off over 80ms after the pulse duration
       setTimeout(() => {
         overlay.style.transition = 'opacity 80ms ease-out';
         overlay.style.opacity = '0';
@@ -219,17 +217,21 @@ export function triggerNotificationEffect(type = 'dm') {
   if (!vibration) return;
 
   const scaled = _scalePattern(vibration, _vibStrength);
+  const pulses = _getPulseTimes(scaled);
+
+  // Always try to resume AudioContext first (handles suspended state after page load)
+  primeAudioContext();
 
   // Trigger vibration/audio
   if (isIOS()) {
     _playAudioTone(patternKey, _vibStrength);
   } else if (navigator.vibrate) {
+    try { navigator.vibrate(0); } catch (_) {} // cancel any existing pattern first
     navigator.vibrate(scaled);
   } else {
     _playAudioTone(patternKey, _vibStrength);
   }
 
   // Flash in sync with each vibration "on" pulse
-  const pulses = _getPulseTimes(scaled);
   _flashCoordinated(color, pulses);
 }
