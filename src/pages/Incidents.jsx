@@ -7,6 +7,7 @@ import IncidentForm from "@/components/incidents/IncidentForm";
 import SOPReference from "@/components/incidents/SOPReference";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import WhatsAppReportButton from "@/components/whatsapp/WhatsAppReportButton";
+import PullToRefresh from "@/components/PullToRefresh";
 
 const severityColors = {
   Low: "bg-blue-500/20 text-blue-400",
@@ -55,6 +56,7 @@ export default function Incidents() {
   };
 
   return (
+    <PullToRefresh onRefresh={loadIncidents}>
     <div className="max-w-2xl mx-auto px-3 py-4 lg:px-4 lg:py-6 lg:ml-60 space-y-4">
       {isOffline && (
         <div className="flex items-center gap-2 bg-orange-900/40 border border-orange-500/30 rounded-lg px-3 py-2 text-orange-300 text-xs">
@@ -271,5 +273,6 @@ export default function Incidents() {
         </DialogContent>
       </Dialog>
     </div>
+    </PullToRefresh>
   );
 }

@@ -16,6 +16,7 @@ import PersonalCheckIn from "@/components/dashboard/PersonalCheckIn";
 import AdminDashboardPanel from "@/components/dashboard/AdminDashboardPanel";
 import MyCheckInStatus from "@/components/dashboard/MyCheckInStatus";
 import ChurchServiceAlerts from "@/components/dashboard/ChurchServiceAlerts";
+import PullToRefresh from "@/components/PullToRefresh";
 
 export default function Dashboard() {
   const { user: authUser } = useAuth();
@@ -154,6 +155,7 @@ export default function Dashboard() {
   }
 
   return (
+    <PullToRefresh onRefresh={reload}>
     <div className="max-w-2xl mx-auto px-3 py-4 lg:px-4 lg:py-6 space-y-4">
       {/* Active Emergency Alerts */}
       {activeAlerts.map(alert => (
@@ -268,5 +270,6 @@ export default function Dashboard() {
       <SOPQuickAccess />
       <QuickActionGrid />
     </div>
+    </PullToRefresh>
   );
 }

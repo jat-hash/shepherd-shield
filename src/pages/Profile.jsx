@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { LogOut, Shield, Users, RefreshCw, FileText, Edit2, Bell, Camera, X } from "lucide-react";
+import { LogOut, Shield, Users, RefreshCw, FileText, Edit2, Bell, Camera, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { toast } from "sonner";
@@ -24,6 +25,21 @@ export default function Profile() {
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      await base44.entities.User.delete(user.id);
+      toast.success("Account deleted");
+      base44.auth.logout(window.location.origin);
+    } catch (error) {
+      toast.error("Failed to delete account: " + (error?.message || "Unknown error"));
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     if (authUser && !user) {
@@ -352,6 +368,46 @@ export default function Profile() {
       >
         <LogOut className="w-4 h-4" /> Logout
       </Button>
+
+      {/* Delete Account */}
+      <Button
+        onClick={() => setDeleteDialogOpen(true)}
+        variant="ghost"
+        className="w-full text-red-500/70 hover:text-red-400 hover:bg-red-500/5 gap-2 text-xs"
+      >
+        <Trash2 className="w-3.5 h-3.5" /> Delete Account
+      </Button>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="bg-[#141f3d] border-red-500/30 text-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-red-400 flex items-center gap-2">
+              <Trash2 className="w-4 h-4" /> Delete Account
+            </DialogTitle>
+            <p className="text-sm text-slate-400 pt-2">
+              This will permanently delete your account and remove your access to Shepherd Shield. This action cannot be undone.
+            </p>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={deleting}
+              className="border-slate-600 text-slate-300 hover:bg-white/5"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeleteAccount}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 text-white gap-2"
+            >
+              {deleting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              Delete Permanently
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

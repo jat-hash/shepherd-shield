@@ -8,6 +8,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import SessionExpiredScreen from '@/components/SessionExpiredScreen';
+import ThemeProvider from '@/components/ThemeProvider';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -261,6 +262,7 @@ const AuthenticatedApp = () => {
 function App() {
   return (
     <ErrorBoundary>
+      <ThemeProvider>
       <AuthProvider>
         <QueryClientProvider client={queryClientInstance}>
           <Router>
@@ -270,6 +272,7 @@ function App() {
           <Toaster richColors closeButton position="top-right" />
         </QueryClientProvider>
       </AuthProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

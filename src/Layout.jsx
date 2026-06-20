@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, RotateCw, Baby, MonitorCheck } from "lucide-react";
+import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, RotateCw, Baby, MonitorCheck, ChevronLeft } from "lucide-react";
 
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { cacheUserVibrationPrefs, primeAudioContext } from "@/lib/notificationEffects";
@@ -12,6 +12,7 @@ import AlertNotificationSystem from "@/components/notifications/AlertNotificatio
 import UserSwitcher from "@/components/UserSwitcher";
 import NotificationToast from "@/components/notifications/NotificationToast";
 import EmergencyOverlay from "@/components/notifications/EmergencyOverlay";
+import BottomTabs from "@/components/BottomTabs";
 
 const NAV_ITEMS = [
   { name: "Dashboard", icon: Home, page: "Dashboard" },
@@ -21,6 +22,24 @@ const NAV_ITEMS = [
   { name: "Members", icon: User, page: "Members" },
   { name: "Team Map", icon: MapPin, page: "TeamMap" },
 ];
+
+const ROOT_PAGES = ["Dashboard", "Communications", "Assignments", "Incidents", "Profile"];
+
+const PAGE_TITLES = {
+  Members: "Team Members",
+  TeamMap: "Live Map",
+  WatchList: "Watch List",
+  SOPLibrary: "SOP Library",
+  Positions: "Positions",
+  EquipmentInventory: "Equipment",
+  SpecialEvents: "Special Events",
+  AutoRotation: "Auto Rotate Schedule",
+  Documents: "Documents",
+  AdminMonitor: "Admin Monitor",
+  NurseryDashboard: "Nursery",
+  NurseryMonitor: "Nursery Monitor",
+  WhatsAppAdmin: "WhatsApp Admin",
+};
 
 export default function Layout({ children, currentPageName }) {
   const { user: authUser } = useAuth();
@@ -39,6 +58,10 @@ export default function Layout({ children, currentPageName }) {
   const vibrationPrimedRef = useRef(false);
 
   const user = authUser || fallbackUser;
+
+  const isRootPage = ROOT_PAGES.includes(currentPageName);
+  const pageTitle = PAGE_TITLES[currentPageName] || currentPageName;
+  const goBack = () => { if (window.history.length > 1) navigate(-1); else navigate("/"); };
 
   // Nursery users: lock to nursery page. Admins + Wilbert can visit freely. Others blocked.
   useEffect(() => {
@@ -196,15 +219,32 @@ export default function Layout({ children, currentPageName }) {
       )}
 
       {/* Top Bar */}
-      <header className="bg-[#141f3d] border-b border-[rgba(212,168,67,0.15)] px-4 py-3 flex items-center justify-between sticky top-0 z-40">
-        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-1">
-          {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
-
-        <div className="flex items-center gap-2">
-          <Shield className="w-6 h-6 text-[#d4a843]" />
-          <span className="font-bold text-sm tracking-widest uppercase hidden sm:inline">Shepherd Shield</span>
-        </div>
+      <header
+        className="bg-[#141f3d] border-b border-[rgba(212,168,67,0.15)] px-4 py-3 flex items-center justify-between sticky top-0 z-40"
+        style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top))" }}
+      >
+        {isRootPage ? (
+          <>
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-1">
+              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+            <div className="flex items-center gap-2">
+              <Shield className="w-6 h-6 text-[#d4a843]" />
+              <span className="font-bold text-sm tracking-widest uppercase hidden sm:inline">Shepherd Shield</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <button onClick={goBack} className="lg:hidden p-1 -ml-1 text-slate-300 hover:text-white flex items-center">
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <span className="lg:hidden font-bold text-sm tracking-wide text-white">{pageTitle}</span>
+            <div className="hidden lg:flex items-center gap-2">
+              <Shield className="w-6 h-6 text-[#d4a843]" />
+              <span className="font-bold text-sm tracking-widest uppercase">Shepherd Shield</span>
+            </div>
+          </>
+        )}
 
         <div className="flex items-center gap-3">
           {user?.role === 'admin' && <UserSwitcher user={user} />}
@@ -229,7 +269,7 @@ export default function Layout({ children, currentPageName }) {
       {sidebarOpen && (
         <>
           <div className="fixed inset-0 bg-black/60 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
-          <nav className="fixed left-0 top-[57px] bottom-0 w-64 bg-[#141f3d] border-r border-[rgba(212,168,67,0.15)] flex flex-col py-4 z-40 lg:hidden overflow-y-auto">
+          <nav className="fixed left-0 bottom-0 w-64 bg-[#141f3d] border-r border-[rgba(212,168,67,0.15)] flex flex-col py-4 z-40 lg:hidden overflow-y-auto" style={{ top: "calc(57px + env(safe-area-inset-top))" }}>
             {NAV_ITEMS.map(item => {
               const isActive = currentPageName === item.page;
               return (
@@ -373,7 +413,7 @@ export default function Layout({ children, currentPageName }) {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 pb-6 lg:ml-56 overflow-x-hidden">
+      <main className="flex-1 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-6 lg:ml-56 overflow-x-hidden">
         {children}
       </main>
       <nav className="hidden lg:flex fixed left-0 top-[57px] bottom-0 w-56 bg-[#141f3d] border-r border-[rgba(212,168,67,0.15)] flex-col py-4 z-[1001] overflow-y-auto">
@@ -510,6 +550,7 @@ export default function Layout({ children, currentPageName }) {
           </div>
         </div>
       </nav>
+      <BottomTabs />
     </div>
     <NotificationToast userEmail={user?.email} />
     {/* Emergency Override: only for admins and Wilbert Ryan */}
