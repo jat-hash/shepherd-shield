@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { X, Bell } from "lucide-react";
 import { toast } from "sonner";
@@ -7,6 +7,7 @@ const REQUEST_TYPES = ["Parent Needed", "Diaper Change", "Feeding", "Medical", "
 
 export default function ParentRequestForm({ children, user, onClose }) {
   const [form, setForm] = useState({
+    parent_name: "",
     child_id: "",
     child_name: "",
     request_type: "Parent Needed",
@@ -15,9 +16,23 @@ export default function ParentRequestForm({ children, user, onClose }) {
   const [loading, setLoading] = useState(false);
   const todayStr = new Date().toISOString().slice(0, 10);
 
+  const parents = useMemo(() => {
+    const map = new Map();
+    (children || []).forEach(c => {
+      const key = (c.parent_name || "").trim() || "(unknown)";
+      if (!map.has(key)) map.set(key, { parent_name: key, parent_phone: c.parent_phone, kids: [] });
+      map.get(key).kids.push(c);
+    });
+    return Array.from(map.values()).sort((a, b) => a.parent_name.localeCompare(b.parent_name));
+  }, [children]);
+
+  const selectedParent = parents.find(p => p.parent_name === form.parent_name);
+  const parentKids = selectedParent?.kids || [];
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.child_name) { toast.error("Select a child"); return; }
+    if (!form.parent_name) { toast.error("Select a parent"); return; }
+    if (parentKids.length > 1 && !form.child_name) { toast.error("Select a child"); return; }
     setLoading(true);
     try {
       await base44.entities.NurseryRequest.create({
@@ -32,7 +47,7 @@ export default function ParentRequestForm({ children, user, onClose }) {
       // Send in-app notification to all team members
       await base44.functions.invoke("sendTeamNotification", {
         title: `🍼 Nursery: ${form.request_type}`,
-        message: `Child: ${form.child_name}${form.message ? ` — ${form.message}` : ""}. Requested by nursery staff.`,
+        message: `Parent: ${form.parent_name}${form.child_name ? ` — Child: ${form.child_name}` : ""}${form.message ? ` — ${form.message}` : ""}. Requested by nursery staff.`,
       });
       toast.success("Request sent to team");
       onClose();
@@ -55,21 +70,40 @@ export default function ParentRequestForm({ children, user, onClose }) {
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-3">
           <div>
-            <label className="text-xs text-slate-400 mb-1 block">Select Child</label>
+            <label className="text-xs text-slate-400 mb-1 block">Select Parent</label>
             <select
               className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-[#d4a843]/60"
-              value={form.child_id}
+              value={form.parent_name}
               onChange={e => {
-                const child = children.find(c => c.id === e.target.value);
-                setForm(f => ({ ...f, child_id: e.target.value, child_name: child?.child_name || "" }));
+                const p = parents.find(pp => pp.parent_name === e.target.value);
+                const kid = p?.kids?.[0];
+                setForm(f => ({ ...f, parent_name: e.target.value, child_id: kid?.id || "", child_name: kid?.child_name || "" }));
               }}
             >
-              <option value="">-- Select a child --</option>
-              {children.map(c => (
-                <option key={c.id} value={c.id}>{c.child_name} ({c.parent_name})</option>
+              <option value="">-- Select a parent --</option>
+              {parents.map(p => (
+                <option key={p.parent_name} value={p.parent_name}>{p.parent_name}{p.parent_phone ? ` (${p.parent_phone})` : ""}</option>
               ))}
             </select>
           </div>
+          {parentKids.length > 1 && (
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">Select Child</label>
+              <select
+                className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-[#d4a843]/60"
+                value={form.child_id}
+                onChange={e => {
+                  const child = parentKids.find(c => c.id === e.target.value);
+                  setForm(f => ({ ...f, child_id: e.target.value, child_name: child?.child_name || "" }));
+                }}
+              >
+                <option value="">-- Select a child --</option>
+                {parentKids.map(c => (
+                  <option key={c.id} value={c.id}>{c.child_name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label className="text-xs text-slate-400 mb-1 block">Request Type</label>
             <select
@@ -92,7 +126,7 @@ export default function ParentRequestForm({ children, user, onClose }) {
           </div>
           <button
             type="submit"
-            disabled={loading || !form.child_name}
+            disabled={loading || !form.parent_name || (parentKids.length > 1 && !form.child_name)}
             className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-xl transition-colors disabled:opacity-50"
           >
             {loading ? "Sending..." : "📢 Send Request to Team"}
