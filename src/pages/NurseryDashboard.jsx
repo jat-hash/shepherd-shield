@@ -265,7 +265,6 @@ export default function NurseryDashboard() {
                         <div className="flex items-center gap-2">
                           <Baby className="w-4 h-4 shrink-0" />
                           <p className="font-bold text-white">{child.child_name}</p>
-                          <span className="text-xs opacity-70 font-mono bg-black/30 px-1.5 py-0.5 rounded">#{child.check_in_code}</span>
                         </div>
                         <p className="text-xs mt-1 opacity-80">Parent: {child.parent_name}{child.parent_phone ? ` · ${child.parent_phone}` : ""}</p>
                         <p className="text-xs opacity-60 mt-0.5">{child.age_group} · In at {child.check_in_time ? new Date(child.check_in_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}</p>

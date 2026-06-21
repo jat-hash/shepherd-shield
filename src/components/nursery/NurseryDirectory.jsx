@@ -49,8 +49,7 @@ export default function NurseryDirectory() {
     const matchesSearch = !q ||
       f.child_name?.toLowerCase().includes(q) ||
       f.parent_name?.toLowerCase().includes(q) ||
-      f.parent_phone?.toLowerCase().includes(q) ||
-      f.check_in_code?.toLowerCase().includes(q);
+      f.parent_phone?.toLowerCase().includes(q);
     const matchesAge = filterAge === "All" || f.age_group === filterAge;
     return matchesSearch && matchesAge;
   });
@@ -156,7 +155,6 @@ export default function NurseryDirectory() {
                             <span className="text-white">{v.service_date}</span>
                           </div>
                           <div className="flex items-center gap-2 text-slate-300">
-                            <span className="font-mono opacity-70">#{v.check_in_code}</span>
                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${v.checked_in ? "bg-green-800 text-green-300" : "bg-slate-700 text-slate-300"}`}>
                               {v.checked_in ? "In" : "Out"}
                             </span>

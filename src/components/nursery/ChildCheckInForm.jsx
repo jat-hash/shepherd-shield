@@ -1,18 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { X, Baby, RefreshCw, Copy, CheckCircle2, Phone, Search, ChevronDown } from "lucide-react";
+import { X, Baby, CheckCircle2, Phone, Search, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
-
-function generateCode() {
-  // 6-char alphanumeric code, easy to read (no 0/O, 1/I confusion)
-  const chars = "ACDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-}
-
-function generatePIN() {
-  // 4-digit numeric PIN (1000–9999, never starts with 0)
-  return String(Math.floor(1000 + Math.random() * 9000));
-}
 
 export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
   const [form, setForm] = useState({
@@ -22,8 +11,6 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
     age_group: "Toddler (1-2y)",
     allergies_notes: "",
   });
-  const [code, setCode] = useState(() => generateCode());
-  const [pin, setPin] = useState(() => generatePIN());
   const [loading, setLoading] = useState(false);
   const [checkedInChild, setCheckedInChild] = useState(null);
   const [pastChildren, setPastChildren] = useState([]);
@@ -58,8 +45,6 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
     try {
       const child = await base44.entities.NurseryChild.create({
         ...form,
-        check_in_code: code,
-        pin_code: pin,
         checked_in: true,
         check_in_time: new Date().toISOString(),
         checked_in_by: user?.display_name || user?.full_name || user?.email,
@@ -74,10 +59,6 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
     }
   };
 
-  const copyCode = () => {
-    navigator.clipboard.writeText(code).then(() => toast.success("Code copied!")).catch(() => {});
-  };
-
   // ── Confirmation Screen ──────────────────────────────────────────
   if (checkedInChild) {
     return (
@@ -87,26 +68,6 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
             <CheckCircle2 className="w-12 h-12 text-green-400 mx-auto mb-3" />
             <h2 className="text-white font-bold text-lg">Checked In!</h2>
             <p className="text-slate-400 text-sm mt-1">{checkedInChild.child_name} is now in the nursery</p>
-          </div>
-
-          {/* Security Code + PIN */}
-          <div className="mx-6 my-4 space-y-3">
-            <div className="bg-[#0a1128] rounded-xl border-2 border-[#d4a843] p-4">
-              <p className="text-slate-400 text-xs uppercase tracking-widest mb-1">Security Code</p>
-              <p className="text-[#d4a843] font-mono font-black text-3xl tracking-[0.3em]">{checkedInChild.check_in_code}</p>
-              <p className="text-slate-500 text-xs mt-1">Give this code to the parent</p>
-              <button
-                onClick={copyCode}
-                className="mt-2 flex items-center gap-1.5 text-xs text-[#d4a843] hover:text-[#e0bb5e] mx-auto transition-colors"
-              >
-                <Copy className="w-3.5 h-3.5" /> Copy code
-              </button>
-            </div>
-            <div className="bg-[#0a1128] rounded-xl border-2 border-blue-500/50 p-4">
-              <p className="text-slate-400 text-xs uppercase tracking-widest mb-1">4-Digit Verification PIN</p>
-              <p className="text-blue-300 font-mono font-black text-3xl tracking-[0.3em]">{checkedInChild.pin_code}</p>
-              <p className="text-slate-500 text-xs mt-1">Staff uses this PIN to verify pick-up requests</p>
-            </div>
           </div>
 
           {/* Summary */}
@@ -139,8 +100,6 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
                 // Reset for another check-in
                 setCheckedInChild(null);
                 setForm({ child_name: "", parent_name: "", parent_phone: "", age_group: "Toddler (1-2y)", allergies_notes: "" });
-                setCode(generateCode());
-                setPin(generatePIN());
               }}
               className="flex-1 bg-[#141f3d] hover:bg-[#1a2744] text-white font-semibold py-2.5 rounded-xl transition-colors text-sm border border-[rgba(212,168,67,0.15)]"
             >
@@ -231,38 +190,6 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
               )}
             </div>
           )}
-
-          {/* Security Code + PIN Preview */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-[#0a1128] rounded-xl border border-[#d4a843]/30 px-3 py-3 flex items-center justify-between">
-              <div>
-                <p className="text-[9px] text-slate-400 uppercase tracking-widest">Security Code</p>
-                <p className="text-[#d4a843] font-mono font-bold text-xl tracking-widest mt-0.5">{code}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCode(generateCode())}
-                className="p-1.5 text-slate-400 hover:text-[#d4a843] transition-colors"
-                title="Regenerate code"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            <div className="bg-[#0a1128] rounded-xl border border-blue-500/30 px-3 py-3 flex items-center justify-between">
-              <div>
-                <p className="text-[9px] text-slate-400 uppercase tracking-widest">4-Digit PIN</p>
-                <p className="text-blue-300 font-mono font-bold text-xl tracking-widest mt-0.5">{pin}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPin(generatePIN())}
-                className="p-1.5 text-slate-400 hover:text-blue-300 transition-colors"
-                title="Regenerate PIN"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
 
           <div>
             <label className="text-xs text-slate-400 mb-1 block">Child's Name *</label>
