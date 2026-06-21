@@ -86,7 +86,12 @@ Deno.serve(async (req) => {
 
     const accessToken = await getAccessToken(sa);
     const url = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
+    // Data-only message: the service worker handles display + vibration.
+    // (notification payloads auto-display without a vibrate pattern, so we
+    // send data and let the SW call showNotification with a vibrate pattern.)
     const data = {
+      title: String(title),
+      body: String(body),
       alertId: String(alert_id || ''),
       dm_channel: String(dm_channel || ''),
       notification_type: String(notification_type || ''),
@@ -104,10 +109,9 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           message: {
             token,
-            notification: { title, body },
             data,
-            android: { priority: "high", notification: { sound: "default" } },
-            apns: { payload: { aps: { sound: "default" } } },
+            android: { priority: "high" },
+            apns: { payload: { aps: { contentAvailable: true } } },
           },
         }),
       }).catch(() => null);

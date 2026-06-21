@@ -116,9 +116,10 @@ export default function ServiceWorkerRegister() {
           const { app } = initFirebase();
           const messaging = getMessaging(app);
           onMessage(messaging, (payload) => {
-            addLog('Foreground msg: ' + (payload.notification?.title || 'no title'));
-            const title = payload.notification?.title || 'Shepherd Shield Alert';
-            const body = payload.notification?.body || 'New notification';
+            const d = payload.data || {};
+            const title = d.title || payload.notification?.title || 'Shepherd Shield Alert';
+            const body = d.body || payload.notification?.body || 'New notification';
+            addLog('Foreground msg: ' + title);
             if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
             toast.error(`🚨 ${title}: ${body}`, { duration: 10000, position: 'top-center' });
             if ('Notification' in window && window.Notification.permission === 'granted') {
