@@ -43,6 +43,14 @@ messaging.onBackgroundMessage((payload) => {
     requireInteraction: type === 'emergency' || type === 'incident',
     data: { url: clickUrl, type }
   });
+
+  // Wake any open app tabs so they play the loud alarm audio + vibrate, even
+  // while the page itself is in the background.
+  self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    for (const client of clientList) {
+      client.postMessage({ type: 'shepherd-push', notification_type: type, title, body });
+    }
+  }).catch(() => {});
 });
 
 // Tap on notification — focus or open the app at the target route

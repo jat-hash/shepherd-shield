@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
+import { triggerNotificationEffect } from "@/lib/notificationEffects";
 
 // FCM is only supported on non-iOS browsers with service worker + push support
 const isFCMSupported = () => {
@@ -119,8 +120,14 @@ export default function ServiceWorkerRegister() {
             const d = payload.data || {};
             const title = d.title || payload.notification?.title || 'Shepherd Shield Alert';
             const body = d.body || payload.notification?.body || 'New notification';
+            const nType = d.notification_type || '';
             addLog('Foreground msg: ' + title);
-            if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
+            // Comms (DM/group) aren't alarmed by the in-app alert system, so play
+            // the audible+vibration effect here. Non-comms types are already
+            // alarmed via the Notification entity subscription.
+            if (nType === 'dm' || nType === 'group_message' || nType === 'general' || nType === '') {
+              triggerNotificationEffect(nType === 'dm' ? 'dm' : 'general');
+            }
             toast.error(`🚨 ${title}: ${body}`, { duration: 10000, position: 'top-center' });
             if ('Notification' in window && window.Notification.permission === 'granted') {
               try { new window.Notification(title, { body, icon: '/icon-192.png', requireInteraction: true }); } catch (_) {}
@@ -136,6 +143,16 @@ export default function ServiceWorkerRegister() {
     };
 
     initPushNotifications();
+
+    // Background pushes: the service worker forwards a message to open tabs so
+    // we play the loud alarm audio + vibrate even while the page is backgrounded.
+    const handleSWMessage = (event) => {
+      if (event.data?.type === 'shepherd-push') {
+        const typeMap = { emergency: 'emergency', incident: 'alert', dm: 'dm', group_message: 'general', assignment: 'assignment' };
+        triggerNotificationEffect(typeMap[event.data.notification_type] || 'general');
+      }
+    };
+    navigator.serviceWorker.addEventListener('message', handleSWMessage);
 
     // Re-run when user returns to the app only if not already initialized
     const handleVisibilityChange = () => {
@@ -156,6 +173,7 @@ export default function ServiceWorkerRegister() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('push:register', handlePushRegister);
+      navigator.serviceWorker.removeEventListener('message', handleSWMessage);
     };
   }, []);
 
