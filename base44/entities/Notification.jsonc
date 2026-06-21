@@ -19,7 +19,8 @@
         "assignment_new",
         "assignment_change",
         "assignment_reminder",
-        "general"
+        "general",
+        "incident"
       ]
     },
     "assignment_id": {

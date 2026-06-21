@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
         user_email: u.email,
         title,
         message: body,
-        type: 'general',
+        type: 'incident',
         read: false,
       }).catch(() => {});
       notifCreated++;
