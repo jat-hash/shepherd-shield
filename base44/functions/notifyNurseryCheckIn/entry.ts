@@ -1,4 +1,11 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+
+// Nursery alerts go ONLY to these three leads
+const NURSERY_LEADS = [
+  'wilbert.ryan@gmail.com',      // Ryan
+  'pachecosmailbox@gmail.com',   // Luis Pacheco
+  'wintersjamesg@hotmail.com',  // James Winters
+];
 
 Deno.serve(async (req) => {
   try {
@@ -39,57 +46,74 @@ Deno.serve(async (req) => {
       ? `${childName} was picked up${parentName ? ' by ' + parentName : ''}${checkOutTime ? ' at ' + checkOutTime : ''}`
       : `${childName} checked in${parentName ? ' — Parent: ' + parentName : ''}${checkInTime ? ' at ' + checkInTime : ''}`;
 
+    // Resolve only the three designated leads
     const allUsers = await base44.asServiceRole.entities.User.list();
-    const nurseryStaff = allUsers.filter(function(u) {
-      return u.role === 'nursery' || u.role === 'admin';
-    });
+    const leads = allUsers.filter(function (u) { return NURSERY_LEADS.includes(u.email); });
 
-    console.log('Notifying ' + nurseryStaff.length + ' nursery staff: ' + title);
+    console.log('Notifying ' + leads.length + ' nursery leads: ' + title);
 
-    const firebaseServerKey = Deno.env.get('FIREBASE_SERVER_KEY');
+    // In-app notifications for each lead
+    await Promise.all(leads.map(function (u) {
+      return base44.asServiceRole.entities.Notification.create({
+        user_email: u.email,
+        title: title,
+        message: body,
+        type: 'general',
+        read: false,
+      });
+    }));
 
-    if (firebaseServerKey && nurseryStaff.length > 0) {
-      const tokenResults = await Promise.all(
-        nurseryStaff.map(function(u) {
-          return base44.asServiceRole.entities.UserDevice.filter({ user_email: u.email });
-        })
-      );
-      const allTokens = tokenResults.flat().map(function(d) { return d.fcm_token; }).filter(Boolean);
-
-      if (allTokens.length > 0) {
-        const fcmRes = await fetch('https://fcm.googleapis.com/fcm/send', {
-          method: 'POST',
-          headers: {
-            'Authorization': 'key=' + firebaseServerKey,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            registration_ids: allTokens,
-            notification: { title: title, body: body, sound: 'default' },
-            data: { notification_type: 'nursery_checkin', click_url: '/NurseryDashboard' },
-            priority: 'high'
-          })
+    // Push notifications (HTTP v1, data-only) for each lead
+    for (const u of leads) {
+      try {
+        await base44.functions.invoke('sendFCMNotification', {
+          recipient_email: u.email,
+          title: title,
+          body: body,
+          notification_type: 'nursery_checkin',
+          click_url: '/NurseryDashboard',
         });
-        const fcmData = await fcmRes.json();
-        console.log('FCM sent to ' + allTokens.length + ' devices, success=' + fcmData.success + ', failure=' + fcmData.failure);
-      } else {
-        console.log('No FCM tokens found for nursery staff');
+      } catch (e) {
+        console.log('FCM failed for ' + u.email + ': ' + e.message);
       }
     }
 
-    await Promise.all(
-      nurseryStaff.map(function(u) {
-        return base44.asServiceRole.entities.Notification.create({
-          user_email: u.email,
-          title: title,
-          message: body,
-          type: 'general',
-          read: false,
-        });
-      })
-    );
+    // When a check-out leaves zero children checked in, send a special empty-nursery alert
+    if (isCheckOut) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const stillIn = await base44.asServiceRole.entities.NurseryChild.filter(
+        { service_date: todayStr, checked_in: true }
+      );
+      if (stillIn.length === 0) {
+        const emptyTitle = '⚠️ Nursery Empty';
+        const emptyBody = 'All children have been checked out of the nursery.';
+        await Promise.all(leads.map(function (u) {
+          return base44.asServiceRole.entities.Notification.create({
+            user_email: u.email,
+            title: emptyTitle,
+            message: emptyBody,
+            type: 'general',
+            read: false,
+          });
+        }));
+        for (const u of leads) {
+          try {
+            await base44.functions.invoke('sendFCMNotification', {
+              recipient_email: u.email,
+              title: emptyTitle,
+              body: emptyBody,
+              notification_type: 'nursery_checkin',
+              click_url: '/NurseryDashboard',
+            });
+          } catch (e) {
+            console.log('Empty-alert FCM failed for ' + u.email + ': ' + e.message);
+          }
+        }
+        console.log('Nursery empty alert sent to leads');
+      }
+    }
 
-    return Response.json({ success: true, notified: nurseryStaff.length });
+    return Response.json({ success: true, notified: leads.length });
   } catch (error) {
     console.error('notifyNurseryCheckIn error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });
