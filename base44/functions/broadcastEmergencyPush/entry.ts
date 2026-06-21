@@ -12,7 +12,6 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, message: 'Not an active alert' });
     }
 
-    const firebaseServerKey = Deno.env.get('FIREBASE_SERVER_KEY');
     const allUsers = await base44.asServiceRole.entities.User.list();
 
     if (!allUsers || allUsers.length === 0) {
@@ -34,29 +33,16 @@ Deno.serve(async (req) => {
         read: false
       }).catch(() => {});
 
-      // Send FCM push if we have a server key (works on Android/desktop, skipped on iOS)
-      if (firebaseServerKey) {
-        const devices = await base44.asServiceRole.entities.UserDevice.filter({ user_email: user.email }).catch(() => []);
-        const tokens = (devices || []).map(d => d.fcm_token).filter(Boolean);
-
-        if (tokens.length > 0) {
-          const fcmRes = await fetch('https://fcm.googleapis.com/fcm/send', {
-            method: 'POST',
-            headers: {
-              'Authorization': `key=${firebaseServerKey}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              registration_ids: tokens,
-              notification: { title, body, sound: 'default' },
-              data: { alertId: alert.id || '' },
-              priority: 'high'
-            })
-          }).catch(() => null);
-
-          if (fcmRes?.ok) fcmSuccessCount++;
-        }
-      }
+      // FCM v1 push — delivers background alert when app is closed
+      const fcmRes = await base44.asServiceRole.functions.invoke('sendFCMNotification', {
+        recipient_email: user.email,
+        title,
+        body,
+        alert_id: alert.id || '',
+        notification_type: 'emergency',
+        click_url: '/',
+      }).catch(() => null);
+      if (fcmRes?.data?.success) fcmSuccessCount++;
     }
 
     console.log(`Emergency push broadcast: ${allUsers.length} in-app notifications, ${fcmSuccessCount} FCM pushes`);

@@ -16,7 +16,6 @@ Deno.serve(async (req) => {
     const title = `🚨 New Incident: ${incident.severity || 'Report'}`;
     const body = `${incident.title}${incident.location ? ' — ' + incident.location : ''}`;
 
-    const firebaseServerKey = Deno.env.get('FIREBASE_SERVER_KEY');
     const allUsers = await base44.asServiceRole.entities.User.list();
 
     let fcmSent = 0;
@@ -33,27 +32,15 @@ Deno.serve(async (req) => {
       }).catch(() => {});
       notifCreated++;
 
-      // FCM push (Android/desktop — skipped on iOS)
-      if (firebaseServerKey) {
-        const devices = await base44.asServiceRole.entities.UserDevice.filter({ user_email: u.email }).catch(() => []);
-        const tokens = (devices || []).map(d => d.fcm_token).filter(Boolean);
-        if (tokens.length > 0) {
-          const fcmRes = await fetch('https://fcm.googleapis.com/fcm/send', {
-            method: 'POST',
-            headers: {
-              'Authorization': `key=${firebaseServerKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              registration_ids: tokens,
-              notification: { title, body, sound: 'default' },
-              data: { incident_id: incident.id || '', click_url: '/Incidents' },
-              priority: 'high',
-            }),
-          }).catch(() => null);
-          if (fcmRes?.ok) fcmSent++;
-        }
-      }
+      // FCM v1 push — delivers background alert when app is closed
+      const fcmRes = await base44.asServiceRole.functions.invoke('sendFCMNotification', {
+        recipient_email: u.email,
+        title,
+        body,
+        notification_type: 'incident',
+        click_url: '/Incidents',
+      }).catch(() => null);
+      if (fcmRes?.data?.success) fcmSent++;
     }
 
     console.log(`Incident reported by ${user.email}: ${notifCreated} in-app notifications, ${fcmSent} FCM pushes`);
