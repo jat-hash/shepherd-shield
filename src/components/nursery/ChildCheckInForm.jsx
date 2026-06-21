@@ -184,7 +184,7 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
               >
                 <span className="flex items-center gap-2">
                   <Search className="w-3.5 h-3.5" />
-                  Select a returning child...
+                  Select a parent/sponsor...
                 </span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${showDropdown ? "rotate-180" : ""}`} />
               </button>
