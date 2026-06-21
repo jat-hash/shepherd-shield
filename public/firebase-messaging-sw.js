@@ -20,6 +20,8 @@ const VIBRATE_PATTERNS = {
   emergency: [1000, 200, 1000, 200, 1000, 200, 1000],
   incident: [400, 150, 400, 150, 400],
   assignment: [200, 100, 200],
+  dm: [250, 100, 250, 100, 250],
+  group_message: [200, 100, 200],
   default: [300, 100, 300, 100, 300]
 };
 
