@@ -117,10 +117,12 @@ export default function IncidentForm({ open, onClose, onSaved, incident }) {
       await base44.entities.Incident.update(incident.id, form);
     } else {
       const user = await base44.auth.me();
-      await base44.entities.Incident.create({
+      const created = await base44.entities.Incident.create({
         ...form,
         reported_by: user?.display_name || user?.full_name || user?.email || "Unknown",
       });
+      // Trigger push notification + in-app alert to the whole team
+      base44.functions.invoke('notifyIncidentReported', { incident: created }).catch(() => {});
     }
     setSaving(false);
     onSaved?.();
