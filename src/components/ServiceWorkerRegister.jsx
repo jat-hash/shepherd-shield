@@ -43,27 +43,11 @@ export default function ServiceWorkerRegister() {
         if (!('Notification' in window)) { addLog('Notifications not supported on this browser'); return; }
 
         addLog('Permission: ' + window.Notification.permission);
-        if (window.Notification.permission === 'denied') {
-          addLog('⚠️ Notifications blocked in browser settings - alerts may not work');
-          // Continue anyway - don't block the app
-        } else if (window.Notification.permission !== 'granted') {
-          addLog('Requesting permission...');
-          try {
-            const result = await window.Notification.requestPermission();
-            addLog('Permission result: ' + result);
-            if (result !== 'granted') {
-              addLog('⚠️ User denied notifications - alerts may not work');
-              // Continue anyway - don't block the app
-            }
-          } catch (e) {
-            addLog('⚠️ Permission request failed: ' + e.message);
-            // Continue anyway
-          }
-        }
-
-        // If permission is denied, skip SW registration but let user use the app
-        if (window.Notification.permission === 'denied') {
-          addLog('Cannot register SW - notifications permanently denied');
+        // Never auto-request permission here — that re-triggers the native prompt
+        // on every refresh. The Dashboard banner's "Enable Notifications" button
+        // (explicit gesture) grants permission then dispatches 'push:register'.
+        if (window.Notification.permission !== 'granted') {
+          addLog('⚠️ Notifications not granted yet — granting via the Dashboard banner will auto-trigger registration');
           return;
         }
 
@@ -129,9 +113,9 @@ export default function ServiceWorkerRegister() {
               triggerNotificationEffect(nType === 'dm' ? 'dm' : 'general');
             }
             toast.error(`🚨 ${title}: ${body}`, { duration: 10000, position: 'top-center' });
-            if ('Notification' in window && window.Notification.permission === 'granted') {
-              try { new window.Notification(title, { body, icon: '/icon-192.png', requireInteraction: true }); } catch (_) {}
-            }
+            // The service worker already shows a system notification for each push
+            // (for when this tab is backgrounded / the user is in another app), so we
+            // don't show one from the page — that would duplicate the push notification.
           });
         } catch (msgErr) {
           addLog('Messaging listener error: ' + msgErr.message);

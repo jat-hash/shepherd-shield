@@ -108,12 +108,9 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
   const unreadCountRef = useRef(0);
   const pollRef = useRef(null);
 
-  // Request browser notification permission on mount
-  useEffect(() => {
-    if ("Notification" in window && window.Notification?.permission === "default") {
-      window.Notification.requestPermission().catch(() => {});
-    }
-  }, []);
+  // Permission is requested only via the Dashboard banner button (an explicit
+  // user gesture) — never on mount, so we don't re-trigger the native prompt on
+  // every refresh/page-load.
 
   const triggerAlert = useCallback((notification) => {
     const { id, message, priority = "low" } = notification;
