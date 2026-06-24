@@ -119,10 +119,11 @@ export function vibrateOrBeep(patternKey = 'single', strengthOverride = null) {
   const strength = strengthOverride ?? _vibStrength;
   const scaled = _scalePattern(vibration, strength);
 
-  if (isIOS()) {
-    _playAudioTone(patternKey, strength);
-  } else if (navigator.vibrate) {
-    navigator.vibrate(scaled);
+  if (!isIOS() && navigator.vibrate) {
+    try { navigator.vibrate(scaled); } catch (_) {}
+    // Vibration silently no-ops when user-activation has lapsed; play the tone
+    // as a guaranteed companion so feedback always reaches the user.
+    if (strength >= 2) _playAudioTone(patternKey, strength);
   } else {
     _playAudioTone(patternKey, strength);
   }
@@ -222,17 +223,16 @@ export function triggerNotificationEffect(type = 'dm') {
   // Always try to resume AudioContext first (handles suspended state after page load)
   primeAudioContext();
 
-  // Trigger vibration/audio. Some Android browsers gate navigator.vibrate behind
-  // "sticky" user activation that can lapse; we retry on a short timer as a fallback
-  // so an alert that arrives a few seconds after interaction still vibrates.
+  // Trigger vibration/audio. navigator.vibrate is gated behind "sticky" user
+  // activation that can lapse after a few seconds of inactivity on Android, and
+  // it silently no-ops (no throw) when blocked. To guarantee feedback we ALWAYS
+  // play the audio tone as a companion — on Android this runs alongside the
+  // vibration, and on iOS it's the only feedback channel.
   const runVibration = () => {
-    if (isIOS()) {
-      _playAudioTone(patternKey, _vibStrength);
-    } else if (navigator.vibrate) {
+    if (!isIOS() && navigator.vibrate) {
       try { navigator.vibrate(scaled); } catch (_) {}
-    } else {
-      _playAudioTone(patternKey, _vibStrength);
     }
+    _playAudioTone(patternKey, _vibStrength);
   };
   runVibration();
 
