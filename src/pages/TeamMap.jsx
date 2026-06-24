@@ -138,7 +138,10 @@ export default function TeamMap() {
     const watchId = navigator.geolocation.watchPosition(
       (pos) => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
       () => {},
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+      // maximumAge 0 forces a fresh GPS fix on every watcher tick, which on some
+      // Android builds re-triggers the OS location permission indicator/prompt.
+      // Accept cached fixes up to 10s old so we don't aggressively re-acquire GPS.
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
     );
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);

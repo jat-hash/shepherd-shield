@@ -29,18 +29,17 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!navigator.geolocation) return;
+    // Only check permission status without ever firing a GPS fetch here —
+    // calling getCurrentPosition on every Dashboard mount would re-trigger the
+    // browser's native location prompt (especially on iOS Safari, which has no
+    // Permissions API), which is why permission keeps being asked. We rely on the
+    // Permissions API when available; otherwise we just assume not-granted and
+    // let the user opt in via the banner button below.
     if (navigator.permissions) {
       navigator.permissions.query({ name: 'geolocation' }).then((result) => {
-        if (result.state !== 'granted') setLocationGranted(false);
-        result.onchange = () => { if (result.state === 'granted') setLocationGranted(true); };
-      });
-    } else {
-      // Fallback: try to get location silently
-      navigator.geolocation.getCurrentPosition(
-        () => setLocationGranted(true),
-        () => setLocationGranted(false),
-        { timeout: 3000 }
-      );
+        setLocationGranted(result.state === 'granted');
+        result.onchange = () => { setLocationGranted(result.state === 'granted'); };
+      }).catch(() => {});
     }
   }, []);
 
@@ -214,10 +213,13 @@ export default function Dashboard() {
             >
               Allow Location
             </button>
+            <button
+              onClick={dismissLocation}
+              className="ml-2 mt-2 text-blue-300 hover:text-white text-xs underline"
+            >
+              Not now
+            </button>
           </div>
-          <button onClick={dismissLocation} className="text-blue-400 hover:text-white mt-0.5">
-            <X className="w-4 h-4" />
-          </button>
         </div>
       )}
       <div className="flex items-start justify-between gap-3">
