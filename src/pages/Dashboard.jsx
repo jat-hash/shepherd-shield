@@ -22,8 +22,8 @@ export default function Dashboard() {
   const { user: authUser } = useAuth();
   const [user, setUser] = useState(null);
   const [userLoaded, setUserLoaded] = useState(false);
-  const [locationDismissed, setLocationDismissed] = useState(() => sessionStorage.getItem('locationPromptDismissed') === 'true');
-  const [locationGranted, setLocationGranted] = useState(true);
+  const [locationDismissed, setLocationDismissed] = useState(() => localStorage.getItem('locationPromptDismissed') === 'true');
+  const [locationGranted, setLocationGranted] = useState(() => localStorage.getItem('locationGranted') === 'true');
   const [notifDismissed, setNotifDismissed] = useState(false);
   const [notifGranted, setNotifGranted] = useState(() => ('Notification' in window) && window.Notification?.permission === 'granted');
 
@@ -37,22 +37,33 @@ export default function Dashboard() {
     // let the user opt in via the banner button below.
     if (navigator.permissions) {
       navigator.permissions.query({ name: 'geolocation' }).then((result) => {
-        setLocationGranted(result.state === 'granted');
-        result.onchange = () => { setLocationGranted(result.state === 'granted'); };
+        const granted = result.state === 'granted';
+        setLocationGranted(granted);
+        if (granted) localStorage.setItem('locationGranted', 'true');
+        result.onchange = () => {
+          const g = result.state === 'granted';
+          setLocationGranted(g);
+          if (g) localStorage.setItem('locationGranted', 'true');
+        };
       }).catch(() => {});
     }
   }, []);
 
   const requestLocation = () => {
     navigator.geolocation.getCurrentPosition(
-      () => { setLocationGranted(true); },
+      () => {
+        setLocationGranted(true);
+        localStorage.setItem('locationGranted', 'true');
+        setLocationDismissed(true);
+        localStorage.setItem('locationPromptDismissed', 'true');
+      },
       () => {},
       { enableHighAccuracy: true }
     );
   };
 
   const dismissLocation = () => {
-    sessionStorage.setItem('locationPromptDismissed', 'true');
+    localStorage.setItem('locationPromptDismissed', 'true');
     setLocationDismissed(true);
   };
 
