@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Bell, ExternalLink, MessageSquare, AlertTriangle } from "lucide-react";
+import { Bell, ExternalLink, MessageSquare, Mail, CheckCircle, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { triggerNotificationEffect } from "@/lib/notificationEffects";
 
@@ -56,9 +56,12 @@ function extractUrl(text) {
 
 function getIcon(notification) {
   const type = notification.type || "";
-  if (type.includes("assignment")) return <Bell className="w-4 h-4 text-[#d4a843]" />;
-  if (type === "general") return <MessageSquare className="w-4 h-4 text-blue-400" />;
-  return <AlertTriangle className="w-4 h-4 text-orange-400" />;
+  const isDM = !!(notification.dm_channel || (notification.title || "").toLowerCase().includes("message from"));
+  if (type.includes("assignment")) return <Bell className="w-4 h-4 text-[#d4a843] shrink-0" />;
+  if (type === "general") return isDM
+    ? <Mail className="w-5 h-5 text-blue-300 shrink-0 animate-bounce" />
+    : <MessageSquare className="w-5 h-5 text-[#d4a843] shrink-0 animate-bounce" />;
+  return <MessageSquare className="w-5 h-5 text-[#d4a843] shrink-0" />;
 }
 
 export default function NotificationToast({ userEmail }) {
@@ -113,7 +116,7 @@ export default function NotificationToast({ userEmail }) {
     }
   };
 
-  const handleClick = (toast) => {
+  const handleNavigate = (toast) => {
     const url = extractUrl(toast.message);
     if (url) {
       window.open(url, "_blank");
@@ -121,9 +124,8 @@ export default function NotificationToast({ userEmail }) {
       const route = getNotificationRoute(toast);
       if (route) navigate(route);
     }
-    // Always acknowledge — tapping the card dismisses it + marks read.
-    // No silent X; the user must interact to clear it.
-    dismissToast(toast._toastId, toast.id);
+    // Tapping the card navigates but does NOT dismiss — the user must
+    // press the dedicated ACK button to clear the toast (mandatory acknowledgement).
   };
 
   if (toasts.length === 0) return null;
@@ -133,37 +135,46 @@ export default function NotificationToast({ userEmail }) {
       {toasts.map((toast) => {
         const url = extractUrl(toast.message);
         const route = getNotificationRoute(toast);
+        const isDM = !!(toast.dm_channel || (toast.title || "").toLowerCase().includes("message from"));
         const isClickable = !!(url || route);
 
         return (
           <div
             key={toast._toastId}
-            className="bg-[#1a2744] border border-[rgba(212,168,67,0.3)] rounded-xl shadow-2xl p-4 cursor-pointer active:bg-[#243056]"
+            className={`rounded-xl border shadow-2xl px-4 py-3 transition-all duration-300 ${isDM ? "bg-blue-950 border-blue-500 text-blue-100" : "bg-[#1a2744] border-[rgba(212,168,67,0.4)] text-white"}`}
             style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.6)', animation: 'slideInRight 0.3s ease-out' }}
-            onClick={() => handleClick(toast)}
           >
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 mt-0.5">{getIcon(toast)}</div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white leading-tight">{toast.title}</p>
+                <p className={`text-xs font-bold uppercase tracking-wider mb-0.5 ${isDM ? "text-blue-200" : "text-[#d4a843]"}`}>
+                  {isDM ? "💬 Direct Message" : "💬 Team Message"}
+                </p>
+                <p className="text-sm font-semibold leading-tight">{toast.title}</p>
                 {url ? (
-                  <span className="text-xs text-blue-400 flex items-center gap-1 mt-1">
-                    <ExternalLink className="w-3 h-3" /> Tap to open link
-                  </span>
+                  <button onClick={() => { window.open(url, "_blank"); }} className="text-xs text-blue-400 underline flex items-center gap-1 mt-1">
+                    <ExternalLink className="w-3 h-3" /> Open link
+                  </button>
                 ) : (
-                  <p className="text-xs text-slate-400 mt-1 line-clamp-2">{toast.message}</p>
+                  <p className="text-xs opacity-80 mt-1 line-clamp-2">{toast.message}</p>
                 )}
               </div>
-              <div className="flex-shrink-0 mt-0.5">
-                <span className="flex items-center gap-1 bg-[#d4a843] text-[#0a1128] text-[10px] font-bold px-2 py-1 rounded-md">
-                  ACK
-                </span>
-              </div>
+              {/* Dedicated ACK button — the only way to dismiss. Pressing it also
+                  marks the notification read and (optionally) navigates. */}
+              <button
+                onClick={() => dismissToast(toast._toastId, toast.id)}
+                className={`flex-shrink-0 mt-0.5 flex items-center gap-1 text-xs font-bold px-2 py-1.5 rounded-lg whitespace-nowrap ${isDM ? "bg-blue-500 hover:bg-blue-400 text-white" : "bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]"}`}
+              >
+                <CheckCircle className="w-3 h-3" /> ACK
+              </button>
             </div>
             {isClickable && (
-              <p className="text-[10px] text-[#d4a843] mt-2 pl-8">
-                {url ? "Tap to open link & acknowledge" : "Tap to open & acknowledge →"}
-              </p>
+              <button
+                onClick={() => handleNavigate(toast)}
+                className={`mt-2 pl-8 text-[10px] flex items-center gap-1 ${isDM ? "text-blue-300" : "text-[#d4a843]"}`}
+              >
+                Tap to open <ArrowRight className="w-3 h-3" />
+              </button>
             )}
           </div>
         );

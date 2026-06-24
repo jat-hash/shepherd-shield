@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import DirectMessageSelector from "@/components/communications/DirectMessageSelector";
 import MessageBubble from "@/components/communications/MessageBubble";
 import NewMessageToast from "@/components/communications/NewMessageToast";
+import IncomingMessageBanner from "@/components/communications/IncomingMessageBanner";
 import { toast } from "sonner";
 import { savePendingMessage, getCachedData, cacheData, syncPendingMessages, savePendingDM } from "@/lib/offlineStorage";
 import { triggerNotificationEffect, cacheUserVibrationPrefs } from "@/lib/notificationEffects";
@@ -37,6 +38,7 @@ export default function Communications() {
   const isAtBottomRef = useRef(true);
   const [showJumpBtn, setShowJumpBtn] = useState(false);
   const [lastIncoming, setLastIncoming] = useState(null);
+  const [bannerIncoming, setBannerIncoming] = useState(null); // intrusive ACK banner for in-page messages
   const typingTimeout = useRef(null);
   const fileInputRef = useRef(null);
   const location = useLocation();
@@ -140,6 +142,27 @@ export default function Communications() {
     setChannel(dmChannelName);
     setDmChannels(prev => prev.includes(dmChannelName) ? prev : [...prev, dmChannelName]);
   };
+
+  // Jump from the intrusive banner into the channel where the new message arrived.
+  const handleBannerView = () => {
+    if (!bannerIncoming?.channel) {
+      setBannerIncoming(null);
+      return;
+    }
+    const targetChan = bannerIncoming.channel;
+    if (targetChan === activeChannel.name) {
+      setBannerIncoming(null);
+      scrollToBottom("smooth");
+      return;
+    }
+    const isDM = targetChan.startsWith("DM: ");
+    setActiveChannel({ name: targetChan, type: "dm", displayName: getDmDisplayName(targetChan) });
+    setChannel(targetChan);
+    setDmChannels(prev => prev.includes(targetChan) ? prev : [...prev, targetChan]);
+    setBannerIncoming(null);
+  };
+
+  const dismissBanner = () => setBannerIncoming(null);
 
   const requestNotificationPermission = async () => {
     if (!('Notification' in window)) return;
@@ -267,28 +290,34 @@ export default function Communications() {
       const isDeleteOfVisible = event.type === "delete" &&
         (messages.some(m => m.id === event.id) || pinnedMessages.some(m => m.id === event.id));
 
+      // React to incoming messages across ALL channels the user participates in
+      // (vibrate + flash + intrusive ACK banner), so a message in another channel
+      // still demands acknowledgement while the user is on the Communications page.
+      if (event.type === "create" && userIsParticipant) {
+        const isNewIncoming = user?.email && event.data.sender_email !== user.email;
+        if (isNewIncoming) {
+          // Vibrate + flash. DMs use the 'dm' pattern, group messages 'general'.
+          const isDM = isDMEvent;
+          triggerNotificationEffect(isDM ? "dm" : "general");
+          // Intrusive, persistent ACK banner — stays until tapped (mandatory acknowledgement)
+          setBannerIncoming(event.data);
+          // Only float a "jump to new message" cue when the user is scrolled up
+          // reading history in the CURRENT channel. Otherwise auto-scroll keeps
+          // the newest message pinned to the bottom.
+          if (!isAtBottomRef.current && isForCurrentChannel) {
+            setLastIncoming(event.data);
+          }
+          // Mark as read shortly after the user sees it
+          setTimeout(() => {
+            base44.entities.TeamMessage.update(event.data.id, {
+              read_by: [...(event.data.read_by || []), user.email]
+            }).catch(() => {});
+          }, 1000);
+        }
+      }
+
       if ((isForCurrentChannel && userIsParticipant) || isDeleteOfVisible) {
         if (event.type === "create") {
-          const isNewIncoming = user?.email && event.data.sender_email !== user.email;
-          if (isNewIncoming) {
-            // Vibrate + flash for every incoming message on the Communications page,
-            // regardless of channel. DMs use the 'dm' pattern, group messages 'general'.
-            const eventChan = event.data?.channel || "";
-            const isDM = eventChan.startsWith("DM: ");
-            triggerNotificationEffect(isDM ? "dm" : "general");
-            // Only float a "jump to new message" cue when the user is scrolled up
-            // reading history. Otherwise the auto-scroll effect keeps the newest
-            // message pinned to the bottom automatically.
-            if (!isAtBottomRef.current) {
-              setLastIncoming(event.data);
-            }
-            // Mark as read after the user sees it
-            setTimeout(() => {
-              base44.entities.TeamMessage.update(event.data.id, {
-                read_by: [...(event.data.read_by || []), user.email]
-              }).catch(() => {});
-            }, 1000);
-          }
           if (event.data.is_pinned) {
             setPinnedMessages(prev => [...prev, event.data]);
           } else {
@@ -336,6 +365,7 @@ export default function Communications() {
     scrollToBottom("auto");
     setLastIncoming(null);
     setShowJumpBtn(false);
+    setBannerIncoming(null);
   }, [activeChannel.name]);
 
   const sendMessage = async (attachment = null, messageType = "text") => {
@@ -472,6 +502,12 @@ export default function Communications() {
 
   return (
     <div className="max-w-2xl mx-auto lg:ml-60 flex flex-col" style={{ height: 'calc(100dvh - 57px)' }}>
+      <IncomingMessageBanner
+        message={bannerIncoming}
+        activeChannel={activeChannel}
+        onAck={dismissBanner}
+        onJump={handleBannerView}
+      />
       {isOffline && (
         <div className="bg-amber-900/40 border-b border-amber-500/30 px-4 py-2 text-xs text-amber-400 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
