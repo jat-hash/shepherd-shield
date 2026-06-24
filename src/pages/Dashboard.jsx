@@ -24,7 +24,6 @@ export default function Dashboard() {
   const [userLoaded, setUserLoaded] = useState(false);
   const [locationDismissed, setLocationDismissed] = useState(() => localStorage.getItem('locationPromptDismissed') === 'true');
   const [locationGranted, setLocationGranted] = useState(() => localStorage.getItem('locationGranted') === 'true');
-  const [notifDismissed, setNotifDismissed] = useState(false);
   const [notifGranted, setNotifGranted] = useState(() => ('Notification' in window) && window.Notification?.permission === 'granted');
 
   useEffect(() => {
@@ -74,19 +73,13 @@ export default function Dashboard() {
       setNotifGranted(true);
       // Trigger FCM token registration now that permission is granted
       window.dispatchEvent(new CustomEvent('push:register'));
+    } else {
+      // Permission denied — show native OS message explaining why the app needs it
+      alert('Notifications are required to send push alerts to your phone. Check system settings to enable.');
     }
   };
 
-  const dismissNotif = () => {
-    // Only allow dismissal once notifications are granted — otherwise we risk
-    // the user permanently losing background push notifications (no FCM token
-    // ever gets registered, so nothing vibrates the phone when another app is
-    // running). They can still close visually but the banner will reappear on
-    // refresh until permission is granted.
-    if (('Notification' in window) && window.Notification?.permission === 'granted') {
-      setNotifDismissed(true);
-    }
-  };
+
 
   useEffect(() => {
     if (authUser) {
@@ -200,19 +193,19 @@ export default function Dashboard() {
           You're offline — showing cached data
         </div>
       )}
-      {'Notification' in window && !notifGranted && !notifDismissed && (
-        <div className="flex items-start gap-3 bg-yellow-900/50 border border-yellow-400/40 rounded-lg px-4 py-3 text-yellow-200 text-sm shadow-lg">
-          <Bell className="w-5 h-5 shrink-0 mt-0.5 text-yellow-400" />
+      {'Notification' in window && !notifGranted && (
+        <div className="flex items-center gap-3 bg-yellow-900/70 border-2 border-yellow-400/70 rounded-lg px-4 py-3 text-yellow-200 text-sm shadow-lg animate-pulse">
+          <Bell className="w-6 h-6 shrink-0 text-yellow-300 animate-bounce" />
           <div className="flex-1">
             <p className="font-bold text-white">🔔 Enable Push Notifications</p>
-            <p className="text-xs text-yellow-300 mt-0.5">Required to vibrate the phone and alert you when another app is running. Tap to allow system notifications — background push is what wakes your device.</p>
-            <button
-              onClick={requestNotifications}
-              className="mt-2 bg-yellow-600 hover:bg-yellow-500 text-white text-xs font-bold px-3 py-1.5 rounded-md transition-colors"
-            >
-              Enable Notifications
-            </button>
+            <p className="text-xs text-yellow-200 mt-0.5">Receive vibration alerts and messages even when this app is closed or in the background.</p>
           </div>
+          <button
+            onClick={requestNotifications}
+            className="shrink-0 bg-yellow-600 hover:bg-yellow-500 active:bg-yellow-700 text-white text-xs font-bold px-4 py-2 rounded-md transition-colors touch-manipulation"
+          >
+            Enable Now
+          </button>
         </div>
       )}
       {!locationGranted && !locationDismissed && (
