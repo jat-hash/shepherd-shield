@@ -93,6 +93,20 @@ export default function Communications() {
     return () => navigator.serviceWorker.removeEventListener('message', handler);
   }, [activeChannel.name]);
 
+  // Deep-link from a tapped push notification (forwarded via ServiceWorkerRegister)
+  // or a foreground DM push — switch into that DM channel.
+  useEffect(() => {
+    const handler = (event) => {
+      const dm = event.detail?.channel;
+      if (!dm || dm === activeChannel.name) return;
+      setActiveChannel({ name: dm, type: "dm", displayName: "" });
+      setChannel(dm);
+      setDmChannels(prev => prev.includes(dm) ? prev : [...prev, dm]);
+    };
+    window.addEventListener('shepherd:openDM', handler);
+    return () => window.removeEventListener('shepherd:openDM', handler);
+  }, [activeChannel.name]);
+
   // Auto-open the DM selector when ?tab=dm
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

@@ -150,6 +150,18 @@ export default function ServiceWorkerRegister() {
       if (event.data?.type === 'shepherd-push') {
         const typeMap = { emergency: 'emergency', incident: 'alert', dm: 'dm', group_message: 'general', assignment: 'assignment' };
         triggerNotificationEffect(typeMap[event.data.notification_type] || 'general');
+        // Foreground DM/group push: switch the open Communications tab to that DM
+        const channel = event.data?.dm_channel;
+        if (channel && (event.data.notification_type === 'dm' || event.data.notification_type === 'group_message')) {
+          window.dispatchEvent(new CustomEvent('shepherd:openDM', { detail: { channel } }));
+        }
+      }
+      // Deep-link from a tapped background notification: switch into that DM
+      if (event.data?.type === 'shepherd-deeplink') {
+        const channel = event.data?.dm_channel;
+        if (channel) {
+          window.dispatchEvent(new CustomEvent('shepherd:openDM', { detail: { channel } }));
+        }
       }
       // Quick-reply forwarded from the SW when no app tab was open at tap time.
       if (event.data?.type === 'shepherd-quick-reply' && user) {

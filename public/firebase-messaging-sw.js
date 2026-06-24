@@ -15,6 +15,12 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Take control of existing clients immediately so navigation + postMessage from
+// notification taps work without requiring a full reload after the SW updates.
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 // Vibration patterns (ms on/off) by notification type
 const VIBRATE_PATTERNS = {
   emergency: [1000, 200, 1000, 200, 1000, 200, 1000],
@@ -135,16 +141,20 @@ self.addEventListener('notificationclick', (event) => {
     return;
   }
 
-  // Normal tap — focus or navigate an open tab to the target route, else open new
+  // Normal tap — focus or navigate an open tab to the target route, else open new.
+  // Also post a message to the app so the Communications page can switch to the
+  // specific DM channel even when the tab is already on a different route.
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+  const notifData = event.notification.data || {};
+  const targetUrl = notifData.url || '/';
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url.includes(self.location.origin) && 'focus' in client) {
-          try { client.navigate(targetUrl); } catch (_) {}
-          return client.focus();
-        }
+      const appClient = clientList.find(c => c.url && c.url.includes(self.location.origin));
+      if (appClient && 'focus' in appClient) {
+        try { appClient.navigate(targetUrl); } catch (_) {}
+        // Also forward the dm_channel so an open Communications tab switches to it
+        appClient.postMessage({ type: 'shepherd-deeplink', url: targetUrl, dm_channel: notifData.dm_channel || '', notification_type: notifData.type || '' });
+        return appClient.focus();
       }
       if (clients.openWindow) return clients.openWindow(targetUrl);
     })

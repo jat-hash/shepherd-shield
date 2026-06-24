@@ -92,12 +92,10 @@ Deno.serve(async (req) => {
       : (alert_id ? '/' : '/Communications');
     const targetUrl = String(click_url || fallbackUrl);
 
-    // We send BOTH a notification payload AND data.
-    // - notification: ensures iOS/APNs displays it even when the web SW/data path
-    //   is unavailable (native app wrapper, fresh launch, killed PWA), so the user
-    //   still sees the alert and tapping it opens the deep link.
-    // - data: carries the deep link + type so the Service Worker / in-app handler
-    //   can apply the custom vibration pattern + route into the right DM.
+    // Data-only payload: the Service Worker's push handler fully controls how the
+    // notification is shown, so our custom vibration pattern + click deep-link into
+    // the right DM take effect (a `notification` payload would let FCM auto-display
+    // its own notification, bypassing our custom handlers and dropping both).
     const messageData = {
       title: String(title),
       body: String(body),
@@ -119,10 +117,6 @@ Deno.serve(async (req) => {
           message: {
             token,
             data: messageData,
-            notification: {
-              title: String(title),
-              body: String(body),
-            },
             android: {
               priority: "high",
               notification: {
