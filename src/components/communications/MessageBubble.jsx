@@ -161,10 +161,10 @@ export default function MessageBubble({ message, isMe, currentUserEmail, onUpdat
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onReply?.(message); }}
-                className={`flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded transition-colors ${isMe ? "text-[#0a1128]/70 hover:bg-[#0a1128]/10" : "text-slate-400 hover:text-[#d4a843] hover:bg-white/5"}`}
+                className={`flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-md font-medium transition-colors touch-manipulation ${isMe ? "text-[#0a1128]/70 hover:bg-[#0a1128]/10 active:bg-[#0a1128]/20" : "text-slate-400 hover:text-[#d4a843] hover:bg-[#d4a843]/10 active:bg-[#d4a843]/20"}`}
                 title="Reply"
               >
-                <Reply className="w-3 h-3" />
+                <Reply className="w-3.5 h-3.5" />
                 <span>Reply</span>
               </button>
             </div>

@@ -361,12 +361,14 @@ export default function Communications() {
     }
   }, [messages, pinnedMessages]);
 
-  // When the active channel changes, jump straight to the bottom of the new convo.
+  // When the active channel changes, jump straight to the bottom of the new convo
+  // and clear any stale reply context from the previous channel.
   useEffect(() => {
     scrollToBottom("auto");
     setLastIncoming(null);
     setShowJumpBtn(false);
     setBannerIncoming(null);
+    setReplyTo(null);
   }, [activeChannel.name]);
 
   const sendMessage = async (attachment = null, messageType = "text") => {
