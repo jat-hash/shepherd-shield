@@ -54,13 +54,17 @@ export default function Communications() {
   }, [location.search]);
 
   // Track whether the user is near the bottom of the scroll area.
+  // Two thresholds: a small one to consider "at bottom" (for auto-scroll decisions)
+  // and a larger one to decide whether to show the jump button (so minor layout
+  // shifts don't pop the button while the user is essentially reading the latest).
   const handleScroll = () => {
     const el = scrollContainerRef.current;
     if (!el) return;
     const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
-    const atBottom = distance < 80;
+    const atBottom = distance < 60;
+    const farFromBottom = distance > 240;
     isAtBottomRef.current = atBottom;
-    setShowJumpBtn(!atBottom && !!lastIncoming);
+    setShowJumpBtn(farFromBottom && !!lastIncoming);
   };
 
   // Snap to the bottom of the conversation.
@@ -233,9 +237,14 @@ export default function Communications() {
 
       if ((isForCurrentChannel && userIsParticipant) || isDeleteOfVisible) {
         if (event.type === "create") {
-          if (user?.email && event.data.sender_email !== user.email) {
-            // Track the incoming message so we can float a "jump to new message" cue
-            setLastIncoming(event.data);
+          const isNewIncoming = user?.email && event.data.sender_email !== user.email;
+          if (isNewIncoming) {
+            // Only float a "jump to new message" cue when the user is scrolled up
+            // reading history. Otherwise the auto-scroll effect keeps the newest
+            // message pinned to the bottom automatically.
+            if (!isAtBottomRef.current) {
+              setLastIncoming(event.data);
+            }
             // Mark as read after the user sees it
             setTimeout(() => {
               base44.entities.TeamMessage.update(event.data.id, {
@@ -266,11 +275,21 @@ export default function Communications() {
     return unsub;
   }, [activeChannel.name, user?.email]);
 
-  // Auto-scroll to newest message — but only if the user is already at the bottom,
-  // so reading older messages isn't disrupted by new arrivals. If they're scrolled
-  // up, float a "jump to new message" button instead.
+  // Auto-scroll to keep the newest message pinned at the bottom whenever a new
+  // message arrives — both sent and incoming. Exception: if the user has
+  // deliberately scrolled up to read history (far from bottom) AND the latest
+  // arrival is an incoming message from someone else, don't yank them down —
+  // instead we show the "jump to new message" button (set by the subscriber).
   useEffect(() => {
-    if (isAtBottomRef.current) {
+    const lastMsg = messages[messages.length - 1];
+    const suppressForIncomingScrolledUp =
+      lastMsg &&
+      user?.email &&
+      lastMsg.sender_email !== user.email &&
+      !isAtBottomRef.current &&
+      !!lastIncoming;
+
+    if (!suppressForIncomingScrolledUp) {
       scrollToBottom("smooth");
     }
   }, [messages, pinnedMessages]);
