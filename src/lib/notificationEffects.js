@@ -22,11 +22,11 @@ const NAMED_PATTERNS = {
 
 // Map notification type → user pref key → default pattern
 const TYPE_TO_PREF = {
-  dm:         { pref: 'vib_dm',        default: 'double',   color: 'white' },
-  general:    { pref: 'vib_team_msg',  default: 'single',   color: 'white' },
-  alert:      { pref: 'vib_incident',  default: 'escalate', color: 'red'   },
-  emergency:  { pref: 'vib_emergency', default: 'sos',      color: 'red'   },
-  assignment: { pref: 'vib_assignment',default: 'single',   color: 'white' },
+  dm:         { pref: 'vib_dm',        default: 'double',    color: 'white' },
+  general:    { pref: 'vib_team_msg',  default: 'double',    color: 'white' },
+  alert:      { pref: 'vib_incident',  default: 'escalate',  color: 'red'   },
+  emergency:  { pref: 'vib_emergency', default: 'sos',        color: 'red'   },
+  assignment: { pref: 'vib_assignment',default: 'double',     color: 'white' },
 };
 
 // Cached user prefs (updated by cacheUserVibrationPrefs)

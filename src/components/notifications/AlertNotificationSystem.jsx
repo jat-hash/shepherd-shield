@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { X, AlertTriangle, Bell, Info, CheckCircle } from "lucide-react";
+import { AlertTriangle, Bell, Info, CheckCircle } from "lucide-react";
 import { triggerNotificationEffect } from "@/lib/notificationEffects";
 
 // --- Browser Notification ---
@@ -75,18 +75,23 @@ function AlertToast({ alert, onDismiss }) {
           return <p className="text-sm leading-snug">{message}</p>;
         })()}
       </div>
-      {priority === "high" ? (
-        <button
-          onClick={handleAcknowledge}
-          className="flex items-center gap-1 bg-red-500 hover:bg-red-400 text-white text-xs font-bold px-2 py-1 rounded-lg whitespace-nowrap"
-        >
-          <CheckCircle className="w-3 h-3" /> ACK
-        </button>
-      ) : (
-        <button onClick={() => { setVisible(false); setTimeout(onDismiss, 300); }} className="opacity-60 hover:opacity-100">
-          <X className="w-4 h-4" />
-        </button>
-      )}
+      {/* Every alert requires an explicit Acknowledge tap — no silent dismiss.
+          Color of the ACK button reflects priority. */}
+      {(() => {
+        const ackStyles = {
+          high:   "bg-red-500 hover:bg-red-400 text-white",
+          medium: "bg-orange-500 hover:bg-orange-400 text-white",
+          low:    "bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]",
+        };
+        return (
+          <button
+            onClick={handleAcknowledge}
+            className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg whitespace-nowrap ${ackStyles[priority] || ackStyles.low}`}
+          >
+            <CheckCircle className="w-3 h-3" /> ACK
+          </button>
+        );
+      })()}
     </div>
   );
 }
