@@ -208,6 +208,12 @@ export default function Dashboard() {
           </button>
         </div>
       )}
+      {'Notification' in window && notifGranted && (
+        <div className="flex items-center gap-3 bg-green-900/50 border border-green-500/50 rounded-lg px-4 py-3 text-green-200 text-sm">
+          <span className="text-lg">✅</span>
+          <p className="text-xs">Push notifications enabled — your phone will vibrate when alerts arrive.</p>
+        </div>
+      )}
       {!locationGranted && !locationDismissed && (
         <div className="flex items-start gap-3 bg-blue-900/50 border border-blue-400/40 rounded-lg px-4 py-3 text-blue-200 text-sm shadow-lg">
           <MapPin className="w-5 h-5 shrink-0 mt-0.5 text-blue-400" />
