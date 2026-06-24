@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Send, Pin, X, Paperclip, Loader2, Reply } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import DirectMessageSelector from "@/components/communications/DirectMessageSelector";
 import MessageBubble from "@/components/communications/MessageBubble";
+import NewMessageToast from "@/components/communications/NewMessageToast";
 import { toast } from "sonner";
 import { savePendingMessage, getCachedData, cacheData, syncPendingMessages, savePendingDM } from "@/lib/offlineStorage";
 
@@ -28,22 +30,69 @@ export default function Communications() {
   const [allUsers, setAllUsers] = useState([]);
   const [pendingDmOpen, setPendingDmOpen] = useState(false);
   const [replyTo, setReplyTo] = useState(null); // { id, sender_name, content }
-  const bottomRef = useRef(null);
+  const scrollContainerRef = useRef(null);
+  const scrollTimerRef = useRef(null);
+  const isAtBottomRef = useRef(true);
+  const [showJumpBtn, setShowJumpBtn] = useState(false);
+  const [lastIncoming, setLastIncoming] = useState(null);
   const typingTimeout = useRef(null);
   const fileInputRef = useRef(null);
+  const location = useLocation();
 
-  // If navigated here with ?tab=dm or ?channel=..., handle auto-open
+  // Switch channel when ?channel= changes — supports tapping a push notification
+  // while already on Communications (also re-runs on first mount).
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
     const channelParam = params.get("channel");
-    if (channelParam) {
-      // Auto-switch to specific DM channel — displayName resolved once allUsers loads
+    if (channelParam && channelParam !== activeChannel.name) {
       setActiveChannel({ name: channelParam, type: "dm", displayName: "" });
       setChannel(channelParam);
       setDmChannels(prev => prev.includes(channelParam) ? prev : [...prev, channelParam]);
-      // Clean the URL so back-button doesn't re-open the same DM
+      // Clear the param so back-button doesn't re-trigger the same DM
       window.history.replaceState({}, '', window.location.pathname);
-    } else if (params.get("tab") === "dm") {
+    }
+  }, [location.search]);
+
+  // Track whether the user is near the bottom of the scroll area.
+  const handleScroll = () => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const atBottom = distance < 80;
+    isAtBottomRef.current = atBottom;
+    setShowJumpBtn(!atBottom && !!lastIncoming);
+  };
+
+  // Snap to the bottom of the conversation.
+  const scrollToBottom = (behavior = "smooth") => {
+    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    scrollTimerRef.current = setTimeout(() => {
+      const el = scrollContainerRef.current;
+      if (el) el.scrollTo({ top: el.scrollHeight, behavior });
+      isAtBottomRef.current = true;
+      setShowJumpBtn(false);
+    }, 50);
+  };
+
+  // When in Communications, listen for the SW forward of a background push so we
+  // auto-switch into that DM channel immediately.
+  useEffect(() => {
+    const handler = (event) => {
+      if (event.data?.type !== 'shepherd-push') return;
+      const dm = event.data.dm_channel;
+      if (!dm || dm === activeChannel.name) return;
+      setActiveChannel({ name: dm, type: "dm", displayName: "" });
+      setChannel(dm);
+      setDmChannels(prev => prev.includes(dm) ? prev : [...prev, dm]);
+    };
+    navigator.serviceWorker.addEventListener('message', handler);
+    return () => navigator.serviceWorker.removeEventListener('message', handler);
+  }, [activeChannel.name]);
+
+  // Auto-open the DM selector when ?tab=dm
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("tab") === "dm") {
       setPendingDmOpen(true);
       window.history.replaceState({}, '', window.location.pathname);
     }
@@ -184,18 +233,20 @@ export default function Communications() {
 
       if ((isForCurrentChannel && userIsParticipant) || isDeleteOfVisible) {
         if (event.type === "create") {
-          // Note: vibration/sound is handled globally by NotificationToast — no duplicate here
-          if (event.data.is_pinned) {
-            setPinnedMessages(prev => [...prev, event.data]);
-          } else {
-            setMessages(prev => [...prev, event.data]);
-          }
           if (user?.email && event.data.sender_email !== user.email) {
+            // Track the incoming message so we can float a "jump to new message" cue
+            setLastIncoming(event.data);
+            // Mark as read after the user sees it
             setTimeout(() => {
               base44.entities.TeamMessage.update(event.data.id, {
                 read_by: [...(event.data.read_by || []), user.email]
               }).catch(() => {});
             }, 1000);
+          }
+          if (event.data.is_pinned) {
+            setPinnedMessages(prev => [...prev, event.data]);
+          } else {
+            setMessages(prev => [...prev, event.data]);
           }
         } else if (event.type === "update") {
           const updateList = (prev) => prev.map(m => m.id === event.id ? event.data : m);
@@ -215,9 +266,21 @@ export default function Communications() {
     return unsub;
   }, [activeChannel.name, user?.email]);
 
+  // Auto-scroll to newest message — but only if the user is already at the bottom,
+  // so reading older messages isn't disrupted by new arrivals. If they're scrolled
+  // up, float a "jump to new message" button instead.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (isAtBottomRef.current) {
+      scrollToBottom("smooth");
+    }
+  }, [messages, pinnedMessages]);
+
+  // When the active channel changes, jump straight to the bottom of the new convo.
+  useEffect(() => {
+    scrollToBottom("auto");
+    setLastIncoming(null);
+    setShowJumpBtn(false);
+  }, [activeChannel.name]);
 
   const sendMessage = async (attachment = null, messageType = "text") => {
     if (!newMsg.trim() && !attachment || !user) return;
@@ -393,7 +456,17 @@ export default function Communications() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-3 relative"
+      >
+        <NewMessageToast
+          visible={showJumpBtn}
+          activeChannel={activeChannel}
+          lastIncoming={lastIncoming}
+          onJump={() => scrollToBottom("smooth")}
+        />
         {loading ? (
           <div className="flex justify-center py-12">
             <div className="w-6 h-6 border-2 border-[#d4a843] border-t-transparent rounded-full animate-spin" />
@@ -446,8 +519,6 @@ export default function Communications() {
                 Someone is typing...
               </div>
             )}
-            
-            <div ref={bottomRef} />
           </>
         )}
       </div>

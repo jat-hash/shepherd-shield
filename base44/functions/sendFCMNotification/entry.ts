@@ -77,49 +77,115 @@ Deno.serve(async (req) => {
     }
     const sa = JSON.parse(saRaw);
 
-    // Look up FCM tokens for this user
+    // Look up ALL FCM tokens for this user (supports native app + PWA + multiple devices)
     const devices = await base44.asServiceRole.entities.UserDevice.filter({ user_email: recipient_email });
-    const tokens = (devices || []).map(d => d.fcm_token).filter(Boolean);
+    const tokens = (devices || []).map(d => ({ token: d.fcm_token, id: d.id })).filter(t => t.token);
     if (tokens.length === 0) {
       return Response.json({ success: false, error: 'No device tokens for user' });
     }
 
     const accessToken = await getAccessToken(sa);
     const url = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
-    // Data-only message: the service worker handles display + vibration.
-    // (notification payloads auto-display without a vibrate pattern, so we
-    // send data and let the SW call showNotification with a vibrate pattern.)
-    const data = {
+
+    const fallbackUrl = dm_channel
+      ? `/Communications?channel=${encodeURIComponent(dm_channel)}`
+      : (alert_id ? '/' : '/Communications');
+    const targetUrl = String(click_url || fallbackUrl);
+
+    // We send BOTH a notification payload AND data.
+    // - notification: ensures iOS/APNs displays it even when the web SW/data path
+    //   is unavailable (native app wrapper, fresh launch, killed PWA), so the user
+    //   still sees the alert and tapping it opens the deep link.
+    // - data: carries the deep link + type so the Service Worker / in-app handler
+    //   can apply the custom vibration pattern + route into the right DM.
+    const messageData = {
       title: String(title),
       body: String(body),
       alertId: String(alert_id || ''),
       dm_channel: String(dm_channel || ''),
       notification_type: String(notification_type || ''),
-      click_url: String(click_url || (dm_channel
-        ? `/Communications?channel=${encodeURIComponent(dm_channel)}`
-        : (alert_id ? '/' : '/Communications'))),
+      click_url: targetUrl,
     };
 
     let successCount = 0;
     let failureCount = 0;
-    for (const token of tokens) {
+    const deadTokenIds = [];
+
+    await Promise.all(tokens.map(async ({ token, id }) => {
       const res = await fetch(url, {
         method: "POST",
         headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           message: {
             token,
-            data,
-            android: { priority: "high" },
-            apns: { payload: { aps: { contentAvailable: true } } },
+            data: messageData,
+            notification: {
+              title: String(title),
+              body: String(body),
+            },
+            android: {
+              priority: "high",
+              notification: {
+                channelId: notification_type === 'emergency' ? 'emergency'
+                  : notification_type === 'incident' ? 'incidents'
+                  : notification_type === 'dm' ? 'messages'
+                  : 'messages',
+                priority: "max",
+                defaultVibrateTimings: false,
+              },
+            },
+            apns: {
+              payload: {
+                aps: {
+                  "content-available": 1,
+                  "mutable-content": 1,
+                  sound: "default",
+                },
+              },
+              fcm_options: { image: '/icon-192.png' },
+            },
+            webpush: {
+              notification: {
+                title: String(title),
+                body: String(body),
+                icon: '/icon-192.png',
+                badge: '/icon-192.png',
+                requireInteraction: notification_type === 'emergency' || notification_type === 'incident',
+                vibrate: notification_type === 'emergency'
+                  ? [1000, 200, 1000, 200, 1000, 200, 1000]
+                  : notification_type === 'dm'
+                  ? [250, 100, 250, 100, 250]
+                  : [200, 100, 200],
+              },
+              fcm_options: { link: targetUrl },
+            },
           },
         }),
       }).catch(() => null);
-      if (res?.ok) successCount++; else failureCount++;
-    }
 
-    console.log(`FCM v1 sent to ${recipient_email} (${tokens.length} device(s)), success: ${successCount}, failure: ${failureCount}`);
-    return Response.json({ success: true, recipient: recipient_email, successCount, failureCount });
+      if (res?.ok) {
+        successCount++;
+      } else {
+        failureCount++;
+        // Inspect error — UNREGISTERED/invalid token means the device is gone; clean it up.
+        try {
+          const errJson = await res?.json?.();
+          const errName = errJson?.error?.details?.[0]?.errorCode || errJson?.error?.status || '';
+          if (errName === 'UNREGISTERED' || /unregistered|invalid|not found/i.test(String(errJson?.error?.message || ''))) {
+            deadTokenIds.push(id);
+          }
+          console.log(`FCM v1 send failed for ${recipient_email} token ${token.substring(0, 16)}…: ${errName || errJson?.error?.message || 'unknown'}`);
+        } catch (_) {}
+      }
+    }));
+
+    // Prune dead tokens so future sends don't waste time on stale devices
+    await Promise.all(deadTokenIds.map(id =>
+      base44.asServiceRole.entities.UserDevice.delete(id).catch(() => {})
+    ));
+
+    console.log(`FCM v1 sent to ${recipient_email} (${tokens.length} device(s)), success: ${successCount}, failure: ${failureCount}, pruned: ${deadTokenIds.length}`);
+    return Response.json({ success: true, recipient: recipient_email, successCount, failureCount, pruned: deadTokenIds.length });
   } catch (error) {
     console.error('Error in sendFCMNotification:', error);
     return Response.json({ error: error.message }, { status: 500 });

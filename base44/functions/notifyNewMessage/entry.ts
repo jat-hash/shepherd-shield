@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
   try {
@@ -9,15 +9,15 @@ Deno.serve(async (req) => {
       return Response.json({ success: true });
     }
 
-    // Check if this is a direct message
     const isDM = data.channel?.startsWith('DM: ');
     let notifications = [];
 
     if (isDM) {
-      // For DM, only notify the recipient
+      // For DM, only notify the recipient (the other participant)
       const withoutPrefix = data.channel.replace('DM: ', '');
+      // Channel format: "email1-email2" sorted — remove the sender, leaving the recipient
       const recipientEmail = withoutPrefix.replace(data.sender_email, '').replace(/^-|-$/g, '').trim();
-      
+
       if (recipientEmail) {
         notifications = [{
           user_email: recipientEmail,
@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
         }];
       }
     } else {
-      // For group channels, notify all users except the sender
+      // For group channels, notify all users except the sender — fetch once
       const users = await base44.asServiceRole.entities.User.list();
       notifications = users
         .filter(u => u.email !== data.sender_email)
@@ -40,40 +40,28 @@ Deno.serve(async (req) => {
         }));
     }
 
-    if (notifications.length > 0) {
-      await base44.asServiceRole.entities.Notification.bulkCreate(notifications);
-
-      const pushTitle = isDM
-        ? `💬 ${data.sender_name}`
-        : `💬 ${data.sender_name} in ${data.channel}`;
-      const pushBody = data.content.substring(0, 120) + (data.content.length > 120 ? '...' : '');
-
-      // Fetch all users once for phone lookups
-      const allUsers = await base44.asServiceRole.entities.User.list();
-
-      for (const notif of notifications) {
-        // FCM push
-        base44.functions.invoke('sendFCMNotification', {
-          recipient_email: notif.user_email,
-          title: pushTitle,
-          body: pushBody,
-          dm_channel: isDM ? data.channel : undefined,
-          notification_type: isDM ? 'dm' : 'group_message',
-        }).catch(err => console.log('FCM push failed for', notif.user_email, err.message));
-
-        // WhatsApp for all messages (DM and group)
-        const recipientUser = allUsers.find(u => u.email === notif.user_email);
-        const phone = recipientUser?.phone_number || recipientUser?.data?.phone_number;
-        if (phone) {
-          base44.functions.invoke('sendWhatsApp', {
-            to: phone,
-            message: `${pushTitle}\n\n${pushBody}`
-          }).catch(err => console.log('WhatsApp notification failed for', notif.user_email, err.message));
-        } else {
-          console.log(`WhatsApp skipped for ${notif.user_email}: no phone on file`);
-        }
-      }
+    if (notifications.length === 0) {
+      return Response.json({ success: true, notified: 0 });
     }
+
+    // Create in-app notifications
+    await base44.asServiceRole.entities.Notification.bulkCreate(notifications);
+
+    const pushTitle = isDM
+      ? `💬 ${data.sender_name}`
+      : `💬 ${data.sender_name} in ${data.channel}`;
+    const pushBody = data.content.substring(0, 120) + (data.content.length > 120 ? '...' : '');
+
+    // Fire FCM push concurrently — no WhatsApp for messages (removed for speed)
+    await Promise.all(notifications.map(notif =>
+      base44.functions.invoke('sendFCMNotification', {
+        recipient_email: notif.user_email,
+        title: pushTitle,
+        body: pushBody,
+        dm_channel: isDM ? data.channel : undefined,
+        notification_type: isDM ? 'dm' : 'group_message',
+      }).catch(err => console.log('FCM push failed for', notif.user_email, err.message))
+    ));
 
     return Response.json({ success: true, notified: notifications.length });
   } catch (error) {
