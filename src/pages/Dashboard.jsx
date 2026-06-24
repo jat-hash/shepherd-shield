@@ -24,7 +24,7 @@ export default function Dashboard() {
   const [userLoaded, setUserLoaded] = useState(false);
   const [locationDismissed, setLocationDismissed] = useState(() => sessionStorage.getItem('locationPromptDismissed') === 'true');
   const [locationGranted, setLocationGranted] = useState(true);
-  const [notifDismissed, setNotifDismissed] = useState(() => sessionStorage.getItem('notifPromptDismissed') === 'true');
+  const [notifDismissed, setNotifDismissed] = useState(false);
   const [notifGranted, setNotifGranted] = useState(() => ('Notification' in window) && window.Notification?.permission === 'granted');
 
   useEffect(() => {
@@ -67,8 +67,14 @@ export default function Dashboard() {
   };
 
   const dismissNotif = () => {
-    sessionStorage.setItem('notifPromptDismissed', 'true');
-    setNotifDismissed(true);
+    // Only allow dismissal once notifications are granted — otherwise we risk
+    // the user permanently losing background push notifications (no FCM token
+    // ever gets registered, so nothing vibrates the phone when another app is
+    // running). They can still close visually but the banner will reappear on
+    // refresh until permission is granted.
+    if (('Notification' in window) && window.Notification?.permission === 'granted') {
+      setNotifDismissed(true);
+    }
   };
 
   useEffect(() => {
@@ -188,7 +194,7 @@ export default function Dashboard() {
           <Bell className="w-5 h-5 shrink-0 mt-0.5 text-yellow-400" />
           <div className="flex-1">
             <p className="font-bold text-white">🔔 Enable Push Notifications</p>
-            <p className="text-xs text-yellow-300 mt-0.5">Get instant alerts for emergencies, assignments, and team messages directly on your device.</p>
+            <p className="text-xs text-yellow-300 mt-0.5">Required to vibrate the phone and alert you when another app is running. Tap to allow system notifications — background push is what wakes your device.</p>
             <button
               onClick={requestNotifications}
               className="mt-2 bg-yellow-600 hover:bg-yellow-500 text-white text-xs font-bold px-3 py-1.5 rounded-md transition-colors"
@@ -196,9 +202,6 @@ export default function Dashboard() {
               Enable Notifications
             </button>
           </div>
-          <button onClick={dismissNotif} className="text-yellow-400 hover:text-white mt-0.5">
-            <X className="w-4 h-4" />
-          </button>
         </div>
       )}
       {!locationGranted && !locationDismissed && (
