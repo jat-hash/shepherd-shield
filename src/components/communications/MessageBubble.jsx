@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 export default function MessageBubble({ message, isMe, currentUserEmail, onUpdate, onReply, onDMUser }) {
   const [hovering, setHovering] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(message.content);
 
@@ -143,45 +144,57 @@ export default function MessageBubble({ message, isMe, currentUserEmail, onUpdat
               })()}
             </p>
             
-            {isMe && (
-              <div className="flex items-center gap-1">
-                {readCount > 0 ? (
-                  <>
-                    <CheckCheck className="w-3 h-3" />
-                    <span className="text-[9px]">{readCount}</span>
-                  </>
-                ) : (
-                  <Check className="w-3 h-3" />
-                )}
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              {isMe && (
+                <div className="flex items-center gap-1">
+                  {readCount > 0 ? (
+                    <>
+                      <CheckCheck className="w-3 h-3" />
+                      <span className="text-[9px]">{readCount}</span>
+                    </>
+                  ) : (
+                    <Check className="w-3 h-3" />
+                  )}
+                </div>
+              )}
+              {/* Always-visible reply affordance for touch devices */}
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onReply?.(message); }}
+                className={`flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded transition-colors lg:hidden ${isMe ? "text-[#0a1128]/70 hover:bg-[#0a1128]/10" : "text-slate-400 hover:text-[#d4a843] hover:bg-white/5"}`}
+                title="Reply"
+              >
+                <Reply className="w-3 h-3" />
+                <span>Reply</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {hovering && (
+      {(hovering || showMenu) && (
         <div className={`flex gap-1 items-center ${isMe ? "order-1" : ""}`}>
           <Button
             size="icon" variant="ghost"
-            className="h-6 w-6 shrink-0 text-slate-400 hover:text-[#d4a843] hover:bg-[#d4a843]/10"
-            onClick={(e) => { e.stopPropagation(); onReply?.(message); }}
+            className="h-7 w-7 shrink-0 text-slate-400 hover:text-[#d4a843] hover:bg-[#d4a843]/10"
+            onClick={(e) => { e.stopPropagation(); onReply?.(message); setShowMenu(false); }}
             title="Reply"
           >
-            <Reply className="w-3 h-3" />
+            <Reply className="w-3.5 h-3.5" />
           </Button>
           {isMe && (
-            <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0 text-red-400 hover:bg-red-500/10" onClick={(e) => { e.stopPropagation(); handleDelete(e); }} title="Delete message">
-              <Trash2 className="w-3 h-3" />
+            <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 text-red-400 hover:bg-red-500/10" onClick={(e) => { e.stopPropagation(); handleDelete(e); }} title="Delete message">
+              <Trash2 className="w-3.5 h-3.5" />
             </Button>
           )}
-          <DropdownMenu>
+          <DropdownMenu open={showMenu} onOpenChange={setShowMenu}>
             <DropdownMenuTrigger asChild>
-              <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0">
-                <MoreVertical className="w-3 h-3 text-slate-500" />
+              <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={(e) => { e.stopPropagation(); setShowMenu(v => !v); }}>
+                <MoreVertical className="w-3.5 h-3.5 text-slate-500" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="bg-[#1a2744] border-slate-700" onClick={(e) => e.stopPropagation()}>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onReply?.(message); }} className="text-white hover:bg-white/10 cursor-pointer">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onReply?.(message); setShowMenu(false); }} className="text-white hover:bg-white/10 cursor-pointer">
                 <Reply className="w-3 h-3 mr-2" />
                 Reply
               </DropdownMenuItem>
