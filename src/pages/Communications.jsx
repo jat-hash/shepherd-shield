@@ -41,6 +41,7 @@ export default function Communications() {
   const [bannerIncoming, setBannerIncoming] = useState(null); // intrusive ACK banner for in-page messages
   const typingTimeout = useRef(null);
   const fileInputRef = useRef(null);
+  const inputRef = useRef(null);
   const location = useLocation();
 
   // Switch channel when ?channel= changes — supports tapping a push notification
@@ -579,14 +580,14 @@ export default function Communications() {
                     isMe={msg.sender_email === user?.email}
                     currentUserEmail={user?.email}
                     onUpdate={loadMessages}
-                    onReply={(m) => setReplyTo({ sender_name: m.sender_name, content: m.content })}
+                    onReply={(m) => { setReplyTo({ sender_name: m.sender_name, content: m.content }); inputRef.current?.focus(); }}
                     onDMUser={handleDMUser}
-                  />
-                ))}
-              </div>
-            )}
+                    />
+                    ))}
+                    </div>
+                    )}
 
-            {/* Regular Messages */}
+                    {/* Regular Messages */}
             {messages.length === 0 && pinnedMessages.length === 0 ? (
               <p className="text-center text-slate-500 text-sm py-12">
                 {activeChannel.type === "dm" 
@@ -601,7 +602,7 @@ export default function Communications() {
                   isMe={msg.sender_email === user?.email}
                   currentUserEmail={user?.email}
                   onUpdate={loadMessages}
-                  onReply={(m) => setReplyTo({ sender_name: m.sender_name, content: m.content })}
+                  onReply={(m) => { setReplyTo({ sender_name: m.sender_name, content: m.content }); inputRef.current?.focus(); }}
                   onDMUser={handleDMUser}
                 />
               ))
@@ -651,6 +652,7 @@ export default function Communications() {
             {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
           </Button>
           <Input
+            ref={inputRef}
             value={newMsg}
             onChange={handleTyping}
             onKeyDown={handleKeyDown}
