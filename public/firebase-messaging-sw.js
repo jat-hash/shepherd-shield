@@ -61,7 +61,9 @@ function buildNotificationOptions(payload) {
     badge: '/icon-192.png',
     vibrate,
     tag,
-    requireInteraction: type === 'emergency' || type === 'incident',
+    // Every push notification stays visible until the user opens/closes it.
+    // Without this, Android auto-dismisses system notifications after a few seconds.
+    requireInteraction: true,
     data: { url: clickUrl, type, dm_channel: (data && data.dm_channel) || '' }
   };
 

@@ -92,7 +92,7 @@ self.addEventListener('push', (event) => {
     tag: data.dm_channel ? `dm-${data.dm_channel}` : (data.alertId ? `alert-${data.alertId}` : `msg-${Date.now()}`),
     renotify: true,
     silent: false,
-    requireInteraction: isEmergency,
+    requireInteraction: true,
     vibrate: isEmergency ? [1000, 200, 1000, 200, 1000] : isDM ? [200, 100, 200] : [100],
     data: {
       ...data,

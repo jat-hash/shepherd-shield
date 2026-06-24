@@ -13,7 +13,7 @@ function showBrowserNotification(message, priority) {
       body: message,
       icon: "/icon-192.png",
       tag: `alert-${Date.now()}`,
-      requireInteraction: priority === "high",
+      requireInteraction: priority === "high" || priority === "medium",
     });
   } catch (_) {}
 }
