@@ -13,6 +13,11 @@ const NAMED_PATTERNS = {
   double:   [200, 100, 200],
   triple:   [150, 80, 150, 80, 150],
   long:     [600],
+  // Distinctive, emphatic message pattern — three strong pulses so a chat
+  // arriving on the Communications page demands attention as insistently
+  // as an incident alert, while remaining aurally/visually distinct (amber
+  // flash + mid-pitched tone) from the red emergency/sos patterns.
+  message:  [400, 120, 400, 120, 400],
   sos:      [100,80,100,80,100,200,300,200,300,200,300,200,100,80,100,80,100],
   escalate: [100, 100, 200, 100, 400],
   // legacy keys
@@ -22,8 +27,8 @@ const NAMED_PATTERNS = {
 
 // Map notification type → user pref key → default pattern
 const TYPE_TO_PREF = {
-  dm:         { pref: 'vib_dm',        default: 'double',    color: 'white' },
-  general:    { pref: 'vib_team_msg',  default: 'double',    color: 'white' },
+  dm:         { pref: 'vib_dm',        default: 'message',  color: 'amber' },
+  general:    { pref: 'vib_team_msg',  default: 'message',  color: 'amber' },
   alert:      { pref: 'vib_incident',  default: 'escalate',  color: 'red'   },
   emergency:  { pref: 'vib_emergency', default: 'sos',        color: 'red'   },
   assignment: { pref: 'vib_assignment',default: 'double',     color: 'white' },
@@ -74,7 +79,9 @@ function _getPulseTimes(scaledPattern) {
 let _flashCounter = 0;
 
 function _flashCoordinated(color, pulses) {
-  const bg = color === 'red' ? 'rgba(220,38,38,0.85)' : 'rgba(255,255,255,0.92)';
+  const bg = color === 'red' ? 'rgba(220,38,38,0.85)'
+    : color === 'amber' ? 'rgba(212,168,67,0.92)'
+    : 'rgba(255,255,255,0.92)';
   const flashId = `__screen-flash__${++_flashCounter}`;
 
   const overlay = document.createElement('div');
@@ -162,8 +169,8 @@ function _playAudioTone(pattern, strength = 1) {
     const ctx = _getAudioCtx();
     if (!ctx) return;
 
-    const pulseCount = pattern === 'emergency' ? 5 : pattern === 'sos' ? 3 : pattern === 'double' || pattern === 'triple' ? 2 : 1;
-    const freq = pattern === 'emergency' || pattern === 'sos' ? 880 : pattern === 'escalate' || pattern === 'alert' ? 760 : 660;
+    const pulseCount = pattern === 'emergency' ? 5 : pattern === 'sos' ? 3 : pattern === 'message' ? 3 : pattern === 'double' || pattern === 'triple' ? 2 : 1;
+    const freq = pattern === 'emergency' || pattern === 'sos' ? 880 : pattern === 'escalate' || pattern === 'alert' ? 760 : pattern === 'message' ? 720 : 660;
     // Scale audio gain: strength 1=0.4, 2=0.7, 3=1.0
     const gainValues = [0.4, 0.4, 0.7, 1.0];
     const gainVal = gainValues[Math.max(1, Math.min(3, strength))];

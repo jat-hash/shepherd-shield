@@ -37,8 +37,10 @@ export default function IncomingMessageBanner({ message, activeChannel, onAck, o
     }
   };
 
-  const accent = isDM ? "border-blue-400 bg-blue-950/90" : "border-[#d4a843]/40 bg-[#1a2744]";
-  const iconColor = isDM ? "text-blue-300" : "text-[#d4a843]";
+  const accent = isDM
+    ? "border-blue-400 bg-blue-950/95 shadow-[0_0_24px_rgba(96,165,250,0.55)] animate-pulse"
+    : "border-[#d4a843] bg-[#1a2744] shadow-[0_0_24px_rgba(212,168,67,0.55)] animate-pulse";
+  const iconColor = isDM ? "text-blue-200" : "text-[#e0bb5e]";
   const label = isOtherChannel
     ? isDM
       ? `New DM from ${message.sender_name}`

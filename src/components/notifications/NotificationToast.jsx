@@ -118,7 +118,7 @@ export default function NotificationToast({ userEmail }) {
               badge: '/icon-192.png',
               tag: `msg-${notification.id}`,
               requireInteraction: true,
-              vibrate: isDM ? [250, 100, 250, 100, 250] : [200, 100, 200],
+              vibrate: [400, 120, 400, 120, 400],
               ...(notification.dm_channel ? { data: { dm_channel: notification.dm_channel } } : {}),
             }
           );
