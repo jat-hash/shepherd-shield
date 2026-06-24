@@ -9,6 +9,8 @@ import MessageBubble from "@/components/communications/MessageBubble";
 import NewMessageToast from "@/components/communications/NewMessageToast";
 import { toast } from "sonner";
 import { savePendingMessage, getCachedData, cacheData, syncPendingMessages, savePendingDM } from "@/lib/offlineStorage";
+import { triggerNotificationEffect, cacheUserVibrationPrefs } from "@/lib/notificationEffects";
+import { getDMChannelName } from "@/lib/dmChannel";
 
 const USERS_CACHE_KEY = "team_users";
 
@@ -122,6 +124,22 @@ export default function Communications() {
       setActiveChannel(prev => ({ ...prev, displayName: getDmDisplayName(prev.name) }));
     }
   }, [allUsers]);
+
+  // Cache vibration prefs once we know who the user is so triggerNotificationEffect
+  // applies the right pattern + strength for incoming messages.
+  useEffect(() => {
+    if (user) cacheUserVibrationPrefs(user);
+  }, [user]);
+
+  // Open (or switch to) a DM with a given email — used when tapping a sender's name.
+  const handleDMUser = (senderEmail, senderName) => {
+    if (!user?.email || !senderEmail || senderEmail === user.email) return;
+    const dmChannelName = getDMChannelName(user.email, senderEmail);
+    if (dmChannelName === activeChannel.name) return;
+    setActiveChannel({ name: dmChannelName, type: "dm", displayName: senderName || "" });
+    setChannel(dmChannelName);
+    setDmChannels(prev => prev.includes(dmChannelName) ? prev : [...prev, dmChannelName]);
+  };
 
   const requestNotificationPermission = async () => {
     if (!('Notification' in window)) return;
@@ -253,6 +271,11 @@ export default function Communications() {
         if (event.type === "create") {
           const isNewIncoming = user?.email && event.data.sender_email !== user.email;
           if (isNewIncoming) {
+            // Vibrate + flash for every incoming message on the Communications page,
+            // regardless of channel. DMs use the 'dm' pattern, group messages 'general'.
+            const eventChan = event.data?.channel || "";
+            const isDM = eventChan.startsWith("DM: ");
+            triggerNotificationEffect(isDM ? "dm" : "general");
             // Only float a "jump to new message" cue when the user is scrolled up
             // reading history. Otherwise the auto-scroll effect keeps the newest
             // message pinned to the bottom automatically.
@@ -521,6 +544,7 @@ export default function Communications() {
                     currentUserEmail={user?.email}
                     onUpdate={loadMessages}
                     onReply={(m) => setReplyTo({ sender_name: m.sender_name, content: m.content })}
+                    onDMUser={handleDMUser}
                   />
                 ))}
               </div>
@@ -542,6 +566,7 @@ export default function Communications() {
                   currentUserEmail={user?.email}
                   onUpdate={loadMessages}
                   onReply={(m) => setReplyTo({ sender_name: m.sender_name, content: m.content })}
+                  onDMUser={handleDMUser}
                 />
               ))
             )}

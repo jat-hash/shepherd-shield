@@ -88,17 +88,17 @@ export default function Layout({ children, currentPageName }) {
     }
   }, [authUser]);
 
-  // Prime the vibration API on first user interaction so it works automatically when alerts fire
+  // Prime the vibration API + AudioContext on user interaction. We keep listening
+  // (not once-only) because Android Chrome's "sticky" user activation for
+  // navigator.vibrate can lapse after a few seconds of inactivity — re-priming
+  // on every touch/click keeps it unlocked so alerts vibrate reliably.
   useEffect(() => {
     const prime = () => {
-      if (vibrationPrimedRef.current) return;
       if (navigator.vibrate) {
-        navigator.vibrate(1); // silent 1ms vibration to unlock the API
+        try { navigator.vibrate(1); } catch (_) {} // silent 1ms vibration to unlock the API
       }
       primeAudioContext(); // unlock AudioContext for beep fallback (iOS + restricted browsers)
       vibrationPrimedRef.current = true;
-      window.removeEventListener("touchstart", prime);
-      window.removeEventListener("click", prime);
     };
     window.addEventListener("touchstart", prime, { passive: true });
     window.addEventListener("click", prime, { passive: true });

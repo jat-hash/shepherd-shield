@@ -222,16 +222,35 @@ export function triggerNotificationEffect(type = 'dm') {
   // Always try to resume AudioContext first (handles suspended state after page load)
   primeAudioContext();
 
-  // Trigger vibration/audio
-  if (isIOS()) {
-    _playAudioTone(patternKey, _vibStrength);
-  } else if (navigator.vibrate) {
-    try { navigator.vibrate(0); } catch (_) {} // cancel any existing pattern first
-    navigator.vibrate(scaled);
-  } else {
-    _playAudioTone(patternKey, _vibStrength);
-  }
+  // Trigger vibration/audio. Some Android browsers gate navigator.vibrate behind
+  // "sticky" user activation that can lapse; we retry on a short timer as a fallback
+  // so an alert that arrives a few seconds after interaction still vibrates.
+  const runVibration = () => {
+    if (isIOS()) {
+      _playAudioTone(patternKey, _vibStrength);
+    } else if (navigator.vibrate) {
+      try { navigator.vibrate(scaled); } catch (_) {}
+    } else {
+      _playAudioTone(patternKey, _vibStrength);
+    }
+  };
+  runVibration();
 
   // Flash in sync with each vibration "on" pulse
   _flashCoordinated(color, pulses);
+}
+
+/**
+ * Set up a one-time "sticky activation" prime so vibration works even when the
+ * first alert arrives before any user gesture. Call once at app start.
+ */
+export function primeVibrationOnInteraction() {
+  const prime = () => {
+    if (navigator.vibrate) {
+      try { navigator.vibrate(1); } catch (_) {}
+    }
+    primeAudioContext();
+  };
+  window.addEventListener("touchstart", prime, { passive: true, once: false });
+  window.addEventListener("click", prime, { passive: true, once: false });
 }

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
-export default function MessageBubble({ message, isMe, currentUserEmail, onUpdate, onReply }) {
+export default function MessageBubble({ message, isMe, currentUserEmail, onUpdate, onReply, onDMUser }) {
   const [hovering, setHovering] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(message.content);
@@ -69,7 +69,13 @@ export default function MessageBubble({ message, isMe, currentUserEmail, onUpdat
             : "bg-[#1a2744] text-white border border-[rgba(212,168,67,0.1)]"
         }`}>
           {!isMe && (
-            <p className="text-[10px] font-semibold text-[#d4a843] mb-0.5">{message.sender_name}</p>
+            <p
+              className="text-[10px] font-semibold text-[#d4a843] mb-0.5 cursor-pointer hover:underline"
+              onClick={() => onDMUser?.(message.sender_email, message.sender_name)}
+              title={`Message ${message.sender_name} privately`}
+            >
+              {message.sender_name}
+            </p>
           )}
           
           {message.reply_to_name && (
