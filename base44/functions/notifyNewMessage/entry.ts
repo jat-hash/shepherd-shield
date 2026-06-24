@@ -60,6 +60,7 @@ Deno.serve(async (req) => {
         body: pushBody,
         dm_channel: isDM ? data.channel : undefined,
         notification_type: isDM ? 'dm' : 'group_message',
+        allow_quick_reply: true,
       }).catch(err => console.log('FCM push failed for', notif.user_email, err.message))
     ));
 

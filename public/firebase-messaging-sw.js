@@ -1,5 +1,5 @@
 // Shepherd Shield — Firebase Messaging Service Worker
-// Handles background push notifications with custom vibration patterns.
+// Handles background push notifications with custom vibration patterns + quick-reply.
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
 
@@ -39,26 +39,43 @@ function parsePayload(event) {
   return { title, body, type, clickUrl, data };
 }
 
-function showAlert(payload) {
-  const { title, body, type, clickUrl } = payload;
-  const vibrate = VIBRATE_PATTERNS[type] || VIBRATE_PATTERNS.default;
-  const tag = 'shepherd-' + (type || 'alert') + '-' + (payload.data && payload.data.dm_channel ? payload.data.dm_channel : Date.now());
+// Quick-reply is only offered for comms messages (DM + group) — not for emergency/incident/assignment.
+function supportsQuickReply(type) {
+  return type === 'dm' || type === 'group_message';
+}
 
-  self.registration.showNotification(title, {
-    body,
+function buildNotificationOptions(payload) {
+  const { type, clickUrl, data } = payload;
+  const vibrate = VIBRATE_PATTERNS[type] || VIBRATE_PATTERNS.default;
+  const tag = 'shepherd-' + (type || 'alert') + '-' + (data && data.dm_channel ? data.dm_channel : Date.now());
+
+  const opts = {
+    body: payload.body,
     icon: '/icon-192.png',
     badge: '/icon-192.png',
     vibrate,
     tag,
     requireInteraction: type === 'emergency' || type === 'incident',
-    data: { url: clickUrl, type }
-  }).catch(() => {});
+    data: { url: clickUrl, type, dm_channel: (data && data.dm_channel) || '' }
+  };
+
+  if (supportsQuickReply(type)) {
+    opts.actions = [{ action: 'reply', title: 'Reply', type: 'text' }];
+  }
+  return opts;
+}
+
+function showAlert(payload) {
+  const { title, type, data } = payload;
+  const opts = buildNotificationOptions(payload);
+
+  self.registration.showNotification(title, opts).catch(() => {});
 
   // Wake any open app tabs so they play the loud alarm audio + vibrate, even
   // while the page itself is in the background.
   self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
     for (const client of clientList) {
-      client.postMessage({ type: 'shepherd-push', notification_type: type, title, body, dm_channel: payload.data && payload.data.dm_channel });
+      client.postMessage({ type: 'shepherd-push', notification_type: type, title, body: payload.body, dm_channel: data && data.dm_channel });
     }
   }).catch(() => {});
 }
@@ -82,16 +99,9 @@ self.addEventListener('push', (event) => {
   if (!event.data) return;
   try {
     const payload = parsePayload(event);
+    const opts = buildNotificationOptions(payload);
     event.waitUntil(Promise.all([
-      self.registration.showNotification(payload.title, {
-        body: payload.body,
-        icon: '/icon-192.png',
-        badge: '/icon-192.png',
-        vibrate: VIBRATE_PATTERNS[payload.type] || VIBRATE_PATTERNS.default,
-        tag: 'shepherd-' + (payload.type || 'alert') + '-' + (payload.data && payload.data.dm_channel ? payload.data.dm_channel : Date.now()),
-        requireInteraction: payload.type === 'emergency' || payload.type === 'incident',
-        data: { url: payload.clickUrl, type: payload.type }
-      }).catch(() => {}),
+      self.registration.showNotification(payload.title, opts).catch(() => {}),
       self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
         for (const client of clientList) {
           client.postMessage({ type: 'shepherd-push', notification_type: payload.type, title: payload.title, body: payload.body, dm_channel: payload.data && payload.data.dm_channel });
@@ -103,15 +113,35 @@ self.addEventListener('push', (event) => {
   }
 });
 
-// Tap on notification — focus or navigate an open tab to the target route, else open new
+// Quick reply from a push notification — user typed text directly in the notification.
+// Forwards the reply text to an already-open app tab so it can be sent using the
+// logged-in user's real auth (via base44.functions.invoke). If no app tab is open,
+// the reply is dropped — we don't ship the backend secret to the SW for security.
 self.addEventListener('notificationclick', (event) => {
+  if (event.action === 'reply' && event.reply) {
+    event.waitUntil((async () => {
+      const replyText = event.reply.trim();
+      if (!replyText) return;
+      const notifData = event.notification.data || {};
+      const channel = notifData.dm_channel || 'All Team';
+      const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true }).catch(() => []);
+      const appClient = clientList.find(c => c.url && c.url.includes(self.location.origin));
+      if (appClient) {
+        appClient.postMessage({ type: 'shepherd-quick-reply', channel, content: replyText });
+      }
+      // No open tab: reply cannot be sent without the user's auth session.
+    })());
+    event.notification.close();
+    return;
+  }
+
+  // Normal tap — focus or navigate an open tab to the target route, else open new
   event.notification.close();
   const targetUrl = (event.notification.data && event.notification.data.url) || '/';
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Prefer a tab already on our origin
       for (const client of clientList) {
-        if (client.url && client.url.startsWith(self.location.origin) && 'focus' in client) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
           try { client.navigate(targetUrl); } catch (_) {}
           return client.focus();
         }
@@ -120,3 +150,5 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
+
+

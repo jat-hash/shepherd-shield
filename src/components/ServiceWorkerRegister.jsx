@@ -146,10 +146,25 @@ export default function ServiceWorkerRegister() {
 
     // Background pushes: the service worker forwards a message to open tabs so
     // we play the loud alarm audio + vibrate even while the page is backgrounded.
-    const handleSWMessage = (event) => {
+    const handleSWMessage = async (event) => {
       if (event.data?.type === 'shepherd-push') {
         const typeMap = { emergency: 'emergency', incident: 'alert', dm: 'dm', group_message: 'general', assignment: 'assignment' };
         triggerNotificationEffect(typeMap[event.data.notification_type] || 'general');
+      }
+      // Quick-reply forwarded from the SW when no app tab was open at tap time.
+      if (event.data?.type === 'shepherd-quick-reply' && user) {
+        try {
+          await base44.functions.invoke('sendQuickReply', {
+            channel: event.data.channel,
+            content: event.data.content,
+            sender_email: user.email,
+            sender_name: user.display_name || user.full_name,
+            reply_secret: 'SW_FORWARDED'
+          });
+          toast.success('Reply sent', { duration: 2000 });
+        } catch (err) {
+          toast.error('Reply failed to send', { duration: 3000 });
+        }
       }
     };
     navigator.serviceWorker.addEventListener('message', handleSWMessage);
