@@ -21,14 +21,17 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-// Vibration patterns (ms on/off) by notification type
+// Vibration patterns (ms on/off) by notification type.
+// Incoming messages (dm / group_message) use the FULL altar-call style pattern
+// — identical to the emergency SOS — so the phone buzzes emphatically even when
+// the app is backgrounded, the screen is off, or another app is open.
 const VIBRATE_PATTERNS = {
   emergency: [1000, 200, 1000, 200, 1000, 200, 1000],
   incident: [400, 150, 400, 150, 400],
   assignment: [200, 100, 200],
-  dm: [250, 100, 250, 100, 250],
-  group_message: [200, 100, 200],
-  default: [300, 100, 300, 100, 300]
+  dm: [1000, 200, 1000, 200, 1000, 200, 1000],
+  group_message: [1000, 200, 1000, 200, 1000, 200, 1000],
+  default: [1000, 200, 1000, 200, 1000, 200, 1000]
 };
 
 function parsePayload(event) {
