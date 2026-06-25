@@ -30,7 +30,7 @@ export const getFCMToken = async (swRegistration) => {
   const messaging = getMessaging(firebaseApp);
 
   const token = await getToken(messaging, {
-    vapidKey: 'BDXxLp5-kEn--p9rd4nRgyapdT_sTe7IhthMn5Sm4AUxzAcYB_Ka_KxVVTLnxta6OLq08YR-C3ujPJoXFiEYLS8',
+    vapidKey: 'BOPQ8YO1u_vIsTwn4zFSu6qrhW5bTWm4oOGkmWlasQHhl2g4OzfBMe_MrrtKPyjG-2ztm42rSqaHfDyE1K5PIK8',
     serviceWorkerRegistration: swRegistration
   });
 
