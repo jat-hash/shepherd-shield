@@ -92,12 +92,12 @@ Deno.serve(async (req) => {
     }
 
     return Response.json({
-      browser_firebase_project_id: "shepherd-shield",
+      browser_firebase_project_id: "shepard-shield-32db7",
       service_account: saInfo,
       oauth_exchange_ok: oauthResult?.body?.access_token ? true : false,
       oauth_error: oauthResult?.body?.error ? JSON.stringify(oauthResult.body.error) : null,
       fcm_probe: fcmProbe,
-      project_match: sa.project_id === "shepherd-shield",
+      project_match: sa.project_id === "shepard-shield-32db7",
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
