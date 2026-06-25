@@ -4,13 +4,13 @@ importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js'
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
 
 firebase.initializeApp({
-  apiKey: "AIzaSyD7BE-xvRYRzxh1gaHpEqIBw7k49J4xAoo",
-  authDomain: "shepherd-shield.firebaseapp.com",
-  projectId: "shepherd-shield",
-  storageBucket: "shepherd-shield.firebasestorage.app",
-  messagingSenderId: "983431306545",
-  appId: "1:983431306545:web:6d79ca922449a63187a410",
-  measurementId: "G-NS92YPKPB3"
+  apiKey: "AIzaSyDJvbrjIs4C85H5wrFR11pxcNxuEWwLqt8",
+  authDomain: "shepard-shield-32db7.firebaseapp.com",
+  projectId: "shepard-shield-32db7",
+  storageBucket: "shepard-shield-32db7.firebasestorage.app",
+  messagingSenderId: "1044769129553",
+  appId: "1:1044769129553:web:3f0989f9f43dc39f51e470",
+  measurementId: "G-C50397KQ7S"
 });
 
 const messaging = firebase.messaging();
