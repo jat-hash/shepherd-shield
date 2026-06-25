@@ -25,10 +25,13 @@ const NAMED_PATTERNS = {
   emergency:[1000, 200, 1000, 200, 1000, 200, 1000, 200, 1000],
 };
 
-// Map notification type → user pref key → default pattern
+// Map notification type → user pref key → default pattern.
+// Incoming messages (dm / general) use the FULL altar-call effect: the SOS
+// vibration pattern + RED screen flash + 880Hz tone — matching the high-priority
+// emergency alert so a chat arriving demands the same emphatic attention.
 const TYPE_TO_PREF = {
-  dm:         { pref: 'vib_dm',        default: 'message',  color: 'amber' },
-  general:    { pref: 'vib_team_msg',  default: 'message',  color: 'amber' },
+  dm:         { pref: 'vib_dm',        default: 'sos',        color: 'red'   },
+  general:    { pref: 'vib_team_msg',  default: 'sos',        color: 'red'   },
   alert:      { pref: 'vib_incident',  default: 'escalate',  color: 'red'   },
   emergency:  { pref: 'vib_emergency', default: 'sos',        color: 'red'   },
   assignment: { pref: 'vib_assignment',default: 'double',     color: 'white' },
