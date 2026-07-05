@@ -10,9 +10,15 @@ const isFCMSupported = () => {
     const ua = navigator.userAgent;
     const isIOS = /iphone|ipad|ipod/i.test(ua);
     // Block only iOS Safari — desktop Safari on macOS supports FCM
-    if (isIOS) return false;
-    return 'serviceWorker' in navigator && 'Notification' in window && 'PushManager' in window;
-  } catch (_) { return false; }
+    if (isIOS) return { ok: false, reason: 'iOS device — uses Web Push instead' };
+    const hasSW = 'serviceWorker' in navigator;
+    const hasNotif = 'Notification' in window;
+    const hasPush = 'PushManager' in window;
+    if (!hasSW) return { ok: false, reason: 'serviceWorker API missing (likely an iframe/preview sandbox)' };
+    if (!hasNotif) return { ok: false, reason: 'Notification API missing' };
+    if (!hasPush) return { ok: false, reason: 'PushManager API missing' };
+    return { ok: true };
+  } catch (e) { return { ok: false, reason: 'check threw: ' + e.message }; }
 };
 
 export default function ServiceWorkerRegister() {
@@ -34,7 +40,10 @@ export default function ServiceWorkerRegister() {
     const initPushNotifications = async () => {
       try {
         if (!user) { addLog('No user logged in'); return; }
-        if (!isFCMSupported()) { addLog('FCM not supported on this browser (iOS/Safari) — skipping'); return; }
+        addLog('UA: ' + navigator.userAgent.slice(0, 80));
+        addLog('APIs → SW:' + ('serviceWorker' in navigator) + ' Notif:' + ('Notification' in window) + ' Push:' + ('PushManager' in window));
+        const support = isFCMSupported();
+        if (!support.ok) { addLog('❌ FCM not supported: ' + support.reason); return; }
         addLog('User: ' + user.email);
 
         if (!('serviceWorker' in navigator)) { addLog('SW not supported'); return; }
