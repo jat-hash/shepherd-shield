@@ -38,6 +38,8 @@ export default function ServiceWorkerRegister() {
   const [debugLogs, setDebugLogs] = useState([]);
   const [showDebug, setShowDebug] = useState(true);
   const initializedRef = useRef(false);
+  const runningRef = useRef(false);
+  const initPushRef = useRef(null);
 
   const addLog = (msg) => {
     const line = `[${new Date().toLocaleTimeString()}] ${msg}`;
@@ -51,6 +53,9 @@ export default function ServiceWorkerRegister() {
     if (!user) return;
     const initPushNotifications = async () => {
       try {
+        if (initializedRef.current) { addLog('Already initialized — skipping'); return; }
+        if (runningRef.current) { addLog('Registration already in progress — skipping'); return; }
+        runningRef.current = true;
         if (!user) { addLog('No user logged in'); return; }
         addLog('UA: ' + navigator.userAgent.slice(0, 80));
         addLog('APIs → SW:' + ('serviceWorker' in navigator) + ' Notif:' + ('Notification' in window) + ' Push:' + ('PushManager' in window));
@@ -109,11 +114,15 @@ export default function ServiceWorkerRegister() {
         if (!token) { addLog('ERROR: No FCM token obtained'); return; }
         addLog('Token: ' + token.substring(0, 20) + '...');
 
-        // Save token to backend
-        await base44.functions.invoke('saveFCMToken', {
+        // Save token to backend — check response status (invoke resolves even on 500)
+        const saveRes = await base44.functions.invoke('saveFCMToken', {
           fcm_token: token,
           device_id: navigator.userAgent.slice(0, 50)
         });
+        if (saveRes?.status >= 400 || saveRes?.data?.error) {
+          addLog('❌ Save failed: ' + (saveRes?.data?.error || 'status ' + saveRes?.status));
+          return;
+        }
         initializedRef.current = true;
         addLog('Token saved! ✅');
 
@@ -161,9 +170,12 @@ export default function ServiceWorkerRegister() {
       } catch (error) {
         addLog('ERROR: ' + (error.code ? error.code + ' - ' : '') + error.message);
         addLog('STACK: ' + (error.stack || '').split('\n')[1]);
+      } finally {
+        runningRef.current = false;
       }
     };
 
+    initPushRef.current = initPushNotifications;
     initPushNotifications();
 
     // Background pushes: the service worker forwards a message to open tabs so
@@ -205,7 +217,7 @@ export default function ServiceWorkerRegister() {
 
     // Re-run when user returns to the app only if not already initialized
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && 'Notification' in window && window.Notification.permission === 'granted' && !initializedRef.current) {
+      if (document.visibilityState === 'visible' && !initializedRef.current && !runningRef.current) {
         addLog('Page visible, retrying registration...');
         initPushNotifications();
       }
@@ -240,19 +252,8 @@ export default function ServiceWorkerRegister() {
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => {
             addLog('Manual retry...');
-            if ('Notification' in window && window.Notification.permission === 'granted') {
-              navigator.serviceWorker.register('/firebase-messaging-sw.js').then(async () => {
-                const swReg = await navigator.serviceWorker.ready;
-                const { getFCMToken } = await import('@/components/firebase');
-                const token = await getFCMToken(swReg);
-                if (token) {
-                  await base44.functions.invoke('saveFCMToken', { fcm_token: token, device_id: navigator.userAgent.slice(0, 50) });
-                  addLog('Token saved! ✅');
-                } else { addLog('No token returned'); }
-              }).catch(e => addLog('Retry error: ' + e.message));
-            } else {
-              addLog('Permission still: ' + ('Notification' in window ? window.Notification.permission : 'unsupported'));
-            }
+            if (initializedRef.current) { addLog('Already initialized — tap Retry after clearing storage to re-register'); return; }
+            initPushRef.current?.();
           }} style={{ color: '#0ff', background: 'none', border: '1px solid #0ff', borderRadius: 3, padding: '0 6px', cursor: 'pointer', fontSize: 11 }}>Retry</button>
           <button onClick={() => setShowDebug(false)} style={{ color: '#f00', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>✕</button>
         </div>
