@@ -18,7 +18,7 @@ const isFCMSupported = () => {
 export default function ServiceWorkerRegister() {
   const { user } = useAuth();
   const [debugLogs, setDebugLogs] = useState([]);
-  const [showDebug, setShowDebug] = useState(false);
+  const [showDebug, setShowDebug] = useState(true);
   const initializedRef = useRef(false);
 
   const addLog = (msg) => {
