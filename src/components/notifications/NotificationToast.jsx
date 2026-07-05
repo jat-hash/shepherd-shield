@@ -103,38 +103,9 @@ export default function NotificationToast({ userEmail }) {
     if (notification.type === 'general') {
       const effectType = isDM ? 'dm' : 'general';
       triggerNotificationEffect(effectType);
-      // Show a NATIVE browser notification too — this triggers reliable OS-level
-      // vibration/audio independent of navigator.vibrate's user-activation gating
-      // (which silently no-ops when the page has been idle, leaving messages with
-      // no haptic while incident alerts still buzz via their native notification).
-      // Mirrors what AlertNotificationSystem does for incidents/assignments.
-      if ('Notification' in window && window.Notification?.permission === 'granted') {
-        try {
-          const n = new window.Notification(
-            `${isDM ? '💬 Direct Message' : '💬 Team Message'} — Shepherd Shield`,
-            {
-              body: `${notification.title}${notification.message ? ': ' + notification.message : ''}`,
-              icon: '/icon-192.png',
-              badge: '/icon-192.png',
-              tag: `msg-${notification.id}`,
-              requireInteraction: true,
-              vibrate: [400, 120, 400, 120, 400],
-              ...(notification.dm_channel ? { data: { dm_channel: notification.dm_channel } } : {}),
-            }
-          );
-          // Tapping the native message notification jumps straight into that DM
-          n.onclick = () => {
-            window.focus();
-            if (notification.dm_channel) {
-              navigate(`/Communications?channel=${encodeURIComponent(notification.dm_channel)}`);
-            } else {
-              navigate('/Communications');
-            }
-            n.close();
-            dismissToast(`${notification.id}_${Date.now()}`, notification.id);
-          };
-        } catch (_) {}
-      }
+      // Native browser notification is now fired centrally by
+      // BrowserNotificationDispatcher (subscribed to the Notification entity)
+      // via useBrowserNotifications — removed here to avoid duplicates.
     }
     const toastId = `${notification.id}_${Date.now()}`;
     setToasts(prev => [...prev, { ...notification, _toastId: toastId }]);

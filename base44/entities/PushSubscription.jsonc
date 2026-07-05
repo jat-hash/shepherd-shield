@@ -1,0 +1,37 @@
+{
+  "name": "PushSubscription",
+  "type": "object",
+  "title": "Push Subscription",
+  "description": "Native Web Push API (VAPID) subscriptions for browsers not covered by FCM, e.g. iOS Safari installed PWA",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user this subscription belongs to"
+    },
+    "endpoint": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Push service endpoint URL the subscription points to"
+    },
+    "p256dh": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Client ECDH P-256 public key, base64url"
+    },
+    "auth": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Client auth secret, base64url"
+    },
+    "device_id": {
+      "type": "string",
+      "description": "User agent / device identifier"
+    }
+  },
+  "required": [
+    "user_email",
+    "endpoint",
+    "p256dh",
+    "auth"
+  ]
+}

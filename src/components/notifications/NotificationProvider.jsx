@@ -8,6 +8,8 @@ import OfflineIndicator from "./OfflineIndicator";
 import UrgentAlertSystem from "./UrgentAlertSystem";
 import { cacheData, syncPendingMessages } from "@/lib/offlineStorage";
 import { triggerNotificationEffect } from "@/lib/notificationEffects";
+import WebPushRegistrar from "./WebPushRegistrar";
+import BrowserNotificationDispatcher from "./BrowserNotificationDispatcher";
 
 export default function NotificationProvider({ children }) {
   const { user } = useAuth();
@@ -202,6 +204,8 @@ export default function NotificationProvider({ children }) {
   return (
     <>
       {children}
+      <WebPushRegistrar />
+      <BrowserNotificationDispatcher />
       <UrgentAlertSystem />
       <EmergencyOverlay 
         alert={emergencyAlert} 

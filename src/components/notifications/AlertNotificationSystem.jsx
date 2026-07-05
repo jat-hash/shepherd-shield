@@ -4,19 +4,8 @@ import { useAuth } from "@/lib/AuthContext";
 import { AlertTriangle, Bell, Info, CheckCircle } from "lucide-react";
 import { triggerNotificationEffect } from "@/lib/notificationEffects";
 
-// --- Browser Notification ---
-function showBrowserNotification(message, priority) {
-  if (!("Notification" in window) || window.Notification?.permission !== "granted") return;
-  const icons = { high: "🚨", medium: "⚠️", low: "🔔" };
-  try {
-    new window.Notification(`${icons[priority] || "🔔"} Shepherd Shield Alert`, {
-      body: message,
-      icon: "/icon-192.png",
-      tag: `alert-${Date.now()}`,
-      requireInteraction: priority === "high" || priority === "medium",
-    });
-  } catch (_) {}
-}
+// Native browser notifications are now handled centrally by useBrowserNotifications
+// (via BrowserNotificationDispatcher subscribing to the Notification entity).
 
 // --- Toast Component ---
 function AlertToast({ alert, onDismiss }) {
@@ -125,10 +114,8 @@ export default function AlertNotificationSystem({ onUnreadCountChange }) {
     const effectType = priority === "high" ? "emergency" : priority === "medium" ? "alert" : "assignment";
     triggerNotificationEffect(effectType);
 
-    // Browser notification (respects system DND)
-    if (priority === "medium" || priority === "high") {
-      showBrowserNotification(message, priority);
-    }
+    // Native browser notification is now fired centrally by BrowserNotificationDispatcher
+    // (subscribed to the Notification entity) via useBrowserNotifications — removed here to avoid duplicates.
 
     const toastId = `${id}-${Date.now()}`;
     setToasts(prev => [...prev, { ...notification, _toastId: toastId }]);
