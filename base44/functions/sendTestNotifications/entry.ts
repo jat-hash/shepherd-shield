@@ -47,6 +47,19 @@ Deno.serve(async (req) => {
     for (const notif of notifications) {
       const created = await base44.entities.Notification.create(notif);
       createdNotifications.push(created);
+      // Fire the actual push notification so it reaches the device even when
+      // the app is closed (FCM data-only payload → service worker shows it).
+      try {
+        await base44.functions.invoke('sendFCMNotification', {
+          recipient_email: target_email,
+          title: notif.title,
+          body: notif.message,
+          notification_type: notif.type === 'assignment_new' ? 'assignment' : (notif.type === 'assignment_reminder' ? 'assignment' : 'general'),
+          assignment_id: notif.assignment_id || '',
+        });
+      } catch (pushErr) {
+        console.log('Push send skipped for', notif.type, ':', pushErr.message);
+      }
     }
 
     // Create test team message
