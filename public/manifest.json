@@ -1,24 +1,38 @@
 {
   "name": "Shepherd Shield",
-  "short_name": "Shepherd Shield",
-  "description": "Church Security Team Management App",
+  "short_name": "Shepherd",
+  "description": "Church security coordination — team communication, assignments, and incident response.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0a1128",
   "theme_color": "#0a1128",
-  "orientation": "any",
+  "categories": ["productivity", "utilities"],
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "https://media.base44.com/images/public/699778b133b0b54bbf2b985e/3cfb4be4f_generated_image.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
+      "src": "https://media.base44.com/images/public/699778b133b0b54bbf2b985e/3cfb4be4f_generated_image.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "https://media.base44.com/images/public/699778b133b0b54bbf2b985e/3cfb4be4f_generated_image.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "https://media.base44.com/images/public/699778b133b0b54bbf2b985e/3cfb4be4f_generated_image.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
