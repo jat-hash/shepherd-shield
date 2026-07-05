@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
@@ -35,16 +35,11 @@ const isInAppBrowser = () => {
 
 export default function ServiceWorkerRegister() {
   const { user } = useAuth();
-  const [debugLogs, setDebugLogs] = useState([]);
-  const [showDebug, setShowDebug] = useState(true);
   const initializedRef = useRef(false);
   const runningRef = useRef(false);
-  const initPushRef = useRef(null);
 
   const addLog = (msg) => {
-    const line = `[${new Date().toLocaleTimeString()}] ${msg}`;
-    console.log(line);
-    setDebugLogs(prev => [...prev.slice(-30), line]);
+    console.log(`[FCM] ${msg}`);
   };
 
   // Debug panel is hidden by default on mobile — no longer auto-showing
@@ -175,7 +170,6 @@ export default function ServiceWorkerRegister() {
       }
     };
 
-    initPushRef.current = initPushNotifications;
     initPushNotifications();
 
     // Background pushes: the service worker forwards a message to open tabs so
@@ -238,27 +232,5 @@ export default function ServiceWorkerRegister() {
     };
   }, []);
 
-  if (!showDebug) return null;
-
-  return (
-    <div style={{
-      position: 'fixed', bottom: 0, left: 0, right: 0,
-      background: 'rgba(0,0,0,0.85)', color: '#0f0', fontFamily: 'monospace',
-      fontSize: '11px', maxHeight: '40vh', overflowY: 'auto',
-      zIndex: 99999, padding: '8px', borderTop: '2px solid #0f0'
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-        <strong style={{ color: '#ff0' }}>FCM Debug Log</strong>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => {
-            addLog('Manual retry...');
-            if (initializedRef.current) { addLog('Already initialized — tap Retry after clearing storage to re-register'); return; }
-            initPushRef.current?.();
-          }} style={{ color: '#0ff', background: 'none', border: '1px solid #0ff', borderRadius: 3, padding: '0 6px', cursor: 'pointer', fontSize: 11 }}>Retry</button>
-          <button onClick={() => setShowDebug(false)} style={{ color: '#f00', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>✕</button>
-        </div>
-      </div>
-      {debugLogs.length === 0 ? <div>Waiting for logs...</div> : debugLogs.map((l, i) => <div key={i}>{l}</div>)}
-    </div>
-  );
+  return null;
 }
