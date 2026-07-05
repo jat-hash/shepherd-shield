@@ -226,26 +226,36 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Auto check-out only if user has left the 3-mile vicinity (GPS-based only)
+      // Auto check-out if user has left the 3-mile vicinity (GPS) OR 45 min after service end (time fallback)
       if (assignment.checked_in && !assignment.checked_out) {
         let shouldCheckOut = false;
         let reason = '';
 
-        // GPS: user has left the campus boundary (0.25-mile radius around church property)
-        const liveLocations = await base44.asServiceRole.entities.LiveLocation.filter({
-          user_email: assignment.assigned_to_email,
-          is_active: true
-        });
-        const loc = liveLocations?.[0];
-        if (loc?.latitude && loc?.longitude) {
-          const dist = distanceMiles(loc.latitude, loc.longitude, CAMPUS_LAT, CAMPUS_LON);
-          if (dist > CAMPUS_RADIUS_MILES) {
-            shouldCheckOut = true;
-            reason = `left campus boundary (${(dist * 5280).toFixed(0)} ft from campus center)`;
+        // Time-based fallback: 45 minutes after service end, auto-checkout regardless of GPS.
+        // Ensures assignments don't stay open if a member forgot to check out.
+        const fortyFiveMinAfterEnd = new Date(endDateTime.getTime() + 45 * 60 * 1000);
+        if (now >= fortyFiveMinAfterEnd) {
+          shouldCheckOut = true;
+          reason = `45 min after service end (auto time checkout)`;
+        }
+
+        // GPS: user has left the campus boundary (3-mile radius around church property)
+        if (!shouldCheckOut) {
+          const liveLocations = await base44.asServiceRole.entities.LiveLocation.filter({
+            user_email: assignment.assigned_to_email,
+            is_active: true
+          });
+          const loc = liveLocations?.[0];
+          if (loc?.latitude && loc?.longitude) {
+            const dist = distanceMiles(loc.latitude, loc.longitude, CAMPUS_LAT, CAMPUS_LON);
+            if (dist > CAMPUS_RADIUS_MILES) {
+              shouldCheckOut = true;
+              reason = `left campus boundary (${(dist * 5280).toFixed(0)} ft from campus center)`;
+            }
+          } else {
+            // No live location available — skip GPS checkout, time fallback will catch it later
+            console.log(`No live location for ${assignment.assigned_to_name} — skipping GPS auto-checkout`);
           }
-        } else {
-          // No live location available — skip auto-checkout, do not assume they left
-          console.log(`No live location for ${assignment.assigned_to_name} — skipping GPS auto-checkout`);
         }
 
         if (shouldCheckOut) {
