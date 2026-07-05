@@ -21,6 +21,17 @@ const isFCMSupported = () => {
   } catch (e) { return { ok: false, reason: 'check threw: ' + e.message }; }
 };
 
+// Detect in-app browsers (Facebook, Instagram, TikTok, email clients) which
+// disable the service worker API — push notifications can't work there.
+const isInAppBrowser = () => {
+  const ua = (navigator.userAgent || '').toLowerCase();
+  const patterns = ['fbav', 'fban', 'instagram', 'tiktok', 'snapchat', 'linkedin', 'twitter', 'whatsapp', 'gmail', 'outlook', 'yahoo', 'samsungbrowser'];
+  if (patterns.some(p => ua.includes(p))) return true;
+  // iOS in-app browsers all lack serviceWorker support
+  if (/iphone|ipad|ipod/i.test(ua) && !(/safari/i.test(ua) && !/crios|fxios/i.test(ua))) return true;
+  return false;
+};
+
 export default function ServiceWorkerRegister() {
   const { user } = useAuth();
   const [debugLogs, setDebugLogs] = useState([]);
@@ -42,6 +53,12 @@ export default function ServiceWorkerRegister() {
         if (!user) { addLog('No user logged in'); return; }
         addLog('UA: ' + navigator.userAgent.slice(0, 80));
         addLog('APIs → SW:' + ('serviceWorker' in navigator) + ' Notif:' + ('Notification' in window) + ' Push:' + ('PushManager' in window));
+        if (isInAppBrowser()) {
+          addLog('❌ In-app browser detected — push notifications cannot work here.');
+          addLog('👉 Open this app in Chrome (Android) or Safari (iPhone) directly:');
+          addLog('   Tap the ••• menu → "Open in Chrome" / "Open in Browser"');
+          return;
+        }
         const support = isFCMSupported();
         if (!support.ok) { addLog('❌ FCM not supported: ' + support.reason); return; }
         addLog('User: ' + user.email);
