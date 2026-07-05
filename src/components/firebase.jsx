@@ -1,4 +1,5 @@
 import { initializeApp } from 'firebase/app';
+import { base44 } from '@/api/base44Client';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDJvbrjIs4C85H5wrFR11pxcNxuEWwLqt8",
@@ -44,8 +45,19 @@ export const getFCMToken = async (swRegistration) => {
   // forces Firebase to issue a genuinely fresh token bound to the current VAPID key.
   try { await deleteToken(messaging); } catch (_) {}
 
+  // Fetch the VAPID public key from the backend so FCM and native Web Push share
+  // the same key pair — the one registered in the Firebase console's Web Push
+  // certificate. A mismatched hardcoded key causes Firebase to issue tokens it
+  // then rejects as "not a valid FCM registration token".
+  let vapidKey = '';
+  try {
+    const res = await base44.functions.invoke('getVapidPublicKey', {});
+    vapidKey = res?.data?.public_key || '';
+  } catch (_) {}
+  if (!vapidKey) throw new Error('VAPID public key not available from backend');
+
   const token = await getToken(messaging, {
-    vapidKey: 'BOPQ8YO1u_vIsTwn4zFSu6qrhW5bTWm4oOGkmWlasQHhl2g4OzfBMe_MrrtKPyjG-2ztm42rSqaHfDyE1K5PIK8',
+    vapidKey,
     serviceWorkerRegistration: swRegistration
   });
 
