@@ -20,7 +20,17 @@ export const initFirebase = () => {
 };
 
 export const getFCMToken = async (swRegistration) => {
-  const notifPermission = ('Notification' in window) ? window.Notification.permission : 'denied';
+  // Check notification permission — use Permissions API as fallback when
+  // window.Notification is undefined (some Android browsers/embedded webviews).
+  let notifPermission = 'denied';
+  if ('Notification' in window) {
+    notifPermission = window.Notification.permission;
+  } else if ('permissions' in navigator) {
+    try {
+      const result = await navigator.permissions.query({ name: 'notifications' });
+      notifPermission = result.state === 'granted' ? 'granted' : 'denied';
+    } catch (_) {}
+  }
   if (notifPermission !== 'granted') {
     throw new Error('Notification permission not granted: ' + notifPermission);
   }

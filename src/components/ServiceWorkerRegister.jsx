@@ -12,11 +12,12 @@ const isFCMSupported = () => {
     // Block only iOS Safari — desktop Safari on macOS supports FCM
     if (isIOS) return { ok: false, reason: 'iOS device — uses Web Push instead' };
     const hasSW = 'serviceWorker' in navigator;
-    const hasNotif = 'Notification' in window;
     const hasPush = 'PushManager' in window;
     if (!hasSW) return { ok: false, reason: 'serviceWorker API missing (likely an iframe/preview sandbox)' };
-    if (!hasNotif) return { ok: false, reason: 'Notification API missing' };
     if (!hasPush) return { ok: false, reason: 'PushManager API missing' };
+    // Note: window.Notification is NOT required — the service worker's own
+    // showNotification() API handles display. We check permission via the
+    // Permissions API as a fallback for browsers that lack window.Notification.
     return { ok: true };
   } catch (e) { return { ok: false, reason: 'check threw: ' + e.message }; }
 };
@@ -68,11 +69,22 @@ export default function ServiceWorkerRegister() {
 
         if (!('Notification' in window)) { addLog('Notifications not supported on this browser'); return; }
 
-        addLog('Permission: ' + window.Notification.permission);
+        // Check notification permission — use Permissions API as fallback when
+        // window.Notification is undefined (some Android browsers/embedded webviews).
+        let permission = 'default';
+        if ('Notification' in window) {
+          permission = window.Notification.permission;
+        } else if ('permissions' in navigator) {
+          try {
+            const result = await navigator.permissions.query({ name: 'notifications' });
+            permission = result.state; // 'granted', 'denied', or 'prompt'
+          } catch (_) { addLog('Permissions API query failed'); }
+        }
+        addLog('Permission: ' + permission + (typeof Notification === 'undefined' ? ' (Notification API absent)' : ''));
         // Never auto-request permission here — that re-triggers the native prompt
         // on every refresh. The Dashboard banner's "Enable Notifications" button
         // (explicit gesture) grants permission then dispatches 'push:register'.
-        if (window.Notification.permission !== 'granted') {
+        if (permission !== 'granted') {
           addLog('⚠️ Notifications not granted yet — granting via the Dashboard banner will auto-trigger registration');
           return;
         }
