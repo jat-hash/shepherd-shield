@@ -230,7 +230,7 @@ export default function ServiceWorkerRegister() {
       window.removeEventListener('push:register', handlePushRegister);
       navigator.serviceWorker.removeEventListener('message', handleSWMessage);
     };
-  }, []);
+  }, [user]);
 
   return null;
 }
