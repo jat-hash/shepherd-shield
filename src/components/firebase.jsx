@@ -35,9 +35,14 @@ export const getFCMToken = async (swRegistration) => {
     throw new Error('Notification permission not granted: ' + notifPermission);
   }
 
-  const { getMessaging, getToken } = await import('firebase/messaging');
+  const { getMessaging, getToken, deleteToken } = await import('firebase/messaging');
   const { app: firebaseApp } = initFirebase();
   const messaging = getMessaging(firebaseApp);
+
+  // Force-delete any cached token first — the browser stores tokens in IndexedDB
+  // and returns the same (possibly stale/invalid) one on every call. Deleting
+  // forces Firebase to issue a genuinely fresh token bound to the current VAPID key.
+  try { await deleteToken(messaging); } catch (_) {}
 
   const token = await getToken(messaging, {
     vapidKey: 'BOPQ8YO1u_vIsTwn4zFSu6qrhW5bTWm4oOGkmWlasQHhl2g4OzfBMe_MrrtKPyjG-2ztm42rSqaHfDyE1K5PIK8',
