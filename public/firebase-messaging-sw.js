@@ -1,9 +1,17 @@
-// Shepherd Shield — Firebase Messaging Service Worker
-// Handles background push notifications with custom vibration patterns + quick-reply.
+// firebase-messaging-sw.js — Shepherd Shield FCM background push handler.
+//
+// Receives data-only FCM pushes when the app is backgrounded or fully closed,
+// and shows a persistent system notification with SOS vibration for EVERY
+// notification type (messages, DMs, incidents, emergencies) so that incoming
+// chat alerts demand the same emphatic attention as emergency alerts.
+//
+// Also forwards events to any open app tab so the foreground page can play
+// the coordinated audio tone + screen flash via triggerNotificationEffect.
+
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
 
-firebase.initializeApp({
+const firebaseConfig = {
   apiKey: "AIzaSyDJvbrjIs4C85H5wrFR11pxcNxuEWwLqt8",
   authDomain: "shepard-shield-32db7.firebaseapp.com",
   projectId: "shepard-shield-32db7",
@@ -11,159 +19,90 @@ firebase.initializeApp({
   messagingSenderId: "1044769129553",
   appId: "1:1044769129553:web:3f0989f9f43dc39f51e470",
   measurementId: "G-C50397KQ7S"
-});
-
-const messaging = firebase.messaging();
-
-// Take control of existing clients immediately so navigation + postMessage from
-// notification taps work without requiring a full reload after the SW updates.
-self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
-});
-
-// Vibration patterns (ms on/off) by notification type.
-// Incoming messages (dm / group_message) use the FULL altar-call style pattern
-// — identical to the emergency SOS — so the phone buzzes emphatically even when
-// the app is backgrounded, the screen is off, or another app is open.
-const VIBRATE_PATTERNS = {
-  emergency: [1000, 200, 1000, 200, 1000, 200, 1000],
-  incident: [400, 150, 400, 150, 400],
-  assignment: [200, 100, 200],
-  dm: [1000, 200, 1000, 200, 1000, 200, 1000],
-  group_message: [1000, 200, 1000, 200, 1000, 200, 1000],
-  default: [1000, 200, 1000, 200, 1000, 200, 1000]
 };
 
-function parsePayload(event) {
-  let payload = event.data && event.data.json ? event.data.json() : null;
-  if (!payload) {
-    try { payload = JSON.parse(event.data && event.data.text ? event.data.text() : '{}'); } catch (_) { payload = {}; }
-  }
-  const data = (payload && payload.data) || {};
-  const notification = (payload && payload.notification) || {};
-  const title = data.title || notification.title || 'Shepherd Shield';
-  const body = data.body || notification.body || '';
+firebase.initializeApp(firebaseConfig);
+const messaging = firebase.messaging();
+
+// SOS vibration pattern — used for ALL push types so every notification
+// (message, DM, incident, emergency) vibrates emphatically when the app is off.
+const SOS_VIBRATE = [100, 80, 100, 80, 100, 200, 300, 200, 300, 200, 300, 200, 100, 80, 100, 80, 100];
+
+function buildOptions(data) {
   const type = data.notification_type || '';
-  const clickUrl = data.click_url || '/';
-  return { title, body, type, clickUrl, data };
-}
-
-// Quick-reply is only offered for comms messages (DM + group) — not for emergency/incident/assignment.
-function supportsQuickReply(type) {
-  return type === 'dm' || type === 'group_message';
-}
-
-function buildNotificationOptions(payload) {
-  const { type, clickUrl, data } = payload;
-  const vibrate = VIBRATE_PATTERNS[type] || VIBRATE_PATTERNS.default;
-  const tag = 'shepherd-' + (type || 'alert') + '-' + (data && data.dm_channel ? data.dm_channel : Date.now());
+  const isMessage = type === 'dm' || type === 'group_message' || type === 'general' || type === '';
+  const clickUrl = data.click_url || (data.dm_channel
+    ? '/Communications?channel=' + encodeURIComponent(data.dm_channel)
+    : '/Communications');
 
   const opts = {
-    body: payload.body,
+    body: data.body || '',
     icon: '/icon-192.png',
     badge: '/icon-192.png',
-    vibrate,
-    tag,
-    // Every push notification stays visible until the user opens/closes it.
-    // Without this, Android auto-dismisses system notifications after a few seconds.
-    requireInteraction: true,
-    data: { url: clickUrl, type, dm_channel: (data && data.dm_channel) || '' }
+    vibrate: SOS_VIBRATE,
+    tag: data.dm_channel || type || 'shepherd',
+    requireInteraction: true,   // persist until the user acknowledges
+    renotify: true,             // re-alert when a new push with same tag arrives
+    data: {
+      click_url: clickUrl,
+      dm_channel: data.dm_channel || '',
+      notification_type: type
+    }
   };
 
-  if (supportsQuickReply(type)) {
+  // Quick-reply action for chat messages so users can reply from the notification
+  if (isMessage) {
     opts.actions = [{ action: 'reply', title: 'Reply', type: 'text' }];
   }
+
   return opts;
 }
 
-function showAlert(payload) {
-  const { title, type, data } = payload;
-  const opts = buildNotificationOptions(payload);
-
-  self.registration.showNotification(title, opts).catch(() => {});
-
-  // Wake any open app tabs so they play the loud alarm audio + vibrate, even
-  // while the page itself is in the background.
-  self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-    for (const client of clientList) {
-      client.postMessage({ type: 'shepherd-push', notification_type: type, title, body: payload.body, dm_channel: data && data.dm_channel });
-    }
-  }).catch(() => {});
+function broadcast(msg) {
+  self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    list.forEach(c => c.postMessage(msg));
+  });
 }
 
-// Background handler via firebase-messaging compat (data-only + notification payloads)
+// FCM data-only background handler — fires for every push when app is closed/backgrounded
 messaging.onBackgroundMessage((payload) => {
   const data = payload.data || {};
-  const notification = payload.notification || {};
-  showAlert({
-    title: data.title || notification.title || 'Shepherd Shield',
-    body: data.body || notification.body || '',
-    type: data.notification_type || '',
-    clickUrl: data.click_url || '/',
-    data
-  });
+  const title = data.title || 'Shepherd Shield';
+  self.registration.showNotification(title, buildOptions(data));
+  // Forward to open tabs so the foreground page plays the audio tone + screen flash
+  broadcast({ type: 'shepherd-push', notification_type: data.notification_type, dm_channel: data.dm_channel });
 });
 
-// Direct push event — fires for webpush notifications even before firebase compat loads,
-// so vibration + display happen immediately with no delay.
-self.addEventListener('push', (event) => {
-  if (!event.data) return;
-  try {
-    const payload = parsePayload(event);
-    const opts = buildNotificationOptions(payload);
-    event.waitUntil(Promise.all([
-      self.registration.showNotification(payload.title, opts).catch(() => {}),
-      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-        for (const client of clientList) {
-          client.postMessage({ type: 'shepherd-push', notification_type: payload.type, title: payload.title, body: payload.body, dm_channel: payload.data && payload.data.dm_channel });
-        }
-      }).catch(() => {})
-    ]));
-  } catch (_) {
-    event.waitUntil(self.registration.showNotification('Shepherd Shield', { icon: '/icon-192.png' }));
-  }
-});
-
-// Quick reply from a push notification — user typed text directly in the notification.
-// Forwards the reply text to an already-open app tab so it can be sent using the
-// logged-in user's real auth (via base44.functions.invoke). If no app tab is open,
-// the reply is dropped — we don't ship the backend secret to the SW for security.
+// Notification click — deep-link into the app, or forward quick-reply to an open tab
 self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const data = event.notification.data || {};
+
+  // Quick-reply action: forward the typed reply to an open app tab (which has
+  // user auth to send the message). Security: we never ship secrets to the SW.
   if (event.action === 'reply' && event.reply) {
-    event.waitUntil((async () => {
-      const replyText = event.reply.trim();
-      if (!replyText) return;
-      const notifData = event.notification.data || {};
-      const channel = notifData.dm_channel || 'All Team';
-      const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true }).catch(() => []);
-      const appClient = clientList.find(c => c.url && c.url.includes(self.location.origin));
-      if (appClient) {
-        appClient.postMessage({ type: 'shepherd-quick-reply', channel, content: replyText });
-      }
-      // No open tab: reply cannot be sent without the user's auth session.
-    })());
-    event.notification.close();
+    broadcast({ type: 'shepherd-quick-reply', channel: data.dm_channel, content: event.reply });
     return;
   }
 
-  // Normal tap — focus or navigate an open tab to the target route, else open new.
-  // Also post a message to the app so the Communications page can switch to the
-  // specific DM channel even when the tab is already on a different route.
-  event.notification.close();
-  const notifData = event.notification.data || {};
-  const targetUrl = notifData.url || '/';
+  // Deep-link: navigate an open tab to the DM/channel, or open a new window
+  const clickUrl = data.click_url || '/Communications';
+  broadcast({ type: 'shepherd-deeplink', dm_channel: data.dm_channel });
+
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      const appClient = clientList.find(c => c.url && c.url.includes(self.location.origin));
-      if (appClient && 'focus' in appClient) {
-        try { appClient.navigate(targetUrl); } catch (_) {}
-        // Also forward the dm_channel so an open Communications tab switches to it
-        appClient.postMessage({ type: 'shepherd-deeplink', url: targetUrl, dm_channel: notifData.dm_channel || '', notification_type: notifData.type || '' });
-        return appClient.focus();
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for (const c of list) {
+        if (c.url.includes(self.location.origin) && 'focus' in c) {
+          c.navigate(clickUrl);
+          return c.focus();
+        }
       }
-      if (clients.openWindow) return clients.openWindow(targetUrl);
+      if (self.clients.openWindow) return self.clients.openWindow(clickUrl);
     })
   );
 });
 
-
+// Claim existing clients immediately on activation so pushes work without a reload
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});

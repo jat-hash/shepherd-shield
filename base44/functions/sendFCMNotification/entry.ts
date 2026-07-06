@@ -144,12 +144,8 @@ Deno.serve(async (req) => {
                 body: String(body),
                 icon: '/icon-192.png',
                 badge: '/icon-192.png',
-                requireInteraction: notification_type === 'emergency' || notification_type === 'incident',
-                vibrate: notification_type === 'emergency'
-                  ? [1000, 200, 1000, 200, 1000, 200, 1000]
-                  : notification_type === 'dm'
-                  ? [250, 100, 250, 100, 250]
-                  : [200, 100, 200],
+                requireInteraction: true,
+                vibrate: [100, 80, 100, 80, 100, 200, 300, 200, 300, 200, 300, 200, 100, 80, 100, 80, 100],
                 // Quick-reply action for comms messages so users can reply
                 // directly from the notification on Android/desktop Chrome.
                 ...(allow_quick_reply && (notification_type === 'dm' || notification_type === 'group_message')

@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
       }
     } else {
       // For group channels, notify all users except the sender — fetch once
-      const users = await base44.asServiceRole.entities.User.list();
+      const users = await base44.asServiceRole.entities.User.list(undefined, 1000);
       notifications = users
         .filter(u => u.email !== data.sender_email)
         .map(u => ({
