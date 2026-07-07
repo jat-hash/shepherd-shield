@@ -66,7 +66,18 @@ export default function Dashboard() {
     setLocationDismissed(true);
   };
 
+  // Detect if we're inside the Base44 builder preview iframe — service workers
+  // can't register in cross-origin iframes, so push notifications are impossible
+  // here. We show a clear message instead of a confusing "not supported" error.
+  const isInPreview = () => {
+    try { return window.self !== window.top; } catch (_) { return true; }
+  };
+
   const requestNotifications = async () => {
+    if (isInPreview()) {
+      alert('Push notifications can\'t be enabled inside the app builder preview.\n\nOpen the published app directly in Chrome on your phone or desktop, then tap "Enable Now" — push will work there.');
+      return;
+    }
     if (!('Notification' in window)) return;
     const permission = await window.Notification.requestPermission();
     if (permission === 'granted') {
@@ -193,7 +204,16 @@ export default function Dashboard() {
           You're offline — showing cached data
         </div>
       )}
-      {'Notification' in window && !notifGranted && (
+      {isInPreview() && !notifGranted && (
+        <div className="flex items-center gap-3 bg-blue-900/50 border border-blue-400/40 rounded-lg px-4 py-3 text-blue-200 text-sm shadow-lg">
+          <Bell className="w-6 h-6 shrink-0 text-blue-300" />
+          <div className="flex-1">
+            <p className="font-bold text-white">🔔 Push Notifications</p>
+            <p className="text-xs text-blue-300 mt-0.5">Push notifications can't be enabled in the builder preview. Open the published app in Chrome on your phone or desktop to enable vibration alerts.</p>
+          </div>
+        </div>
+      )}
+      {'Notification' in window && !isInPreview() && !notifGranted && (
         <div className="flex items-center gap-3 bg-yellow-900/70 border-2 border-yellow-400/70 rounded-lg px-4 py-3 text-yellow-200 text-sm shadow-lg animate-pulse">
           <Bell className="w-6 h-6 shrink-0 text-yellow-300 animate-bounce" />
           <div className="flex-1">
