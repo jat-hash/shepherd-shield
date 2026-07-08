@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
                   : notification_type === 'incident' ? 'incidents'
                   : notification_type === 'dm' ? 'messages'
                   : 'messages',
-                priority: "max",
+                notificationPriority: "PRIORITY_MAX",
                 defaultVibrateTimings: false,
               },
             },
@@ -162,11 +162,13 @@ Deno.serve(async (req) => {
         successCount++;
       } else {
         failureCount++;
-        // Inspect error — UNREGISTERED/invalid token means the device is gone; clean it up.
+        // Only prune tokens on UNREGISTERED — the token is genuinely gone.
+        // INVALID_ARGUMENT means OUR payload is malformed (not a bad token); pruning
+        // a valid token here was causing every push to silently delete the device.
         try {
           const errJson = await res?.json?.();
           const errName = errJson?.error?.details?.[0]?.errorCode || errJson?.error?.status || '';
-          if (errName === 'UNREGISTERED' || /unregistered|invalid|not found/i.test(String(errJson?.error?.message || ''))) {
+          if (errName === 'UNREGISTERED') {
             deadTokenIds.push(id);
           }
           console.log(`FCM v1 send failed for ${recipient_email} token ${token.substring(0, 16)}…: ${errName || errJson?.error?.message || 'unknown'}`);
