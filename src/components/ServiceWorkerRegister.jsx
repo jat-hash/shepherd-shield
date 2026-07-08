@@ -128,6 +128,11 @@ export default function ServiceWorkerRegister() {
         }
         initializedRef.current = true;
         notify('✅ Push notifications enabled!', 'success');
+        // Notify the Dashboard to re-check pushRegistered status — without
+        // this, the green "enabled" banner never appears even after a successful
+        // auto-registration, because the Dashboard only re-checks on push:register
+        // events (which the Retry button dispatches, but auto-registration does not).
+        window.dispatchEvent(new CustomEvent('push:register'));
 
         // Register periodic background sync (poll every 5 min when app is closed)
         if ('periodicSync' in swRegistration) {
