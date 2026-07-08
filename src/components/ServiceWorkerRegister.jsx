@@ -225,8 +225,12 @@ export default function ServiceWorkerRegister() {
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Re-run when the dashboard "Enable" button grants permission
+    // Re-run when the dashboard "Enable"/"Retry" button dispatches push:register.
+    // Reset the initialized flag so Retry actually re-attempts even if a previous
+    // account's registration set it (stale ref after account switch).
     const handlePushRegister = () => {
+      initializedRef.current = false;
+      runningRef.current = false;
       notify('Registering for push notifications...', 'info');
       initPushNotifications();
     };
@@ -236,6 +240,9 @@ export default function ServiceWorkerRegister() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('push:register', handlePushRegister);
       navigator.serviceWorker.removeEventListener('message', handleSWMessage);
+      // Reset refs on user change so a new user re-registers their device token
+      initializedRef.current = false;
+      runningRef.current = false;
     };
   }, [user]);
 
