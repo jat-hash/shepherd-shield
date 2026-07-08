@@ -149,10 +149,20 @@ export default function Dashboard() {
   // registration attempt (push:register event) so the banner updates in real time.
   useEffect(() => {
     if (!user?.email) return;
-    const check = () => {
-      base44.entities.UserDevice.filter({ user_email: user.email })
-        .then(devices => setPushRegistered(devices && devices.length > 0))
-        .catch(() => setPushRegistered(false));
+    const check = async () => {
+      try {
+        // FCM (Android/Chrome/desktop) OR native Web Push (iOS Safari PWA)
+        const [fcmDevices, webPushSubs] = await Promise.all([
+          base44.entities.UserDevice.filter({ user_email: user.email }),
+          base44.entities.PushSubscription.filter({ user_email: user.email }),
+        ]);
+        setPushRegistered(
+          (fcmDevices && fcmDevices.length > 0) ||
+          (webPushSubs && webPushSubs.length > 0)
+        );
+      } catch {
+        setPushRegistered(false);
+      }
     };
     check();
     window.addEventListener('push:register', check);
