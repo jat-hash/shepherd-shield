@@ -61,6 +61,43 @@ export const getFCMToken = async (swRegistration) => {
     console.warn('[FCM] Failed to unsubscribe old push subscription:', unsubErr.message);
   }
 
+  // Clear Firebase Messaging IndexedDB cache directly. deleteToken() sometimes
+  // fails silently, leaving a stale token in IndexedDB. When that happens,
+  // getToken() finds the cached token and returns it WITHOUT re-checking the
+  // VAPID key — so even though we pass the correct VAPID key, the returned token
+  // was generated with the OLD key and Firebase rejects it as invalid.
+  // Deleting the IndexedDB databases forces getToken() to create a genuinely
+  // fresh subscription and token with the current VAPID key.
+  try {
+    if (typeof indexedDB.databases === 'function') {
+      const dbs = await indexedDB.databases();
+      for (const db of dbs) {
+        if (db.name && (db.name.includes('firebase') || db.name.includes('fcm'))) {
+          await new Promise((resolve) => {
+            const req = indexedDB.deleteDatabase(db.name);
+            req.onsuccess = resolve;
+            req.onerror = resolve;
+            req.onblocked = () => resolve();
+          });
+        }
+      }
+    }
+    // Fallback for browsers without indexedDB.databases() (Firefox/Safari):
+    // delete known Firebase database names.
+    const knownDbs = ['firebase-messaging-store', 'firebase-messaging-database'];
+    for (const name of knownDbs) {
+      await new Promise((resolve) => {
+        const req = indexedDB.deleteDatabase(name);
+        req.onsuccess = resolve;
+        req.onerror = resolve;
+        req.onblocked = () => resolve();
+      });
+    }
+    console.log('[FCM] Cleared Firebase IndexedDB token cache');
+  } catch (idbErr) {
+    console.warn('[FCM] IndexedDB clear failed:', idbErr.message);
+  }
+
   // Fetch the Firebase web push certificate public key from the backend.
   // Firebase's getToken() requires the key registered in Firebase Console >
   // Project Settings > Cloud Messaging > Web Push certificate — NOT the app's

@@ -263,6 +263,44 @@ export default function Dashboard() {
           <div className="flex-1">
             <p className="font-bold text-white">Push setup incomplete</p>
             <p className="text-xs text-orange-200 mt-0.5">Permission granted, but this device isn't registered. Tap to finish setup.</p>
+            <button
+              onClick={async () => {
+                toast.info('Force resetting all push data...', { duration: 3000 });
+                try {
+                  // Unregister ALL service workers (clears stale SW from old Firebase projects)
+                  if ('serviceWorker' in navigator) {
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    for (const reg of regs) await reg.unregister();
+                  }
+                  // Clear all caches
+                  if ('caches' in window) {
+                    const keys = await caches.keys();
+                    for (const key of keys) await caches.delete(key);
+                  }
+                  // Clear all Firebase-related IndexedDB databases (stale token cache)
+                  if (typeof indexedDB.databases === 'function') {
+                    const dbs = await indexedDB.databases();
+                    for (const db of dbs) {
+                      if (db.name && (db.name.includes('firebase') || db.name.includes('fcm'))) {
+                        await new Promise((resolve) => {
+                          const req = indexedDB.deleteDatabase(db.name);
+                          req.onsuccess = resolve;
+                          req.onerror = resolve;
+                          req.onblocked = () => resolve();
+                        });
+                      }
+                    }
+                  }
+                  toast.success('Cleared! Reloading page...', { duration: 2000 });
+                  setTimeout(() => window.location.reload(), 1200);
+                } catch (err) {
+                  toast.error('Reset failed: ' + err.message, { duration: 5000 });
+                }
+              }}
+              className="mt-1.5 text-orange-300 hover:text-white text-xs underline"
+            >
+              Still not working? Force reset
+            </button>
           </div>
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('push:register'))}
