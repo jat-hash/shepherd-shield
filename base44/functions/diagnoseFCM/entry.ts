@@ -91,6 +91,36 @@ Deno.serve(async (req) => {
       }
     }
 
+    const firebaseVapidKey = Deno.env.get('FIREBASE_VAPID_KEY');
+    const nativeVapidKey = Deno.env.get('VAPID_PUBLIC_KEY');
+
+    // Try sending to the most recent REAL token via legacy HTTP API
+    let legacyProbe = null;
+    try {
+      const devices = await base44.asServiceRole.entities.UserDevice.list('-created_date', 1);
+      const latestToken = devices?.[0]?.fcm_token;
+      const serverKey = Deno.env.get('FIREBASE_SERVER_KEY');
+      if (latestToken && serverKey) {
+        const legacyRes = await fetch('https://fcm.googleapis.com/fcm/send', {
+          method: 'POST',
+          headers: { 'Authorization': `key=${serverKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to: latestToken, data: { test: 'diag' } }),
+        });
+        const legacyBody = await legacyRes.json();
+        legacyProbe = { 
+          status: legacyRes.status, 
+          token_preview: latestToken.substring(0, 30),
+          success: legacyBody.success, 
+          failure: legacyBody.failure,
+          error: legacyBody.results?.[0]?.error || null,
+        };
+      } else {
+        legacyProbe = { skipped: !latestToken ? 'no tokens in DB' : 'no FIREBASE_SERVER_KEY' };
+      }
+    } catch (e) {
+      legacyProbe = { error: e.message };
+    }
+
     return Response.json({
       browser_firebase_project_id: "shepard-shield-32db7",
       service_account: saInfo,
@@ -98,6 +128,13 @@ Deno.serve(async (req) => {
       oauth_error: oauthResult?.body?.error ? JSON.stringify(oauthResult.body.error) : null,
       fcm_probe: fcmProbe,
       project_match: sa.project_id === "shepard-shield-32db7",
+      vapid_key_diagnostic: {
+        firebase_vapid_key_prefix: firebaseVapidKey ? firebaseVapidKey.substring(0, 20) : 'NOT SET',
+        native_vapid_key_prefix: nativeVapidKey ? nativeVapidKey.substring(0, 20) : 'NOT SET',
+        keys_are_identical: !!(firebaseVapidKey && nativeVapidKey && firebaseVapidKey === nativeVapidKey),
+        firebase_key_length: firebaseVapidKey?.length || 0,
+      },
+      legacy_api_probe: legacyProbe,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
