@@ -278,7 +278,7 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-      {'Notification' in window && !isInPreview() && !notifGranted && (
+      {'Notification' in window && !isInPreview() && !notifGranted && window.Notification?.permission !== 'denied' && (
         <div className="flex items-center gap-3 bg-yellow-900/70 border-2 border-yellow-400/70 rounded-lg px-4 py-3 text-yellow-200 text-sm shadow-lg animate-pulse">
           <Bell className="w-6 h-6 shrink-0 text-yellow-300 animate-bounce" />
           <div className="flex-1">
@@ -291,6 +291,21 @@ export default function Dashboard() {
           >
             Enable Now
           </button>
+        </div>
+      )}
+      {'Notification' in window && !isInPreview() && window.Notification?.permission === 'denied' && !pushRegistered && (
+        <div className="flex items-start gap-3 bg-red-900/70 border-2 border-red-500/70 rounded-lg px-4 py-3 text-red-200 text-sm shadow-lg animate-pulse">
+          <Bell className="w-6 h-6 shrink-0 mt-0.5 text-red-300 animate-bounce" />
+          <div className="flex-1">
+            <p className="font-bold text-white">🔔 Notifications Blocked</p>
+            <p className="text-xs text-red-200 mt-0.5">You previously blocked notifications. To enable: in Chrome, tap the <span className="font-bold">three dots</span> menu → <span className="font-bold">Settings</span> → <span className="font-bold">Site permissions</span> → <span className="font-bold">Notifications</span> → set to "Allow". Then come back and tap the button below.</p>
+            <button
+              onClick={requestNotifications}
+              className="mt-2 bg-red-600 hover:bg-red-500 active:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-md transition-colors touch-manipulation"
+            >
+              Try Again
+            </button>
+          </div>
         </div>
       )}
       {'Notification' in window && notifGranted && pushRegistered && (
