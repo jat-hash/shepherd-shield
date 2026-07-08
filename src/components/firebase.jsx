@@ -45,6 +45,22 @@ export const getFCMToken = async (swRegistration) => {
   // forces Firebase to issue a genuinely fresh token bound to the current VAPID key.
   try { await deleteToken(messaging); } catch (_) {}
 
+  // Also unsubscribe any existing PushSubscription from the service worker.
+  // deleteToken() only removes the FCM token from Firebase's backend — it does
+  // NOT remove the browser-level PushSubscription that was created with the old
+  // VAPID key. If we leave it, getToken() reuses the stale subscription and
+  // Firebase issues another invalid token. Unsubscribing forces a genuinely new
+  // subscription bound to the correct VAPID key.
+  try {
+    const existingSub = await swRegistration.pushManager.getSubscription();
+    if (existingSub) {
+      await existingSub.unsubscribe();
+      console.log('[FCM] Removed stale push subscription');
+    }
+  } catch (unsubErr) {
+    console.warn('[FCM] Failed to unsubscribe old push subscription:', unsubErr.message);
+  }
+
   // Fetch the Firebase web push certificate public key from the backend.
   // Firebase's getToken() requires the key registered in Firebase Console >
   // Project Settings > Cloud Messaging > Web Push certificate — NOT the app's
