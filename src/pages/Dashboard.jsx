@@ -26,6 +26,10 @@ export default function Dashboard() {
   const [locationDismissed, setLocationDismissed] = useState(() => localStorage.getItem('locationPromptDismissed') === 'true');
   const [locationGranted, setLocationGranted] = useState(() => localStorage.getItem('locationGranted') === 'true');
   const [notifGranted, setNotifGranted] = useState(() => ('Notification' in window) && window.Notification?.permission === 'granted');
+  // Tracks whether a push token is actually saved — the green "enabled" banner
+  // must reflect real registration, not just browser permission (which can be
+  // granted while the FCM token save silently failed).
+  const [pushRegistered, setPushRegistered] = useState(false);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -141,7 +145,19 @@ export default function Dashboard() {
     }, 300);
   }, [user]);
 
-  useEffect(() => { reload(); }, [reload]);
+  // Check whether this user has an actual saved FCM token. Re-checks after any
+  // registration attempt (push:register event) so the banner updates in real time.
+  useEffect(() => {
+    if (!user?.email) return;
+    const check = () => {
+      base44.entities.UserDevice.filter({ user_email: user.email })
+        .then(devices => setPushRegistered(devices && devices.length > 0))
+        .catch(() => setPushRegistered(false));
+    };
+    check();
+    window.addEventListener('push:register', check);
+    return () => window.removeEventListener('push:register', check);
+  }, [user]);
 
   // Load active alerts
   useEffect(() => {
@@ -235,10 +251,25 @@ export default function Dashboard() {
           </button>
         </div>
       )}
-      {'Notification' in window && notifGranted && (
+      {'Notification' in window && notifGranted && pushRegistered && (
         <div className="flex items-center gap-3 bg-green-900/50 border border-green-500/50 rounded-lg px-4 py-3 text-green-200 text-sm">
           <span className="text-lg">✅</span>
           <p className="text-xs">Push notifications enabled — your phone will vibrate when alerts arrive.</p>
+        </div>
+      )}
+      {'Notification' in window && notifGranted && !pushRegistered && (
+        <div className="flex items-center gap-3 bg-orange-900/60 border-2 border-orange-400/60 rounded-lg px-4 py-3 text-orange-200 text-sm shadow-lg animate-pulse">
+          <span className="text-lg">⚠️</span>
+          <div className="flex-1">
+            <p className="font-bold text-white">Push setup incomplete</p>
+            <p className="text-xs text-orange-200 mt-0.5">Permission granted, but this device isn't registered. Tap to finish setup.</p>
+          </div>
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('push:register'))}
+            className="shrink-0 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white text-xs font-bold px-4 py-2 rounded-md transition-colors touch-manipulation"
+          >
+            Retry
+          </button>
         </div>
       )}
       {!locationGranted && !locationDismissed && (
