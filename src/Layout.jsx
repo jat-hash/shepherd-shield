@@ -39,6 +39,7 @@ const PAGE_TITLES = {
   NurseryDashboard: "Nursery",
   NurseryMonitor: "Nursery Monitor",
   WhatsAppAdmin: "WhatsApp Admin",
+  PushDiagnostics: "Push Diagnostics",
 };
 
 export default function Layout({ children, currentPageName }) {

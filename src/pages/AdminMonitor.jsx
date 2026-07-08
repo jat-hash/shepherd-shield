@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
+import { Link } from "react-router-dom";
 import { CheckCircle, XCircle, Clock, Edit2, Search, Trash2, Bell, Send, MessageSquare, WifiOff, Wrench, RefreshCw, Plus } from "lucide-react";
 import { cacheData, getCachedData, savePendingCheckIn, syncPendingCheckIns } from "@/lib/offlineStorage";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -542,6 +543,16 @@ export default function AdminMonitor() {
             <RefreshCw className="w-4 h-4" />
             <span className="hidden sm:inline">Refresh</span>
           </Button>
+          <Link to="/PushDiagnostics">
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-[rgba(212,168,67,0.3)] text-[#d4a843] hover:bg-[#d4a843]/10 gap-1 whitespace-nowrap"
+            >
+              <Bell className="w-4 h-4" />
+              <span className="hidden sm:inline">Push Diag</span>
+            </Button>
+          </Link>
         </div>
       </div>
 

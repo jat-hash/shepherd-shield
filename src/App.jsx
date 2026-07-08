@@ -82,6 +82,7 @@ class ErrorBoundary extends React.Component {
 import NotificationProvider from '@/components/notifications/NotificationProvider';
 import NurseryDashboard from './pages/NurseryDashboard';
 import NurseryMonitor from './pages/NurseryMonitor';
+import PushDiagnostics from './pages/PushDiagnostics';
 import MinimizedAppBar from '@/components/MinimizedAppBar';
 import PWAInstaller from '@/components/PWAInstaller';
 import WakeLock from '@/components/WakeLock';
@@ -219,6 +220,7 @@ const AuthenticatedApp = () => {
             ))}
             <Route path="/NurseryDashboard" element={<LayoutWrapper currentPageName="NurseryDashboard"><NurseryDashboard /></LayoutWrapper>} />
             <Route path="/NurseryMonitor" element={<LayoutWrapper currentPageName="NurseryMonitor"><NurseryMonitor /></LayoutWrapper>} />
+            <Route path="/PushDiagnostics" element={<LayoutWrapper currentPageName="PushDiagnostics"><PushDiagnostics /></LayoutWrapper>} />
             <Route path="*" element={<PageNotFound />} />
           </Routes>
         </NotificationProvider>
