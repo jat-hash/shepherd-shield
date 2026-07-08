@@ -45,22 +45,33 @@ export const getFCMToken = async (swRegistration) => {
   // forces Firebase to issue a genuinely fresh token bound to the current VAPID key.
   try { await deleteToken(messaging); } catch (_) {}
 
-  // Fetch the VAPID public key from the backend so FCM and native Web Push share
-  // the same key pair — the one registered in the Firebase console's Web Push
-  // certificate. A mismatched hardcoded key causes Firebase to issue tokens it
-  // then rejects as "not a valid FCM registration token".
+  // Fetch the Firebase web push certificate public key from the backend.
+  // Firebase's getToken() requires the key registered in Firebase Console >
+  // Project Settings > Cloud Messaging > Web Push certificate — NOT the app's
+  // own native Web Push VAPID key pair (those are a separate self-generated pair).
   let vapidKey = '';
   try {
     const res = await base44.functions.invoke('getVapidPublicKey', {});
     vapidKey = res?.data?.public_key || '';
-  } catch (_) {}
-  if (!vapidKey) throw new Error('VAPID public key not available from backend');
+    console.log('[FCM] VAPID key fetched:', vapidKey ? vapidKey.substring(0, 20) + '...' : 'EMPTY');
+  } catch (fetchErr) {
+    console.error('[FCM] Failed to fetch VAPID key:', fetchErr.message);
+    throw new Error('Failed to fetch VAPID key from backend: ' + fetchErr.message);
+  }
+  if (!vapidKey) throw new Error('VAPID public key not available from backend — check FIREBASE_VAPID_KEY secret');
 
-  const token = await getToken(messaging, {
-    vapidKey,
-    serviceWorkerRegistration: swRegistration
-  });
+  let token;
+  try {
+    token = await getToken(messaging, {
+      vapidKey,
+      serviceWorkerRegistration: swRegistration
+    });
+  } catch (getTokenErr) {
+    console.error('[FCM] getToken failed:', getTokenErr.code, getTokenErr.message);
+    throw new Error('Firebase getToken() failed: ' + (getTokenErr.code || '') + ' ' + getTokenErr.message);
+  }
 
-  if (!token) throw new Error('getToken returned empty/null');
+  if (!token) throw new Error('getToken returned empty/null — FCM did not issue a token');
+  console.log('[FCM] Token obtained:', token.substring(0, 20) + '...');
   return token;
 };
