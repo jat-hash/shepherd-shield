@@ -78,6 +78,20 @@ export default function Dashboard() {
     try { return window.self !== window.top; } catch (_) { return true; }
   };
 
+  // iOS Safari (before PWA installation) has NO Notification API at all — so
+  // every push banner below is hidden, and users see nothing. We detect iOS and
+  // show an "Add to Home Screen" prompt instead.
+  const isIOS = () => {
+    if (typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent || '';
+    const isIPhone = /iPad|iPhone|iPod/.test(ua);
+    const isIPadDesktop = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+    // Standalone means it's already installed as a PWA — in which case Notification
+    // IS available and we don't need this banner.
+    const isStandalone = window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone === true;
+    return (isIPhone || isIPadDesktop) && !isStandalone;
+  };
+
   const requestNotifications = async () => {
     if (isInPreview()) {
       toast.error('Push can\'t be enabled in the builder preview. Open the published app in Chrome to enable.', { duration: 8000 });
@@ -235,6 +249,15 @@ export default function Dashboard() {
         <div className="flex items-center gap-2 bg-orange-900/40 border border-orange-500/30 rounded-lg px-3 py-2 text-orange-300 text-xs">
           <WifiOff className="w-3.5 h-3.5 shrink-0" />
           You're offline — showing cached data
+        </div>
+      )}
+      {!('Notification' in window) && isIOS() && !isInPreview() && (
+        <div className="flex items-start gap-3 bg-purple-900/60 border-2 border-purple-400/60 rounded-lg px-4 py-3 text-purple-200 text-sm shadow-lg animate-pulse">
+          <Bell className="w-6 h-6 shrink-0 mt-0.5 text-purple-300 animate-bounce" />
+          <div className="flex-1">
+            <p className="font-bold text-white">🔔 Install App to Enable Alerts</p>
+            <p className="text-xs text-purple-200 mt-0.5">On iPhone, push notifications only work when the app is installed. Tap the <span className="font-bold">Share</span> button at the bottom of Safari, then <span className="font-bold">"Add to Home Screen"</span>. Open the app from your home screen to enable vibration alerts.</p>
+          </div>
         </div>
       )}
       {isInPreview() && !notifGranted && (
