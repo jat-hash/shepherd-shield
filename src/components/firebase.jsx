@@ -36,72 +36,11 @@ export const getFCMToken = async (swRegistration) => {
     throw new Error('Notification permission not granted: ' + notifPermission);
   }
 
-  const { getMessaging, getToken, deleteToken } = await import('firebase/messaging');
+  const { getMessaging, getToken } = await import('firebase/messaging');
   const { app: firebaseApp } = initFirebase();
   const messaging = getMessaging(firebaseApp);
 
-  // Force-delete any cached token first — the browser stores tokens in IndexedDB
-  // and returns the same (possibly stale/invalid) one on every call. Deleting
-  // forces Firebase to issue a genuinely fresh token bound to the current VAPID key.
-  try { await deleteToken(messaging); } catch (_) {}
-
-  // Also unsubscribe any existing PushSubscription from the service worker.
-  // deleteToken() only removes the FCM token from Firebase's backend — it does
-  // NOT remove the browser-level PushSubscription that was created with the old
-  // VAPID key. If we leave it, getToken() reuses the stale subscription and
-  // Firebase issues another invalid token. Unsubscribing forces a genuinely new
-  // subscription bound to the correct VAPID key.
-  try {
-    const existingSub = await swRegistration.pushManager.getSubscription();
-    if (existingSub) {
-      await existingSub.unsubscribe();
-      console.log('[FCM] Removed stale push subscription');
-    }
-  } catch (unsubErr) {
-    console.warn('[FCM] Failed to unsubscribe old push subscription:', unsubErr.message);
-  }
-
-  // Clear Firebase Messaging IndexedDB cache directly. deleteToken() sometimes
-  // fails silently, leaving a stale token in IndexedDB. When that happens,
-  // getToken() finds the cached token and returns it WITHOUT re-checking the
-  // VAPID key — so even though we pass the correct VAPID key, the returned token
-  // was generated with the OLD key and Firebase rejects it as invalid.
-  // Deleting the IndexedDB databases forces getToken() to create a genuinely
-  // fresh subscription and token with the current VAPID key.
-  try {
-    if (typeof indexedDB.databases === 'function') {
-      const dbs = await indexedDB.databases();
-      for (const db of dbs) {
-        if (db.name && (db.name.includes('firebase') || db.name.includes('fcm'))) {
-          await new Promise((resolve) => {
-            const req = indexedDB.deleteDatabase(db.name);
-            req.onsuccess = resolve;
-            req.onerror = resolve;
-            req.onblocked = () => resolve();
-          });
-        }
-      }
-    }
-    // Fallback for browsers without indexedDB.databases() (Firefox/Safari):
-    // delete known Firebase database names.
-    const knownDbs = ['firebase-messaging-store', 'firebase-messaging-database'];
-    for (const name of knownDbs) {
-      await new Promise((resolve) => {
-        const req = indexedDB.deleteDatabase(name);
-        req.onsuccess = resolve;
-        req.onerror = resolve;
-        req.onblocked = () => resolve();
-      });
-    }
-    console.log('[FCM] Cleared Firebase IndexedDB token cache');
-  } catch (idbErr) {
-    console.warn('[FCM] IndexedDB clear failed:', idbErr.message);
-  }
-
   // Fetch the Firebase web push certificate public key from the backend.
-  // Firebase's getToken() requires the key registered in Firebase Console >
-  // Project Settings > Cloud Messaging > Web Push certificate — NOT the app's
-  // own native Web Push VAPID key pair (those are a separate self-generated pair).
   let vapidKey = '';
   try {
     const res = await base44.functions.invoke('getVapidPublicKey', {});
@@ -113,6 +52,12 @@ export const getFCMToken = async (swRegistration) => {
   }
   if (!vapidKey) throw new Error('VAPID public key not available from backend — check FIREBASE_VAPID_KEY secret');
 
+  // Let Firebase handle token caching naturally — getToken() returns the
+  // existing valid token from IndexedDB if one exists, or creates a fresh
+  // subscription if none exists. We deliberately do NOT delete/unsubscribe
+  // on every call (that raced with Firebase's own init and caused getToken()
+  // to fail, leaving no token saved after reload). The Dashboard's "Force
+  // reset" button handles full cleanup explicitly when needed.
   let token;
   try {
     token = await getToken(messaging, {
