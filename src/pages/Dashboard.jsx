@@ -260,6 +260,15 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+      {!('Notification' in window) && !isIOS() && !isInPreview() && (
+        <div className="flex items-start gap-3 bg-orange-900/60 border-2 border-orange-400/60 rounded-lg px-4 py-3 text-orange-200 text-sm shadow-lg animate-pulse">
+          <Bell className="w-6 h-6 shrink-0 mt-0.5 text-orange-300 animate-bounce" />
+          <div className="flex-1">
+            <p className="font-bold text-white">🔔 Open in Chrome to Enable Alerts</p>
+            <p className="text-xs text-orange-200 mt-0.5">This browser doesn't support push notifications (common when opening links from email or messaging apps). Copy the app link and open it directly in <span className="font-bold">Chrome</span>, then tap "Enable Now" on this page.</p>
+          </div>
+        </div>
+      )}
       {isInPreview() && !notifGranted && (
         <div className="flex items-center gap-3 bg-blue-900/50 border border-blue-400/40 rounded-lg px-4 py-3 text-blue-200 text-sm shadow-lg">
           <Bell className="w-6 h-6 shrink-0 text-blue-300" />
