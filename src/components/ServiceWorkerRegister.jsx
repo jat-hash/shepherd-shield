@@ -42,6 +42,15 @@ export default function ServiceWorkerRegister() {
     console.log(`[FCM] ${msg}`);
   };
 
+  // Visible feedback so the user can see exactly where registration fails
+  // (previously every step was console-only — failures were invisible)
+  const notify = (msg, type = 'info') => {
+    addLog(msg);
+    if (type === 'error') toast.error(msg, { duration: 8000 });
+    else if (type === 'success') toast.success(msg, { duration: 4000 });
+    else toast(msg, { duration: 5000 });
+  };
+
   // Debug panel is hidden by default on mobile — no longer auto-showing
 
   useEffect(() => {
@@ -55,19 +64,21 @@ export default function ServiceWorkerRegister() {
         addLog('UA: ' + navigator.userAgent.slice(0, 80));
         addLog('APIs → SW:' + ('serviceWorker' in navigator) + ' Notif:' + ('Notification' in window) + ' Push:' + ('PushManager' in window));
         if (isInAppBrowser()) {
-          addLog('❌ In-app browser detected — push notifications cannot work here.');
-          addLog('👉 Open this app in Chrome (Android) or Safari (iPhone) directly:');
-          addLog('   Tap the ••• menu → "Open in Chrome" / "Open in Browser"');
+          notify('❌ In-app browser detected — open in Chrome/Safari directly to enable push', 'error');
           return;
         }
         const support = isFCMSupported();
-        if (!support.ok) { addLog('❌ FCM not supported: ' + support.reason); return; }
-        addLog('User: ' + user.email);
+        if (!support.ok) {
+          notify('❌ Push not supported: ' + support.reason, 'error');
+          return;
+        }
 
-        if (!('serviceWorker' in navigator)) { addLog('SW not supported'); return; }
-        addLog('SW supported');
+        if (!('serviceWorker' in navigator)) {
+          notify('❌ Service Worker not supported in this browser', 'error');
+          return;
+        }
 
-        if (!('Notification' in window)) { addLog('Notifications not supported on this browser'); return; }
+        if (!('Notification' in window)) { notify('❌ Notification API missing', 'error'); return; }
 
         // Check notification permission — use Permissions API as fallback when
         // window.Notification is undefined (some Android browsers/embedded webviews).
@@ -85,17 +96,15 @@ export default function ServiceWorkerRegister() {
         // on every refresh. The Dashboard banner's "Enable Notifications" button
         // (explicit gesture) grants permission then dispatches 'push:register'.
         if (permission !== 'granted') {
-          addLog('⚠️ Notifications not granted yet — granting via the Dashboard banner will auto-trigger registration');
+          notify('⚠️ Notification permission not granted — tap "Enable Now" on the Dashboard to allow', 'info');
           return;
         }
 
         // Register the Firebase messaging SW
         await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-        addLog('Firebase SW registered');
 
         // Wait for SW to be fully active before getting token
         const swRegistration = await navigator.serviceWorker.ready;
-        addLog('SW ready, scope: ' + swRegistration.scope);
 
         // Get FCM token using the active SW registration
         let token;
@@ -103,11 +112,10 @@ export default function ServiceWorkerRegister() {
           const { getFCMToken } = await import('@/components/firebase');
           token = await getFCMToken(swRegistration);
         } catch (tokenErr) {
-          addLog('ERROR getting token: ' + tokenErr.message);
+          notify('❌ Failed to get push token: ' + tokenErr.message, 'error');
           return;
         }
-        if (!token) { addLog('ERROR: No FCM token obtained'); return; }
-        addLog('Token: ' + token.substring(0, 20) + '...');
+        if (!token) { notify('❌ No push token obtained from Firebase', 'error'); return; }
 
         // Save token to backend — check response status (invoke resolves even on 500)
         const saveRes = await base44.functions.invoke('saveFCMToken', {
@@ -115,11 +123,11 @@ export default function ServiceWorkerRegister() {
           device_id: navigator.userAgent.slice(0, 50)
         });
         if (saveRes?.status >= 400 || saveRes?.data?.error) {
-          addLog('❌ Save failed: ' + (saveRes?.data?.error || 'status ' + saveRes?.status));
+          notify('❌ Failed to save push token: ' + (saveRes?.data?.error || 'status ' + saveRes?.status), 'error');
           return;
         }
         initializedRef.current = true;
-        addLog('Token saved! ✅');
+        notify('✅ Push notifications enabled!', 'success');
 
         // Register periodic background sync (poll every 5 min when app is closed)
         if ('periodicSync' in swRegistration) {
@@ -163,8 +171,7 @@ export default function ServiceWorkerRegister() {
           addLog('Messaging listener error: ' + msgErr.message);
         }
       } catch (error) {
-        addLog('ERROR: ' + (error.code ? error.code + ' - ' : '') + error.message);
-        addLog('STACK: ' + (error.stack || '').split('\n')[1]);
+        notify('❌ Push setup error: ' + (error.code ? error.code + ' - ' : '') + error.message, 'error');
       } finally {
         runningRef.current = false;
       }
@@ -220,7 +227,7 @@ export default function ServiceWorkerRegister() {
 
     // Re-run when the dashboard "Enable" button grants permission
     const handlePushRegister = () => {
-      addLog('push:register event received, registering...');
+      notify('Registering for push notifications...', 'info');
       initPushNotifications();
     };
     window.addEventListener('push:register', handlePushRegister);

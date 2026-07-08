@@ -17,6 +17,7 @@ import AdminDashboardPanel from "@/components/dashboard/AdminDashboardPanel";
 import MyCheckInStatus from "@/components/dashboard/MyCheckInStatus";
 import ChurchServiceAlerts from "@/components/dashboard/ChurchServiceAlerts";
 import PullToRefresh from "@/components/PullToRefresh";
+import { toast } from "sonner";
 
 export default function Dashboard() {
   const { user: authUser } = useAuth();
@@ -75,18 +76,24 @@ export default function Dashboard() {
 
   const requestNotifications = async () => {
     if (isInPreview()) {
-      alert('Push notifications can\'t be enabled inside the app builder preview.\n\nOpen the published app directly in Chrome on your phone or desktop, then tap "Enable Now" — push will work there.');
+      toast.error('Push can\'t be enabled in the builder preview. Open the published app in Chrome to enable.', { duration: 8000 });
       return;
     }
-    if (!('Notification' in window)) return;
+    if (!('Notification' in window)) {
+      toast.error('This browser doesn\'t support notifications', { duration: 6000 });
+      return;
+    }
+    toast.info('Requesting notification permission...', { duration: 3000 });
     const permission = await window.Notification.requestPermission();
     if (permission === 'granted') {
       setNotifGranted(true);
+      toast.success('Permission granted — registering your device...', { duration: 3000 });
       // Trigger FCM token registration now that permission is granted
       window.dispatchEvent(new CustomEvent('push:register'));
+    } else if (permission === 'denied') {
+      toast.error('Notifications were blocked. Go to browser Settings → Site Permissions → Notifications to allow this site.', { duration: 10000 });
     } else {
-      // Permission denied — show native OS message explaining why the app needs it
-      alert('Notifications are required to send push alerts to your phone. Check system settings to enable.');
+      toast('Permission dismissed — tap "Enable Now" again to retry', { duration: 5000 });
     }
   };
 
