@@ -125,14 +125,25 @@ self.addEventListener('push', (event) => {
   const notifType = d.notification_type || '';
   const dmChannel = d.dm_channel || '';
   const alertId = d.alert_id || '';
+  const incidentId = d.incident_id || '';
   const clickUrl = d.click_url || (dmChannel
     ? `/Communications?channel=${encodeURIComponent(dmChannel)}`
     : '/Communications');
 
-  // Quick-reply inline action for direct & group messages
-  const actions = (notifType === 'dm' || notifType === 'group_message')
-    ? [{ action: 'reply', title: 'Reply', type: 'text' }]
-    : [];
+  // Action buttons: quick-reply for DMs, acknowledge/help for incidents,
+  // safe/help for emergency alerts. Chrome allows max 2 actions per notification.
+  const actions = [];
+  if (notifType === 'dm' || notifType === 'group_message') {
+    actions.push({ action: 'reply', title: 'Reply', type: 'text' });
+  }
+  if (notifType === 'incident') {
+    actions.push({ action: 'acknowledge', title: '✓ Acknowledge' });
+    actions.push({ action: 'request_help', title: '🆘 Request Help' });
+  }
+  if (notifType === 'emergency') {
+    actions.push({ action: 'mark_safe', title: "✓ I'm Safe" });
+    actions.push({ action: 'need_help', title: '🆘 Need Help' });
+  }
 
   const options = {
     body,
@@ -145,6 +156,7 @@ self.addEventListener('push', (event) => {
       dm_channel: dmChannel,
       notification_type: notifType,
       alert_id: alertId,
+      incident_id: incidentId,
       title,
       body,
     },
@@ -171,6 +183,12 @@ self.addEventListener('notificationclick', (event) => {
   // project decision, quick-reply from the SW is forwarded to an open tab only.
   if (event.action === 'reply' && event.reply) {
     event.waitUntil(handleQuickReply(event));
+    return;
+  }
+
+  // Incident/emergency action buttons — handled directly by the SW
+  if (['acknowledge', 'request_help', 'mark_safe', 'need_help'].includes(event.action)) {
+    event.waitUntil(handleNotificationAction(event));
     return;
   }
 
@@ -224,6 +242,68 @@ async function handleQuickReply(event) {
 
   // Fallback: no stored identity or fetch failed — open the DM for manual reply
   await openOrFocus(`/Communications?channel=${encodeURIComponent(channel)}`, data);
+}
+
+// Handles action button taps (acknowledge incident, request help, mark safe,
+// need help) directly from the notification — works with app fully closed.
+async function handleNotificationAction(event) {
+  const data = event.notification.data || {};
+  const action = event.action;
+
+  // Path 1: forward to an open app tab (which holds the user's session)
+  const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  for (const client of clientList) {
+    client.postMessage({
+      type: 'shepherd-notification-action',
+      action,
+      incident_id: data.incident_id || '',
+      alert_id: data.alert_id || '',
+    });
+  }
+  if (clientList.length > 0) {
+    showActionConfirmation(action);
+    return;
+  }
+
+  // Path 2: app is closed — use stored identity to call the backend directly
+  const identity = await idbGet('identity');
+  if (identity?.fcm_token && identity?.app_id) {
+    try {
+      const res = await fetch(`/apps/${identity.app_id}/functions/handleNotificationAction`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          incident_id: data.incident_id || '',
+          alert_id: data.alert_id || '',
+          fcm_token: identity.fcm_token,
+          sender_email: identity.user_email,
+          sender_name: identity.user_name,
+        }),
+      });
+      if (res.ok) {
+        showActionConfirmation(action);
+        return;
+      }
+    } catch (e) { /* fall through to manual open */ }
+  }
+
+  // Fallback: open the app
+  await openOrFocus(data.click_url || '/', data);
+}
+
+function showActionConfirmation(action) {
+  const labels = {
+    acknowledge: '✓ Incident acknowledged — team notified',
+    request_help: '🆘 Help request sent to team',
+    mark_safe: '✓ Marked as safe',
+    need_help: '🆘 Help request sent',
+  };
+  self.registration.showNotification(labels[action] || '✓ Done', {
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    silent: true,
+  });
 }
 
 async function openOrFocus(targetUrl, data) {

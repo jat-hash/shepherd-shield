@@ -65,7 +65,7 @@ async function getAccessToken(sa) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { recipient_email, title, body, alert_id, dm_channel, notification_type, click_url, allow_quick_reply } = await req.json();
+    const { recipient_email, title, body, alert_id, incident_id, dm_channel, notification_type, click_url, allow_quick_reply } = await req.json();
 
     if (!recipient_email || !title || !body) {
       return Response.json({ error: 'recipient_email, title, and body required' }, { status: 400 });
@@ -100,6 +100,7 @@ Deno.serve(async (req) => {
       title: String(title),
       body: String(body),
       alertId: String(alert_id || ''),
+      incident_id: String(incident_id || ''),
       dm_channel: String(dm_channel || ''),
       notification_type: String(notification_type || ''),
       click_url: targetUrl,

@@ -38,6 +38,7 @@ Deno.serve(async (req) => {
         title,
         body,
         notification_type: 'incident',
+        incident_id: incident.id,
         click_url: '/Incidents',
       }).catch(() => null);
       if (fcmRes?.data?.success) fcmSent++;

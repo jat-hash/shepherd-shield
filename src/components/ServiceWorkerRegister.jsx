@@ -217,6 +217,20 @@ export default function ServiceWorkerRegister() {
           window.dispatchEvent(new CustomEvent('shepherd:openDM', { detail: { channel } }));
         }
       }
+      // Action button (acknowledge/request help/mark safe/need help) forwarded
+      // from the SW when an app tab was open at tap time.
+      if (event.data?.type === 'shepherd-notification-action' && user) {
+        try {
+          await base44.functions.invoke('handleNotificationAction', {
+            action: event.data.action,
+            incident_id: event.data.incident_id || '',
+            alert_id: event.data.alert_id || '',
+          });
+          toast.success('Action sent', { duration: 2000 });
+        } catch (err) {
+          toast.error('Action failed', { duration: 3000 });
+        }
+      }
       // Quick-reply forwarded from the SW when no app tab was open at tap time.
       if (event.data?.type === 'shepherd-quick-reply' && user) {
         try {
