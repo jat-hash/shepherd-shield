@@ -29,6 +29,57 @@ const messaging = firebase.messaging();
 // SOS vibration pattern used for all incoming alerts
 const SOS_VIBRATE = [100, 80, 100, 80, 100, 200, 300, 200, 300, 200, 300, 200, 100, 80, 100, 80, 100];
 
+// --- IndexedDB: stores user identity for background quick-reply (app closed) ---
+const IDB_NAME = 'shepherd-sw';
+const IDB_STORE = 'kv';
+
+function idbGet(key) {
+  return new Promise((resolve) => {
+    try {
+      const req = indexedDB.open(IDB_NAME, 1);
+      req.onupgradeneeded = (e) => { e.target.result.createObjectStore(IDB_STORE); };
+      req.onsuccess = (e) => {
+        const db = e.target.result;
+        const tx = db.transaction(IDB_STORE, 'readonly');
+        const getReq = tx.objectStore(IDB_STORE).get(key);
+        getReq.onsuccess = () => resolve(getReq.result || null);
+        getReq.onerror = () => resolve(null);
+      };
+      req.onerror = () => resolve(null);
+    } catch (_) { resolve(null); }
+  });
+}
+
+function idbPut(key, value) {
+  return new Promise((resolve) => {
+    try {
+      const req = indexedDB.open(IDB_NAME, 1);
+      req.onupgradeneeded = (e) => { e.target.result.createObjectStore(IDB_STORE); };
+      req.onsuccess = (e) => {
+        const db = e.target.result;
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).put(value, key);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(false);
+      };
+      req.onerror = () => resolve(false);
+    } catch (_) { resolve(false); }
+  });
+}
+
+// Page sends user identity + app_id after push registration so the SW can
+// send quick-replies directly when the app is closed (no open tab to forward to)
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'store-identity') {
+    idbPut('identity', {
+      user_email: event.data.user_email,
+      user_name: event.data.user_name,
+      fcm_token: event.data.fcm_token,
+      app_id: event.data.app_id,
+    });
+  }
+});
+
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
@@ -134,14 +185,45 @@ async function handleQuickReply(event) {
   const content = event.reply;
   if (!channel || !content) return;
 
+  // Path 1: forward to an open app tab (which holds the user's session)
   const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
   for (const client of clientList) {
     client.postMessage({ type: 'shepherd-quick-reply', channel, content });
   }
-  // No open tab — open the DM so the user can reply manually
-  if (clientList.length === 0) {
-    await openOrFocus(`/Communications?channel=${encodeURIComponent(channel)}`, data);
+  if (clientList.length > 0) return;
+
+  // Path 2: app is closed — use stored identity to send the reply directly.
+  // The FCM token acts as the device credential (validated server-side against
+  // the UserDevice table) — no shared secret shipped to the SW.
+  const identity = await idbGet('identity');
+  if (identity?.fcm_token && identity?.app_id) {
+    try {
+      const res = await fetch(`/apps/${identity.app_id}/functions/sendQuickReply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channel,
+          content,
+          fcm_token: identity.fcm_token,
+          sender_email: identity.user_email,
+          sender_name: identity.user_name,
+        }),
+      });
+      if (res.ok) {
+        // Brief silent confirmation so the user knows the reply went through
+        self.registration.showNotification('✓ Reply sent', {
+          body: content.length > 50 ? content.substring(0, 50) + '…' : content,
+          icon: '/icon-192.png',
+          badge: '/icon-192.png',
+          silent: true,
+        });
+        return;
+      }
+    } catch (e) { /* fall through to manual open */ }
   }
+
+  // Fallback: no stored identity or fetch failed — open the DM for manual reply
+  await openOrFocus(`/Communications?channel=${encodeURIComponent(channel)}`, data);
 }
 
 async function openOrFocus(targetUrl, data) {

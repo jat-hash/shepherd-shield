@@ -128,6 +128,20 @@ export default function ServiceWorkerRegister() {
         }
         initializedRef.current = true;
         notify('✅ Push notifications enabled!', 'success');
+        // Store user identity in the service worker's IndexedDB so quick-reply
+        // works when the app is fully closed (SW sends the reply directly using
+        // the FCM token as the device credential — no shared secret needed).
+        try {
+          const swReg = await navigator.serviceWorker.ready;
+          const { appParams } = await import('@/lib/app-params');
+          swReg.active?.postMessage({
+            type: 'store-identity',
+            user_email: user.email,
+            user_name: user.display_name || user.full_name || user.email,
+            fcm_token: token,
+            app_id: appParams.appId,
+          });
+        } catch (_) {}
         // Notify the Dashboard to re-check pushRegistered status — without
         // this, the green "enabled" banner never appears even after a successful
         // auto-registration, because the Dashboard only re-checks on push:register

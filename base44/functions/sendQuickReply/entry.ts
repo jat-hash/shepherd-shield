@@ -1,24 +1,31 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 // Receives a quick reply sent from the notification's reply action.
-// Primary path: forwarded from an open app tab via the SDK (uses the logged-in
-// user's real session — sender is pinned to that user, no secret needed).
-// Fallback path: a direct call with the shared QUICK_REPLY_SECRET (used only
-// when the SW has the secret configured, for background replies with no tab open).
+// Path 1: forwarded from an open app tab via the SDK (authenticated user session).
+// Path 2: direct from the service worker when the app is closed — authenticates
+//         via the device's FCM token (validated against UserDevice table). No
+//         shared secret needed; the FCM token itself is the device credential.
+// Path 3: legacy fallback with QUICK_REPLY_SECRET (backward compat).
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { channel, content, sender_email, sender_name, reply_secret } = await req.json();
+    const { channel, content, sender_email, sender_name, reply_secret, fcm_token } = await req.json();
 
-    // Two valid paths:
-    // 1) Forwarded from an open app tab via the SDK — the caller is authenticated
-    //    as a logged-in user, so we trust the provided sender info (no secret needed).
-    // 2) Direct from the service worker when no tab is open — no user session, so the
-    //    shared QUICK_REPLY_SECRET must match.
+    // Three valid auth paths (see header comment above)
     const user = await base44.auth.me().catch(() => null);
     const isForwardedFromApp = !!user;
+    let resolvedEmail = null;
+    let resolvedName = null;
     if (!isForwardedFromApp) {
-      if (reply_secret !== Deno.env.get('QUICK_REPLY_SECRET')) {
+      if (fcm_token) {
+        // Validate the FCM token against registered devices
+        const devices = await base44.asServiceRole.entities.UserDevice.filter({ fcm_token });
+        if (devices.length === 0) {
+          return Response.json({ error: 'Invalid device token' }, { status: 401 });
+        }
+        resolvedEmail = devices[0].user_email;
+        resolvedName = sender_name || resolvedEmail.split('@')[0];
+      } else if (reply_secret !== Deno.env.get('QUICK_REPLY_SECRET')) {
         return Response.json({ error: 'Unauthorized' }, { status: 401 });
       }
     }
@@ -26,9 +33,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'channel, content, sender_email, sender_name required' }, { status: 400 });
     }
 
-    // If forwarded from the app, pin the sender to the logged-in user to prevent spoofing.
-    const finalEmail = isForwardedFromApp ? user.email : sender_email;
-    const finalName = isForwardedFromApp ? (user.display_name || user.full_name || sender_name) : sender_name;
+    // Pin the sender: app-forwarded → logged-in user; fcm_token → device owner; else → provided values
+    const finalEmail = isForwardedFromApp ? user.email : (resolvedEmail || sender_email);
+    const finalName = isForwardedFromApp ? (user.display_name || user.full_name || sender_name) : (resolvedName || sender_name);
 
     const trimmed = String(content).trim();
     if (!trimmed) {
