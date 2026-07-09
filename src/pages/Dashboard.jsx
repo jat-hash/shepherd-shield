@@ -278,7 +278,7 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-      {'Notification' in window && !isInPreview() && !notifGranted && window.Notification?.permission !== 'denied' && (
+      {'Notification' in window && !isInPreview() && !notifGranted && !pushRegistered && window.Notification?.permission !== 'denied' && (
         <div className="flex items-center gap-3 bg-yellow-900/70 border-2 border-yellow-400/70 rounded-lg px-4 py-3 text-yellow-200 text-sm shadow-lg animate-pulse">
           <Bell className="w-6 h-6 shrink-0 text-yellow-300 animate-bounce" />
           <div className="flex-1">
@@ -308,12 +308,7 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-      {'Notification' in window && notifGranted && pushRegistered && (
-        <div className="flex items-center gap-3 bg-green-900/50 border border-green-500/50 rounded-lg px-4 py-3 text-green-200 text-sm">
-          <span className="text-lg">✅</span>
-          <p className="text-xs">Push notifications enabled — your phone will vibrate when alerts arrive.</p>
-        </div>
-      )}
+
       {'Notification' in window && notifGranted && !pushRegistered && (
         <div className="flex items-center gap-3 bg-orange-900/60 border-2 border-orange-400/60 rounded-lg px-4 py-3 text-orange-200 text-sm shadow-lg animate-pulse">
           <span className="text-lg">⚠️</span>
