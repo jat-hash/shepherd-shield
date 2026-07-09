@@ -144,6 +144,9 @@ self.addEventListener('push', (event) => {
     actions.push({ action: 'mark_safe', title: "✓ I'm Safe" });
     actions.push({ action: 'need_help', title: '🆘 Need Help' });
   }
+  if (notifType === 'refresh') {
+    actions.push({ action: 'refresh_now', title: '🔄 Refresh Now' });
+  }
 
   const options = {
     body,
@@ -189,6 +192,23 @@ self.addEventListener('notificationclick', (event) => {
   // Incident/emergency action buttons — handled directly by the SW
   if (['acknowledge', 'request_help', 'mark_safe', 'need_help'].includes(event.action)) {
     event.waitUntil(handleNotificationAction(event));
+    return;
+  }
+
+  // Refresh Now button — reload all open tabs, or open the app fresh
+  if (event.action === 'refresh_now') {
+    event.waitUntil((async () => {
+      const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      if (clientList.length > 0) {
+        for (const client of clientList) {
+          client.postMessage({ type: 'shepherd-force-refresh' });
+          try { await client.navigate(client.url); } catch (e) {}
+        }
+        await clientList[0].focus();
+      } else {
+        await self.clients.openWindow('/');
+      }
+    })());
     return;
   }
 

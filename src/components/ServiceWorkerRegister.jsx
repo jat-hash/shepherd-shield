@@ -201,6 +201,10 @@ export default function ServiceWorkerRegister() {
     // Background pushes: the service worker forwards a message to open tabs so
     // we play the loud alarm audio + vibrate even while the page is backgrounded.
     const handleSWMessage = async (event) => {
+      if (event.data?.type === 'shepherd-force-refresh') {
+        window.location.reload();
+        return;
+      }
       if (event.data?.type === 'shepherd-push') {
         const typeMap = { emergency: 'emergency', incident: 'alert', dm: 'dm', group_message: 'general', assignment: 'assignment' };
         triggerNotificationEffect(typeMap[event.data.notification_type] || 'general');
