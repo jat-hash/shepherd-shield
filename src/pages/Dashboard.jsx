@@ -179,8 +179,14 @@ export default function Dashboard() {
       }
     };
     check();
+    // 'push:register' = user tapped Enable (triggers registration)
+    // 'push:registered' = registration completed (re-check status for banner)
     window.addEventListener('push:register', check);
-    return () => window.removeEventListener('push:register', check);
+    window.addEventListener('push:registered', check);
+    return () => {
+      window.removeEventListener('push:register', check);
+      window.removeEventListener('push:registered', check);
+    };
   }, [user]);
 
   // Load active alerts

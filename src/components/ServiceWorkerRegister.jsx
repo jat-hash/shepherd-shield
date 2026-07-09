@@ -142,11 +142,12 @@ export default function ServiceWorkerRegister() {
             app_id: appParams.appId,
           });
         } catch (_) {}
-        // Notify the Dashboard to re-check pushRegistered status — without
-        // this, the green "enabled" banner never appears even after a successful
-        // auto-registration, because the Dashboard only re-checks on push:register
-        // events (which the Retry button dispatches, but auto-registration does not).
-        window.dispatchEvent(new CustomEvent('push:register'));
+        // Notify the Dashboard to re-check pushRegistered status. We use a
+        // separate 'push:registered' event (NOT 'push:register') because this
+        // component's own handlePushRegister listener listens for 'push:register'
+        // — dispatching that here would reset the refs and re-run registration,
+        // creating an infinite loop of success toasts.
+        window.dispatchEvent(new CustomEvent('push:registered'));
 
         // Register periodic background sync (poll every 5 min when app is closed)
         if ('periodicSync' in swRegistration) {
