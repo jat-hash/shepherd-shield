@@ -29,7 +29,7 @@ export default function Dashboard() {
   // Tracks whether a push token is actually saved — the green "enabled" banner
   // must reflect real registration, not just browser permission (which can be
   // granted while the FCM token save silently failed).
-  const [pushRegistered, setPushRegistered] = useState(false);
+  const [pushRegistered, setPushRegistered] = useState(() => localStorage.getItem('pushRegistered') === 'true');
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -160,9 +160,16 @@ export default function Dashboard() {
   }, [user]);
 
   // Check whether this user has an actual saved FCM token. Re-checks after any
-  // registration attempt (push:register event) so the banner updates in real time.
+  // registration attempt so the banner updates in real time. The result is
+  // persisted to localStorage so the banner doesn't reappear on every page load
+  // while the async DB check is still in flight (or fails transiently).
   useEffect(() => {
     if (!user?.email) return;
+    const persist = (val) => {
+      setPushRegistered(val);
+      if (val) localStorage.setItem('pushRegistered', 'true');
+      else localStorage.removeItem('pushRegistered');
+    };
     const check = async () => {
       try {
         // FCM (Android/Chrome/desktop) OR native Web Push (iOS Safari PWA)
@@ -170,22 +177,27 @@ export default function Dashboard() {
           base44.entities.UserDevice.filter({ user_email: user.email }),
           base44.entities.PushSubscription.filter({ user_email: user.email }),
         ]);
-        setPushRegistered(
+        persist(
           (fcmDevices && fcmDevices.length > 0) ||
           (webPushSubs && webPushSubs.length > 0)
         );
       } catch {
-        setPushRegistered(false);
+        // Don't wipe a known-good registration on a transient DB error —
+        // keep the persisted value so the banner stays hidden.
       }
     };
     check();
     // 'push:register' = user tapped Enable (triggers registration)
-    // 'push:registered' = registration completed (re-check status for banner)
+    // 'push:registered' = registration just completed — set optimistically so
+    //   the banner disappears instantly, then let check() confirm via DB.
+    const onRegistered = () => { persist(true); check(); };
     window.addEventListener('push:register', check);
-    window.addEventListener('push:registered', check);
+    window.addEventListener('push:registered', onRegistered);
     return () => {
       window.removeEventListener('push:register', check);
-      window.removeEventListener('push:registered', check);
+      window.removeEventListener('push:registered', onRegistered);
+      // Clear persisted flag on user change so a different user re-registers
+      localStorage.removeItem('pushRegistered');
     };
   }, [user]);
 
