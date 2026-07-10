@@ -7,7 +7,7 @@ import { toast } from "sonner";
 // fall back to the parent's name to keep the list readable.
 const childLabel = (c) => c.child_name?.trim() || `Child of ${c.parent_name}`;
 
-export default function CheckOutByCode({ onClose, onCheckedOut }) {
+export default function CheckOutByCode({ user, onClose, onCheckedOut }) {
   const [children, setChildren] = useState([]);
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -32,6 +32,7 @@ export default function CheckOutByCode({ onClose, onCheckedOut }) {
       await base44.entities.NurseryChild.update(selected.id, {
         checked_in: false,
         check_out_time: new Date().toISOString(),
+        checked_out_by: user?.display_name || user?.full_name || user?.email || "Unknown",
       });
       toast.success(`${childLabel(selected)} checked out successfully`);
       onCheckedOut?.();

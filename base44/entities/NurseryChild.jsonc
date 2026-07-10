@@ -39,12 +39,17 @@
       "type": "string",
       "format": "date-time"
     },
+    "checked_in_by": {
+      "type": "string",
+      "description": "Name of the nursery staff/admin who checked the child in"
+    },
     "check_out_time": {
       "type": "string",
       "format": "date-time"
     },
-    "checked_in_by": {
-      "type": "string"
+    "checked_out_by": {
+      "type": "string",
+      "description": "Name of the nursery staff/admin who checked the child out"
     },
     "service_date": {
       "type": "string",

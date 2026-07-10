@@ -274,7 +274,7 @@ export default function NurseryDashboard() {
                       </div>
                       <button
                         onClick={async () => {
-                          await base44.entities.NurseryChild.update(child.id, { checked_in: false, check_out_time: new Date().toISOString() });
+                          await base44.entities.NurseryChild.update(child.id, { checked_in: false, check_out_time: new Date().toISOString(), checked_out_by: user?.display_name || user?.full_name || user?.email || "Unknown" });
                           toast.success(`${child.child_name?.trim() || `Child of ${child.parent_name}`} checked out`);
                         }}
                         className="text-xs bg-black/30 hover:bg-black/50 text-white px-2.5 py-1.5 rounded-lg flex-shrink-0 transition-colors"
@@ -382,7 +382,7 @@ export default function NurseryDashboard() {
         <ChildCheckInForm user={user} onClose={() => setShowCheckIn(false)} onCheckedIn={() => loadData()} />
       )}
       {showCheckOut && (
-        <CheckOutByCode onClose={() => setShowCheckOut(false)} onCheckedOut={() => loadData()} />
+        <CheckOutByCode user={user} onClose={() => setShowCheckOut(false)} onCheckedOut={() => loadData()} />
       )}
       {showRequest && (
         <ParentRequestForm children={children} user={user} onClose={() => setShowRequest(false)} />
