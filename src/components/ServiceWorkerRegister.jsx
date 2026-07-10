@@ -127,7 +127,14 @@ export default function ServiceWorkerRegister() {
           return;
         }
         initializedRef.current = true;
-        notify('✅ Push notifications enabled!', 'success');
+        // Only show the "enabled!" toast the first time — on subsequent app
+        // opens the cached token is re-saved silently. Without this guard the
+        // success toast pops on every launch, which looks like the banner is
+        // nagging the user even though push is already working.
+        const alreadyEnabled = localStorage.getItem('pushRegistered') === 'true';
+        if (!alreadyEnabled) {
+          notify('✅ Push notifications enabled!', 'success');
+        }
         // Store user identity in the service worker's IndexedDB so quick-reply
         // works when the app is fully closed (SW sends the reply directly using
         // the FCM token as the device credential — no shared secret needed).
