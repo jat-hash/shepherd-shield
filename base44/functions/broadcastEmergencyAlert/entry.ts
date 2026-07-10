@@ -35,14 +35,24 @@ Deno.serve(async (req) => {
         read: false
       }).catch(() => {});
 
-      // 2. Send email notification
+      // 2. Dual push (FCM + Web Push) — delivers background alert when app is closed
+      await base44.asServiceRole.functions.invoke('sendDualPush', {
+        recipient_email: user.email,
+        title: `🚨 EMERGENCY: ${alert_type}`,
+        body: message,
+        alert_id: alert_id || '',
+        notification_type: 'emergency',
+        click_url: '/',
+      }).catch(err => console.log(`Push skipped for ${user.email}:`, err.message));
+
+      // 3. Send email notification
       await base44.asServiceRole.integrations.Core.SendEmail({
         to: user.email,
         subject: `🚨 EMERGENCY ALERT: ${alert_type}`,
         body: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><div style="background-color: #dc2626; color: white; padding: 24px; border-radius: 8px 8px 0 0;"><h1 style="margin: 0; font-size: 24px;">🚨 EMERGENCY ALERT</h1><p style="margin: 8px 0 0; font-size: 20px; font-weight: bold;">${alert_type}</p></div><div style="background: #f9fafb; padding: 24px; border: 1px solid #e5e7eb;"><p style="font-size: 16px; color: #111;">${message}</p><hr style="border-color: #e5e7eb; margin: 16px 0;" /><p style="color: #6b7280; font-size: 14px;">Triggered by: ${triggered_by}</p><p style="color: #6b7280; font-size: 14px;">Time: ${new Date().toLocaleString()}</p></div><div style="background: #fff3cd; padding: 16px; border-radius: 0 0 8px 8px; border: 1px solid #ffc107; border-top: none;"><p style="margin: 0; color: #856404; font-weight: bold;">Open the Shepherd Shield app immediately to acknowledge this alert.</p></div></div>`
       }).catch(err => console.log(`Email skipped for ${user.email}:`, err.message));
 
-      // 3. Send WhatsApp with CONFIRM instructions — will repeat until confirmed
+      // 4. Send WhatsApp with CONFIRM instructions — will repeat until confirmed
       const userPhone = user.phone_number || user.data?.phone_number;
       if (twilioSid && twilioAuth && twilioWA && userPhone) {
         let phone = userPhone.replace(/\D/g, '');

@@ -79,8 +79,6 @@ Deno.serve(async (req) => {
       ? allUsers.filter(u => emailsToNotify.has(u.email))
       : allUsers;
 
-    const firebaseServerKey = Deno.env.get('FIREBASE_SERVER_KEY');
-
     await Promise.all(targetUsers.map(async (user) => {
       // In-app notification (works on all platforms including iOS)
       await base44.asServiceRole.entities.Notification.create({
@@ -91,26 +89,15 @@ Deno.serve(async (req) => {
         read: false
       }).catch(() => {});
 
-      // FCM push (Android/desktop)
-      if (firebaseServerKey) {
-        const devices = await base44.asServiceRole.entities.UserDevice.filter({ user_email: user.email }).catch(() => []);
-        const tokens = (devices || []).map(d => d.fcm_token).filter(Boolean);
-        if (tokens.length > 0) {
-          await fetch('https://fcm.googleapis.com/fcm/send', {
-            method: 'POST',
-            headers: {
-              'Authorization': `key=${firebaseServerKey}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              registration_ids: tokens,
-              notification: { title, body, sound: 'default' },
-              data: { incidentId: incident.id || '' },
-              priority: 'high'
-            })
-          }).catch(err => console.log(`FCM error for ${user.email}:`, err.message));
-        }
-      }
+      // Dual push (FCM + Web Push) — replaces legacy FCM server key approach
+      await base44.asServiceRole.functions.invoke('sendDualPush', {
+        recipient_email: user.email,
+        title,
+        body,
+        notification_type: 'incident',
+        incident_id: incident.id || '',
+        click_url: '/Incidents',
+      }).catch(err => console.log(`Push error for ${user.email}:`, err.message));
     }));
 
     console.log(`Incident notification sent to ${targetUsers.length} members (${emailsToNotify.size} targeted, ${assignmentsToday.length} assignments found for ${incidentDate})`);

@@ -17,12 +17,14 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, notified: 0 });
     }
 
-    // Send FCM to each recipient
+    // Send push (FCM + Web Push) to each recipient
     const promises = recipients.map(recipient =>
-      base44.functions.invoke('sendFCMNotification', {
+      base44.functions.invoke('sendDualPush', {
         recipient_email: recipient.email,
         title: `New message in ${channel} from ${sender_name}`,
-        body: content?.substring(0, 100) || 'Sent a file'
+        body: content?.substring(0, 100) || 'Sent a file',
+        notification_type: 'group_message',
+        dm_channel: channel,
       }).catch(() => {})
     );
 

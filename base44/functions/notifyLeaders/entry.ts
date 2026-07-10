@@ -53,6 +53,19 @@ Deno.serve(async (req) => {
       notifications.map(n => base44.asServiceRole.entities.Notification.create(n))
     );
 
+    // Dual push (FCM + Web Push) to each leader
+    await Promise.all(
+      leaders.map(leader =>
+        base44.asServiceRole.functions.invoke('sendDualPush', {
+          recipient_email: leader.email,
+          title,
+          body: message,
+          notification_type: 'general',
+          click_url: '/Assignments',
+        }).catch(err => console.log(`Push skipped for ${leader.email}:`, err.message))
+      )
+    );
+
     console.log(`Notified ${leaders.length} leaders:`, leaders.map(l => l.full_name || l.email));
     return Response.json({ status: 'ok', notified: leaders.map(l => l.full_name || l.email) });
   } catch (error) {

@@ -27,11 +27,13 @@ Deno.serve(async (req) => {
     // Send notification to each user
     for (const recipient of allUsers) {
       try {
-        const notifResult = await base44.asServiceRole.functions.invoke('sendFCMNotification', {
+        const notifResult = await base44.asServiceRole.functions.invoke('sendDualPush', {
           recipient_email: recipient.email,
           title: `Special Event: ${event_name}`,
           body: message,
-          alert_id: event_id
+          alert_id: event_id,
+          notification_type: 'general',
+          click_url: '/SpecialEvents',
         });
         results.push({
           user_email: recipient.email,

@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const results = { email_sent: false, in_app_created: false };
+    const results = { email_sent: false, in_app_created: false, push_sent: false };
 
     // Check if user wants this type of notification
     let shouldNotify = false;
@@ -63,6 +63,25 @@ Deno.serve(async (req) => {
       } catch (error) {
         console.error('In-app notification error:', error);
       }
+    }
+
+    // Dual push (FCM + Web Push) — delivers background alert when app is closed
+    try {
+      const notifType = type === 'incident' ? 'incident'
+        : type.startsWith('assignment') ? 'assignment'
+        : 'general';
+      const clickUrl = assignment_id ? '/Assignments' : '/Communications';
+      await base44.asServiceRole.functions.invoke('sendDualPush', {
+        recipient_email: user_email,
+        title,
+        body: message,
+        notification_type: notifType,
+        click_url: clickUrl,
+        assignment_id: assignment_id || '',
+      });
+      results.push_sent = true;
+    } catch (error) {
+      console.error('Push notification error:', error);
     }
 
     return Response.json({ success: true, results });

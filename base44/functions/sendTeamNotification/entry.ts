@@ -42,6 +42,15 @@ Deno.serve(async (req) => {
         read: false
       }).catch(() => {});
 
+      // Dual push (FCM + Web Push)
+      await base44.asServiceRole.functions.invoke('sendDualPush', {
+        recipient_email: recipient.email,
+        title,
+        body: message,
+        notification_type: 'general',
+        click_url: '/Communications',
+      }).catch(err => console.log(`Push skipped for ${recipient.email}:`, err.message));
+
       // Email
       await base44.asServiceRole.integrations.Core.SendEmail({
         to: recipient.email,

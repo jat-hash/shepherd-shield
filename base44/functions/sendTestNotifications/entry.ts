@@ -47,10 +47,10 @@ Deno.serve(async (req) => {
     for (const notif of notifications) {
       const created = await base44.entities.Notification.create(notif);
       createdNotifications.push(created);
-      // Fire the actual push notification so it reaches the device even when
-      // the app is closed (FCM data-only payload → service worker shows it).
+      // Fire the actual push notification (FCM + Web Push) so it reaches the
+      // device even when the app is closed (data-only payload → service worker shows it).
       try {
-        await base44.functions.invoke('sendFCMNotification', {
+        await base44.functions.invoke('sendDualPush', {
           recipient_email: target_email,
           title: notif.title,
           body: notif.message,

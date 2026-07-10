@@ -63,10 +63,10 @@ Deno.serve(async (req) => {
       });
     }));
 
-    // Push notifications (HTTP v1, data-only) for each lead
+    // Push notifications (FCM + Web Push) for each lead
     for (const u of leads) {
       try {
-        await base44.functions.invoke('sendFCMNotification', {
+        await base44.functions.invoke('sendDualPush', {
           recipient_email: u.email,
           title: title,
           body: body,
@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
           click_url: '/NurseryDashboard',
         });
       } catch (e) {
-        console.log('FCM failed for ' + u.email + ': ' + e.message);
+        console.log('Push failed for ' + u.email + ': ' + e.message);
       }
     }
 
@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
         }));
         for (const u of leads) {
           try {
-            await base44.functions.invoke('sendFCMNotification', {
+            await base44.functions.invoke('sendDualPush', {
               recipient_email: u.email,
               title: emptyTitle,
               body: emptyBody,
@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
               click_url: '/NurseryDashboard',
             });
           } catch (e) {
-            console.log('Empty-alert FCM failed for ' + u.email + ': ' + e.message);
+            console.log('Empty-alert push failed for ' + u.email + ': ' + e.message);
           }
         }
         console.log('Nursery empty alert sent to leads');

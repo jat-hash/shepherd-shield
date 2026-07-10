@@ -32,8 +32,8 @@ Deno.serve(async (req) => {
       }).catch(() => {});
       notifCreated++;
 
-      // FCM v1 push — delivers background alert when app is closed
-      const fcmRes = await base44.asServiceRole.functions.invoke('sendFCMNotification', {
+      // Dual push (FCM + Web Push) — delivers background alert when app is closed
+      const pushRes = await base44.asServiceRole.functions.invoke('sendDualPush', {
         recipient_email: u.email,
         title,
         body,
@@ -41,10 +41,10 @@ Deno.serve(async (req) => {
         incident_id: incident.id,
         click_url: '/Incidents',
       }).catch(() => null);
-      if (fcmRes?.data?.success) fcmSent++;
+      if (pushRes?.data?.success) fcmSent++;
     }
 
-    console.log(`Incident reported by ${user.email}: ${notifCreated} in-app notifications, ${fcmSent} FCM pushes`);
+    console.log(`Incident reported by ${user.email}: ${notifCreated} in-app notifications, ${fcmSent} dual pushes (FCM+WebPush)`);
 
     return Response.json({ success: true, notif_created: notifCreated, fcm_sent: fcmSent });
   } catch (error) {

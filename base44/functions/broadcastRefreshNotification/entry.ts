@@ -32,17 +32,17 @@ Deno.serve(async (req) => {
     // the sole delivery mechanism — it only fires when the admin clicks
     // "Refresh All", and the service worker handles the refresh directly.
     for (const u of allUsers) {
-      const fcmRes = await base44.asServiceRole.functions.invoke('sendFCMNotification', {
+      const pushRes = await base44.asServiceRole.functions.invoke('sendDualPush', {
         recipient_email: u.email,
         title,
         body: customMessage,
         notification_type: 'refresh',
         click_url: '/',
       }).catch(() => null);
-      if (fcmRes?.data?.success) fcmSuccessCount++;
+      if (pushRes?.data?.success) fcmSuccessCount++;
     }
 
-    console.log(`Refresh notification broadcast by ${user.email}: ${fcmSuccessCount}/${allUsers.length} FCM`);
+    console.log(`Refresh notification broadcast by ${user.email}: ${fcmSuccessCount}/${allUsers.length} dual pushes (FCM+WebPush)`);
 
     return Response.json({
       success: true,

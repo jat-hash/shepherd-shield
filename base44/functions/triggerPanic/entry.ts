@@ -49,6 +49,15 @@ Deno.serve(async (req) => {
         read: false
       }).catch(() => {});
 
+      // Dual push (FCM + Web Push) — critical alert, must reach all platforms
+      await base44.asServiceRole.functions.invoke('sendDualPush', {
+        recipient_email: u.email,
+        title: "🚨 PANIC ALERT",
+        body: `${user.display_name || user.full_name || user.email} needs immediate help! Location: ${locationStr}`,
+        notification_type: 'emergency',
+        click_url: '/',
+      }).catch(() => {});
+
       // Email notification
       await base44.asServiceRole.integrations.Core.SendEmail({
         to: u.email,
