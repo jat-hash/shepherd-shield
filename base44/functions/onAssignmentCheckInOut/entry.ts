@@ -84,12 +84,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    await base44.asServiceRole.functions.invoke('notifyLeaders', {
-      item_type: 'checkin',
-      action,
-      person_name,
-    });
-
+    // No routine check-in/out alerts to leaders — alerts are only sent for
+    // actual issues (incidents, emergencies) handled elsewhere.
     return Response.json({ status: 'ok' });
   } catch (error) {
     console.error('onAssignmentCheckInOut error:', error);

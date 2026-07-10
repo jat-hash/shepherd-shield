@@ -19,13 +19,8 @@ Deno.serve(async (req) => {
     const item_name = data.name || 'Unknown Equipment';
     const person_name = data.checked_out_by || null;
 
-    await base44.asServiceRole.functions.invoke('notifyLeaders', {
-      item_type: 'equipment',
-      action,
-      item_name,
-      person_name,
-    });
-
+    // No routine equipment check-out alerts to leaders — alerts are only sent
+    // for actual issues handled elsewhere.
     return Response.json({ status: 'ok' });
   } catch (error) {
     console.error('onEquipmentCheckInOut error:', error);
