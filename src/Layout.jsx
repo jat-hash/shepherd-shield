@@ -7,6 +7,7 @@ import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bel
 
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { cacheUserVibrationPrefs, primeAudioContext } from "@/lib/notificationEffects";
+import { canAccessMainApp } from "@/lib/leadership";
 import EmergencyOverrideFlash from "@/components/notifications/EmergencyOverrideFlash";
 import AlertNotificationSystem from "@/components/notifications/AlertNotificationSystem";
 import UserSwitcher from "@/components/UserSwitcher";
@@ -64,14 +65,12 @@ export default function Layout({ children, currentPageName }) {
   const pageTitle = PAGE_TITLES[currentPageName] || currentPageName;
   const goBack = () => { if (window.history.length > 1) navigate(-1); else navigate("/"); };
 
-  // Nursery users: lock to nursery page. Admins + Wilbert can visit freely. Others blocked.
+  // Only admins, Wilbert Ryan, and Pacheco can see anything besides Nursery.
+  // Everyone else is locked to the Nursery Dashboard.
   useEffect(() => {
     if (!user) return;
-    const canSeeNursery = user.role === 'nursery' || user.role === 'admin' || user.email === 'wilbert.ryan@gmail.com';
-    if (user.role === 'nursery' && location.pathname !== '/NurseryDashboard') {
+    if (!canAccessMainApp(user) && location.pathname !== '/NurseryDashboard') {
       navigate('/NurseryDashboard', { replace: true });
-    } else if (!canSeeNursery && location.pathname === '/NurseryDashboard') {
-      navigate('/', { replace: true });
     }
   }, [user, location.pathname]);
 
@@ -149,10 +148,10 @@ export default function Layout({ children, currentPageName }) {
   const noLayoutPages = ["Login"];
   if (noLayoutPages.includes(currentPageName)) return children;
 
-  const canSeeNursery = user?.role === 'nursery' || user?.role === 'admin' || user?.email === 'wilbert.ryan@gmail.com';
-
-  // Nursery users only see the NurseryDashboard with no layout wrapper
-  if (user?.role === 'nursery') return <>{children}</>;
+  // Only admins, Wilbert Ryan, and Pacheco get the full app layout.
+  // Everyone else only sees the Nursery Dashboard (no layout wrapper).
+  const canSeeNursery = canAccessMainApp(user);
+  if (user && !canAccessMainApp(user)) return <>{children}</>;
 
 
   return (
@@ -305,7 +304,7 @@ export default function Layout({ children, currentPageName }) {
                   Nursery
                 </Link>
               )}
-              {(user?.role === 'admin' || user?.email === 'wilbert.ryan@gmail.com') && (
+              {canAccessMainApp(user) && (
                 <Link
                   to="/NurseryMonitor"
                   onClick={() => setSidebarOpen(false)}
@@ -450,7 +449,7 @@ export default function Layout({ children, currentPageName }) {
               Nursery
             </Link>
           )}
-          {(user?.role === 'admin' || user?.email === 'wilbert.ryan@gmail.com') && (
+          {canAccessMainApp(user) && (
             <Link
               to="/NurseryMonitor"
               className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-all ${
