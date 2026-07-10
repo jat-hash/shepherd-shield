@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { X, LogOut, CheckCircle, Baby, ChevronDown } from "lucide-react";
+import { X, LogOut, CheckCircle, Baby, ChevronDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 // Returns a display label for a child record — child_name is optional, so we
@@ -11,8 +11,9 @@ export default function CheckOutByCode({ user, onClose, onCheckedOut }) {
   const [children, setChildren] = useState([]);
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const [processing, setProcessing] = useState(null); // child being checked out
   const todayStr = new Date().toISOString().slice(0, 10);
+  const selectRef = useRef(null);
 
   useEffect(() => {
     base44.entities.NurseryChild.filter({ service_date: todayStr, checked_in: true }, "-check_in_time", 200)
@@ -20,27 +21,37 @@ export default function CheckOutByCode({ user, onClose, onCheckedOut }) {
       .catch(() => {});
   }, []);
 
-  const selected = children.find(c => c.id === selectedId) || null;
+  // Automatic checkout: selecting a child from the dropdown immediately
+  // checks them out — no separate button tap required.
+  const handleSelect = async (e) => {
+    const id = e.target.value;
+    setSelectedId(id);
+    if (!id) return;
 
-  const handleCheckOut = async () => {
-    if (!selected) {
-      toast.error("Please choose a child to check out");
-      return;
-    }
+    const child = children.find(c => c.id === id);
+    if (!child) return;
+
+    setProcessing(child);
     setLoading(true);
     try {
-      await base44.entities.NurseryChild.update(selected.id, {
+      await base44.entities.NurseryChild.update(child.id, {
         checked_in: false,
         check_out_time: new Date().toISOString(),
         checked_out_by: user?.display_name || user?.full_name || user?.email || "Unknown",
       });
-      toast.success(`${childLabel(selected)} checked out successfully`);
+      toast.success(`${childLabel(child)} checked out successfully`);
       onCheckedOut?.();
-      onClose();
+      // Remove from local list so the dropdown stays accurate
+      setChildren(prev => prev.filter(c => c.id !== child.id));
+      setSelectedId("");
+      // Keep focus on the select for rapid consecutive check-outs
+      setTimeout(() => selectRef.current?.focus(), 50);
     } catch {
       toast.error("Failed to check out");
+      setSelectedId("");
     } finally {
       setLoading(false);
+      setProcessing(null);
     }
   };
 
@@ -64,15 +75,20 @@ export default function CheckOutByCode({ user, onClose, onCheckedOut }) {
             </div>
           ) : (
             <>
+              <p className="text-xs text-slate-400">
+                Select a child to instantly check them out — no extra button needed.
+              </p>
               <div>
-                <label className="text-xs text-slate-400 mb-1 block">Select Checked-In Child</label>
+                <label className="text-xs text-slate-400 mb-1 block">Checked-In Children ({children.length})</label>
                 <div className="relative">
                   <select
-                    className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60 appearance-none pr-9"
+                    ref={selectRef}
+                    className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60 appearance-none pr-9 disabled:opacity-50"
                     value={selectedId}
-                    onChange={e => setSelectedId(e.target.value)}
+                    onChange={handleSelect}
+                    disabled={loading}
                   >
-                    <option value="">Choose a child...</option>
+                    <option value="">Choose a child to check out...</option>
                     {children.map(c => (
                       <option key={c.id} value={c.id}>
                         {childLabel(c)} — {c.parent_name}
@@ -83,23 +99,16 @@ export default function CheckOutByCode({ user, onClose, onCheckedOut }) {
                 </div>
               </div>
 
-              {selected && (
+              {processing && (
                 <div className="bg-green-900/30 border border-green-500/40 rounded-xl p-4 space-y-2">
                   <div className="flex items-center gap-2 text-green-400">
-                    <CheckCircle className="w-4 h-4" />
-                    <span className="text-sm font-bold">Selected</span>
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                    <span className="text-sm font-bold">{loading ? "Checking out..." : "Checked Out"}</span>
                   </div>
-                  <p className="text-white font-bold">{childLabel(selected)}</p>
-                  <p className="text-slate-300 text-xs">Parent: {selected.parent_name}{selected.parent_phone ? ` · ${selected.parent_phone}` : ""}</p>
-                  {selected.age_group && <p className="text-slate-300 text-xs">{selected.age_group}</p>}
-                  {selected.allergies_notes && <p className="text-yellow-300 text-xs">⚠ {selected.allergies_notes}</p>}
-                  <button
-                    onClick={handleCheckOut}
-                    disabled={loading}
-                    className="w-full mt-2 bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl transition-colors disabled:opacity-50 text-sm"
-                  >
-                    {loading ? "Checking Out..." : `Check Out ${childLabel(selected)}`}
-                  </button>
+                  <p className="text-white font-bold">{childLabel(processing)}</p>
+                  <p className="text-slate-300 text-xs">Parent: {processing.parent_name}{processing.parent_phone ? ` · ${processing.parent_phone}` : ""}</p>
+                  {processing.age_group && <p className="text-slate-300 text-xs">{processing.age_group}</p>}
+                  {processing.allergies_notes && <p className="text-yellow-300 text-xs">⚠ {processing.allergies_notes}</p>}
                 </div>
               )}
             </>
