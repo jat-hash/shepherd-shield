@@ -15,6 +15,10 @@
     "parent_phone": {
       "type": "string"
     },
+    "sponsor": {
+      "type": "string",
+      "description": "Optional sponsoring member or family"
+    },
     "age_group": {
       "type": "string",
       "enum": [

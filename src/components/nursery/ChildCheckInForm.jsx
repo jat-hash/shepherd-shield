@@ -8,6 +8,7 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
     child_name: "",
     parent_name: "",
     parent_phone: "",
+    sponsor: "",
     age_group: "Toddler (1-2y)",
     allergies_notes: "",
   });
@@ -82,6 +83,12 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
                 <span className="text-white flex items-center gap-1"><Phone className="w-3 h-3" />{checkedInChild.parent_phone}</span>
               </div>
             )}
+            {checkedInChild.sponsor && (
+              <div className="flex justify-between">
+                <span className="text-slate-400">Sponsor</span>
+                <span className="text-white">{checkedInChild.sponsor}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-slate-400">Age Group</span>
               <span className="text-white">{checkedInChild.age_group}</span>
@@ -99,7 +106,7 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
               onClick={() => {
                 // Reset for another check-in
                 setCheckedInChild(null);
-                setForm({ child_name: "", parent_name: "", parent_phone: "", age_group: "Toddler (1-2y)", allergies_notes: "" });
+                setForm({ child_name: "", parent_name: "", parent_phone: "", sponsor: "", age_group: "Toddler (1-2y)", allergies_notes: "" });
               }}
               className="flex-1 bg-[#141f3d] hover:bg-[#1a2744] text-white font-semibold py-2.5 rounded-xl transition-colors text-sm border border-[rgba(212,168,67,0.15)]"
             >
@@ -167,9 +174,10 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
                           type="button"
                           onClick={() => {
                             setForm({
-                              child_name: c.child_name,
-                              parent_name: c.parent_name,
+                              child_name: c.child_name || "",
+                              parent_name: c.parent_name || "",
                               parent_phone: c.parent_phone || "",
+                              sponsor: c.sponsor || "",
                               age_group: c.age_group || "Toddler (1-2y)",
                               allergies_notes: c.allergies_notes || "",
                             });
@@ -233,6 +241,16 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
               onChange={e => setForm(f => ({ ...f, parent_phone: e.target.value }))}
               placeholder="(optional) for emergencies"
               type="tel"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">Sponsor</label>
+            <input
+              className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60"
+              value={form.sponsor}
+              onChange={e => setForm(f => ({ ...f, sponsor: e.target.value }))}
+              placeholder="(optional) sponsoring member or family"
             />
           </div>
 
