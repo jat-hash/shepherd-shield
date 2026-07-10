@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { X, Bell } from "lucide-react";
+import { X, Bell, Search } from "lucide-react";
 import { toast } from "sonner";
 
 const REQUEST_TYPES = ["Parent Needed", "Diaper Change", "Feeding", "Medical", "Pick Up", "Other"];
@@ -12,7 +12,7 @@ const NURSERY_LEADS = [
   "wintersjamesg@hotmail.com",
 ];
 
-export default function ParentRequestForm({ children, user, onClose }) {
+export default function ParentRequestForm({ children: propChildren, user, onClose }) {
   const [form, setForm] = useState({
     parent_name: "",
     child_id: "",
@@ -21,17 +21,36 @@ export default function ParentRequestForm({ children, user, onClose }) {
     message: "",
   });
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [allChildren, setAllChildren] = useState(propChildren || []);
   const todayStr = new Date().toISOString().slice(0, 10);
+
+  // Fetch ALL of today's nursery children (including checked-out) so the
+  // parent/sponsor dropdown is always populated — not just checked-in kids.
+  useEffect(() => {
+    base44.entities.NurseryChild.filter({ service_date: todayStr }, "-check_in_time", 200)
+      .then(setAllChildren)
+      .catch(() => {});
+  }, []);
 
   const parents = useMemo(() => {
     const map = new Map();
-    (children || []).forEach(c => {
+    (allChildren || []).forEach(c => {
       const key = (c.parent_name || "").trim() || "(unknown)";
-      if (!map.has(key)) map.set(key, { parent_name: key, parent_phone: c.parent_phone, kids: [] });
+      if (!map.has(key)) map.set(key, { parent_name: key, parent_phone: c.parent_phone, sponsor: c.sponsor || "", kids: [] });
       map.get(key).kids.push(c);
     });
     return Array.from(map.values()).sort((a, b) => a.parent_name.localeCompare(b.parent_name));
-  }, [children]);
+  }, [allChildren]);
+
+  const filteredParents = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return parents;
+    return parents.filter(p =>
+      p.parent_name.toLowerCase().includes(q) ||
+      (p.sponsor || "").toLowerCase().includes(q)
+    );
+  }, [parents, search]);
 
   const selectedParent = parents.find(p => p.parent_name === form.parent_name);
   const parentKids = selectedParent?.kids || [];
@@ -80,7 +99,19 @@ export default function ParentRequestForm({ children, user, onClose }) {
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-3">
           <div>
-            <label className="text-xs text-slate-400 mb-1 block">Select Parent</label>
+            <label className="text-xs text-slate-400 mb-1 block">Search Parent / Sponsor</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+              <input
+                className="w-full bg-[#0a1128] border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-white text-sm outline-none focus:border-[#d4a843]/60 placeholder:text-slate-500"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Type parent or sponsor name..."
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">Select Parent / Sponsor</label>
             <select
               className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-[#d4a843]/60"
               value={form.parent_name}
@@ -90,11 +121,16 @@ export default function ParentRequestForm({ children, user, onClose }) {
                 setForm(f => ({ ...f, parent_name: e.target.value, child_id: kid?.id || "", child_name: kid?.child_name || "" }));
               }}
             >
-              <option value="">-- Select a parent --</option>
-              {parents.map(p => (
-                <option key={p.parent_name} value={p.parent_name}>{p.parent_name}{p.parent_phone ? ` (${p.parent_phone})` : ""}</option>
+              <option value="">-- Select a parent / sponsor --</option>
+              {filteredParents.map(p => (
+                <option key={p.parent_name} value={p.parent_name}>
+                  {p.parent_name}{p.sponsor ? ` · Sponsor: ${p.sponsor}` : ""}{p.parent_phone ? ` (${p.parent_phone})` : ""}
+                </option>
               ))}
             </select>
+            {filteredParents.length === 0 && (
+              <p className="text-xs text-orange-400 mt-1">No matches found. Try a different name or sponsor.</p>
+            )}
           </div>
           {parentKids.length > 1 && (
             <div>
@@ -109,7 +145,7 @@ export default function ParentRequestForm({ children, user, onClose }) {
               >
                 <option value="">-- Select a child --</option>
                 {parentKids.map(c => (
-                  <option key={c.id} value={c.id}>{c.child_name}</option>
+                  <option key={c.id} value={c.id}>{c.child_name?.trim() || `Child of ${c.parent_name}`}</option>
                 ))}
               </select>
             </div>
