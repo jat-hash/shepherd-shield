@@ -249,12 +249,21 @@ async function handleQuickReply(event) {
       });
       if (res.ok) {
         // Brief silent confirmation so the user knows the reply went through
+        const replyTag = 'shepherd-confirm-' + Date.now();
         self.registration.showNotification('✓ Reply sent', {
           body: content.length > 50 ? content.substring(0, 50) + '…' : content,
           icon: '/icon-192.png',
           badge: '/icon-192.png',
           silent: true,
+          tag: replyTag,
         });
+        // Auto-close after 4 seconds so it doesn't linger on screen
+        setTimeout(async () => {
+          try {
+            const notifs = await self.registration.getNotifications({ tag: replyTag });
+            notifs.forEach(n => n.close());
+          } catch (e) {}
+        }, 4000);
         return;
       }
     } catch (e) { /* fall through to manual open */ }
@@ -281,7 +290,8 @@ async function handleNotificationAction(event) {
     });
   }
   if (clientList.length > 0) {
-    showActionConfirmation(action);
+    // No SW confirmation here — the open tab shows its own in-app toast,
+    // so a system notification would just duplicate it and clutter the screen.
     return;
   }
 
@@ -319,11 +329,21 @@ function showActionConfirmation(action) {
     mark_safe: '✓ Marked as safe',
     need_help: '🆘 Help request sent',
   };
-  self.registration.showNotification(labels[action] || '✓ Done', {
+  const title = labels[action] || '✓ Done';
+  const confirmTag = 'shepherd-confirm-' + Date.now();
+  self.registration.showNotification(title, {
     icon: '/icon-192.png',
     badge: '/icon-192.png',
     silent: true,
+    tag: confirmTag,
   });
+  // Auto-close after 4 seconds so confirmation banners don't linger on screen
+  setTimeout(async () => {
+    try {
+      const notifs = await self.registration.getNotifications({ tag: confirmTag });
+      notifs.forEach(n => n.close());
+    } catch (e) {}
+  }, 4000);
 }
 
 async function openOrFocus(targetUrl, data) {
