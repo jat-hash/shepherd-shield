@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { title, message, recipient_emails, send_sms } = await req.json();
+    const { title, message, recipient_emails, send_sms, skip_push } = await req.json();
 
     if (!title || !message) {
       return Response.json({ error: 'title and message are required' }, { status: 400 });
@@ -42,14 +42,18 @@ Deno.serve(async (req) => {
         read: false
       }).catch(() => {});
 
-      // Dual push (FCM + Web Push)
-      await base44.asServiceRole.functions.invoke('sendDualPush', {
-        recipient_email: recipient.email,
-        title,
-        body: message,
-        notification_type: 'general',
-        click_url: '/Communications',
-      }).catch(err => console.log(`Push skipped for ${recipient.email}:`, err.message));
+      // Dual push (FCM + Web Push) — skip when caller requests it (e.g. nursery
+      // avoids duplicates because the in-app Notification already triggers a
+      // browser notification via BrowserNotificationDispatcher)
+      if (!skip_push) {
+        await base44.asServiceRole.functions.invoke('sendDualPush', {
+          recipient_email: recipient.email,
+          title,
+          body: message,
+          notification_type: 'general',
+          click_url: '/Communications',
+        }).catch(err => console.log(`Push skipped for ${recipient.email}:`, err.message));
+      }
 
       // Email
       await base44.asServiceRole.integrations.Core.SendEmail({

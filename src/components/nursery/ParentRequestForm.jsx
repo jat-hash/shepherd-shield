@@ -51,11 +51,13 @@ export default function ParentRequestForm({ children, user, onClose }) {
         status: "Pending",
         service_date: todayStr,
       });
-      // Send notification ONLY to the three nursery leads
+      // Send notification ONLY to the three nursery leads; skip push to avoid
+      // duplicate notifications (in-app Notification triggers browser alert)
       await base44.functions.invoke("sendTeamNotification", {
         title: `🍼 Nursery: ${form.request_type}`,
         message: `Parent: ${form.parent_name}${form.child_name ? ` — Child: ${form.child_name}` : ""}${form.message ? ` — ${form.message}` : ""}. Requested by nursery staff.`,
         recipient_emails: NURSERY_LEADS,
+        skip_push: true,
       });
       toast.success("Request sent to team");
       onClose();

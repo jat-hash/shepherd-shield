@@ -52,7 +52,9 @@ Deno.serve(async (req) => {
 
     console.log('Notifying ' + leads.length + ' nursery leads: ' + title);
 
-    // In-app notifications for each lead
+    // In-app notifications for each lead — these trigger the browser
+    // notification via BrowserNotificationDispatcher. We intentionally do NOT
+    // also call sendDualPush here to avoid duplicate notifications.
     await Promise.all(leads.map(function (u) {
       return base44.asServiceRole.entities.Notification.create({
         user_email: u.email,
@@ -62,21 +64,6 @@ Deno.serve(async (req) => {
         read: false,
       });
     }));
-
-    // Push notifications (FCM + Web Push) for each lead
-    for (const u of leads) {
-      try {
-        await base44.functions.invoke('sendDualPush', {
-          recipient_email: u.email,
-          title: title,
-          body: body,
-          notification_type: 'nursery_checkin',
-          click_url: '/NurseryDashboard',
-        });
-      } catch (e) {
-        console.log('Push failed for ' + u.email + ': ' + e.message);
-      }
-    }
 
     // When a check-out leaves zero children checked in, send a special empty-nursery alert
     if (isCheckOut) {
@@ -96,19 +83,6 @@ Deno.serve(async (req) => {
             read: false,
           });
         }));
-        for (const u of leads) {
-          try {
-            await base44.functions.invoke('sendDualPush', {
-              recipient_email: u.email,
-              title: emptyTitle,
-              body: emptyBody,
-              notification_type: 'nursery_checkin',
-              click_url: '/NurseryDashboard',
-            });
-          } catch (e) {
-            console.log('Empty-alert push failed for ' + u.email + ': ' + e.message);
-          }
-        }
         console.log('Nursery empty alert sent to leads');
       }
     }

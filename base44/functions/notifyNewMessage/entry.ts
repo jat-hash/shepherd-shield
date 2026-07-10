@@ -63,17 +63,21 @@ Deno.serve(async (req) => {
       : `💬 ${data.sender_name} in ${data.channel}`;
     const pushBody = data.content.substring(0, 120) + (data.content.length > 120 ? '...' : '');
 
-    // Fire dual push (FCM + Web Push) concurrently — no WhatsApp for messages (removed for speed)
-    await Promise.all(notifications.map(notif =>
-      base44.functions.invoke('sendDualPush', {
-        recipient_email: notif.user_email,
-        title: pushTitle,
-        body: pushBody,
-        dm_channel: isDM ? data.channel : undefined,
-        notification_type: isDM ? 'dm' : 'group_message',
-        allow_quick_reply: true,
-      }).catch(err => console.log('Push failed for', notif.user_email, err.message))
-    ));
+    // Fire dual push (FCM + Web Push) — skip for Nursery channel to avoid
+    // duplicate notifications (the in-app Notification already triggers a
+    // browser notification via BrowserNotificationDispatcher).
+    if (data.channel !== 'Nursery') {
+      await Promise.all(notifications.map(notif =>
+        base44.functions.invoke('sendDualPush', {
+          recipient_email: notif.user_email,
+          title: pushTitle,
+          body: pushBody,
+          dm_channel: isDM ? data.channel : undefined,
+          notification_type: isDM ? 'dm' : 'group_message',
+          allow_quick_reply: true,
+        }).catch(err => console.log('Push failed for', notif.user_email, err.message))
+      ));
+    }
 
     return Response.json({ success: true, notified: notifications.length });
   } catch (error) {
