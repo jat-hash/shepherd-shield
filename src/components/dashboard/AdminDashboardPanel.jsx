@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { CheckCircle, XCircle, Users, MapPin, ChevronRight, RefreshCw, Send } from "lucide-react";
+import { CheckCircle, XCircle, Users, MapPin, ChevronRight, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
@@ -31,22 +31,6 @@ export default function AdminDashboardPanel({ allUsers = [] }) {
   const [notCheckedIn, setNotCheckedIn] = useState([]);
   const [mapMembers, setMapMembers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sendingRefresh, setSendingRefresh] = useState(false);
-
-  const sendRefreshNotification = async () => {
-    setSendingRefresh(true);
-    try {
-      const res = await base44.functions.invoke('broadcastRefreshNotification', {});
-      if (res?.data?.success) {
-        toast.success(`Refresh notification sent to ${res.data.total_users} users`, { duration: 4000 });
-      } else {
-        toast.error('Failed to send refresh notification', { duration: 4000 });
-      }
-    } catch (err) {
-      toast.error('Failed to send: ' + (err?.message || 'error'), { duration: 4000 });
-    }
-    setSendingRefresh(false);
-  };
 
   const load = useCallback(async () => {
     const todayLocal = new Date();
@@ -131,15 +115,6 @@ export default function AdminDashboardPanel({ allUsers = [] }) {
           <span className="text-xs px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400">{notCheckedIn.length} pending</span>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={sendRefreshNotification}
-            disabled={sendingRefresh}
-            className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white px-2.5 py-1.5 rounded-md transition-colors disabled:opacity-50 touch-manipulation"
-            title="Send refresh notification to all users"
-          >
-            <Send className={`w-3 h-3 ${sendingRefresh ? 'animate-pulse' : ''}`} />
-            {sendingRefresh ? 'Sending...' : 'Refresh All'}
-          </button>
           <button onClick={load} className="text-slate-500 hover:text-[#d4a843] transition-colors">
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
