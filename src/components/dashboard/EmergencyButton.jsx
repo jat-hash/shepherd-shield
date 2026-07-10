@@ -12,6 +12,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { canBroadcastNotifications } from "@/lib/leadership";
 
 const ALERT_TYPES = ["Fire", "Medical", "Active Shooter", "Disturbance"];
 
@@ -58,8 +59,8 @@ export default function EmergencyButton({ user }) {
   const stopTorchRef = useRef(false);
   const vibrateIntervalRef = useRef(null);
 
-  // Only admins can trigger emergency alerts
-  if (user?.role !== 'admin') return null;
+  // Only Pacheco, Wilbert Ryan, and admins can trigger emergency alerts
+  if (!canBroadcastNotifications(user)) return null;
 
   const loadSuggestions = async () => {
     if (!alertType) return;

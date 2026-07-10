@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { canBroadcastNotifications } from "@/lib/leadership";
 
 export default function NotifyTeamButton({ user }) {
   const [open, setOpen] = useState(false);
@@ -19,8 +20,8 @@ export default function NotifyTeamButton({ user }) {
   const [sendSMS, setSendSMS] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
 
-  const ALLOWED_ROLES = ["admin", "administrator", "security chief", "incident commander"];
-  const hasAccess = ALLOWED_ROLES.includes(user?.role?.toLowerCase());
+  // Only Pacheco, Wilbert Ryan, and admins can send team notifications
+  const hasAccess = canBroadcastNotifications(user);
 
   useEffect(() => {
     if (hasAccess) {

@@ -1,12 +1,16 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Heart, DoorOpen, Loader2 } from "lucide-react";
+import { canBroadcastNotifications } from "@/lib/leadership";
 
 export default function ChurchServiceAlerts({ user }) {
   const [altarLoading, setAltarLoading] = useState(false);
   const [churchOutLoading, setChurchOutLoading] = useState(false);
   const [altarSent, setAltarSent] = useState(false);
   const [churchOutSent, setChurchOutSent] = useState(false);
+
+  // Only Pacheco, Wilbert Ryan, and admins can send altar call / church out
+  if (!canBroadcastNotifications(user)) return null;
 
   const sendAlert = async (type) => {
     const isAltar = type === "altar";
