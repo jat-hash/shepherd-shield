@@ -30,6 +30,11 @@ function arrayBufferToBase64Url(buf) {
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
+// Bumped whenever the VAPID key the server signs with changes. When the stored
+// version doesn't match, the hook unsubscribes the existing browser subscription
+// (created with a stale/wrong key) and creates a fresh one with the current key.
+const VAPID_KEY_VERSION = "2";
+
 /**
  * Subscribes the browser to native Web Push (VAPID) and persists the
  * subscription so the backend can deliver true closed-app push via the Web Push
@@ -53,11 +58,24 @@ export function useWebPushSubscription(user) {
         await navigator.serviceWorker.register("/web-push-sw.js");
         const reg = await navigator.serviceWorker.ready;
 
+        // Fetch the NATIVE VAPID public key (not Firebase's web push cert).
+        // Subscribing with the wrong key makes sendWebPush fail with 400
+        // BadWebPushRequest because the server signs with VAPID_PRIVATE_KEY.
+        const res = await base44.functions.invoke("getVapidPublicKey", { usage: "native" });
+        const publicKey = res?.data?.public_key;
+        if (!publicKey) return;
+
+        // Migration: if the VAPID key version changed, the existing browser
+        // subscription was created with a different key and pushes to it will
+        // fail. Unsubscribe it so a fresh one is created below with the current key.
+        const storedVersion = localStorage.getItem("webpush_vapid_version");
         let sub = await reg.pushManager.getSubscription();
+        if (storedVersion !== VAPID_KEY_VERSION && sub) {
+          try { await sub.unsubscribe(); } catch (_) {}
+          sub = null;
+        }
+
         if (!sub) {
-          const res = await base44.functions.invoke("getVapidPublicKey");
-          const publicKey = res?.data?.public_key;
-          if (!publicKey) return;
           sub = await reg.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(publicKey),
@@ -77,6 +95,7 @@ export function useWebPushSubscription(user) {
             device_id: navigator.userAgent.slice(0, 80),
           });
         }
+        localStorage.setItem("webpush_vapid_version", VAPID_KEY_VERSION);
         subbedRef.current = true;
       } catch (err) {
         console.warn("Web Push subscription failed:", err.message);

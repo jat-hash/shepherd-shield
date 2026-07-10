@@ -197,6 +197,7 @@ Deno.serve(async (req) => {
     let successCount = 0;
     let failureCount = 0;
     const deadSubIds = [];
+    const failureDetails = [];
 
     await Promise.all(subs.map(async (sub) => {
       try {
@@ -218,10 +219,14 @@ Deno.serve(async (req) => {
           failureCount++;
           // 404/410 → subscription expired; remove it so future sends stay clean
           if (res.status === 404 || res.status === 410) deadSubIds.push(sub.id);
-          console.log(`Web Push send failed (${res.status}) for ${recipientEmail} endpoint ${sub.endpoint.substring(0, 48)}…`);
+          let errBody = '';
+          try { errBody = await res.text(); } catch (_) {}
+          failureDetails.push({ status: res.status, body: errBody.substring(0, 200) });
+          console.log(`Web Push send failed (${res.status}) for ${recipientEmail} endpoint ${sub.endpoint.substring(0, 48)}…: ${errBody.substring(0, 150)}`);
         }
       } catch (err) {
         failureCount++;
+        failureDetails.push({ error: err.message });
         console.log('Web Push error:', err.message);
       }
     }));
@@ -231,7 +236,7 @@ Deno.serve(async (req) => {
     ));
 
     console.log(`Web Push sent to ${recipientEmail} (${subs.length} sub(s)), success: ${successCount}, failure: ${failureCount}, pruned: ${deadSubIds.length}`);
-    return Response.json({ success: true, recipient: recipientEmail, sent: successCount, failure: failureCount, pruned: deadSubIds.length });
+    return Response.json({ success: true, recipient: recipientEmail, sent: successCount, failure: failureCount, pruned: deadSubIds.length, failureDetails });
   } catch (error) {
     console.error('Error in sendWebPush:', error);
     return Response.json({ error: error.message }, { status: 500 });

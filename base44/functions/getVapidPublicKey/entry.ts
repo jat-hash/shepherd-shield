@@ -6,21 +6,33 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Firebase Cloud Messaging requires the web push certificate key configured
-    // in the Firebase Console — NOT the app's own native Web Push VAPID key pair.
-    // These are two different keys: Firebase manages its web push cert privately,
-    // while VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY are a self-generated pair for
-    // sendWebPush (native Web Push). Passing the wrong key to getToken() causes
-    // Firebase to reject the subscription silently.
+    // Parse the request body to determine which VAPID key the caller needs.
+    // FCM (firebase.jsx getToken) needs the Firebase web push certificate key.
+    // Native Web Push (useWebPushSubscription) needs the standalone VAPID pair.
+    // Subscribing with the wrong key makes later sendWebPush calls fail with 400
+    // BadWebPushRequest because the VAPID JWT signature won't match.
+    let usage = 'fcm';
+    try {
+      const body = await req.json();
+      if (body?.usage === 'native') usage = 'native';
+    } catch (_) { /* GET or empty body → default to fcm */ }
+
     const firebaseVapidKey = Deno.env.get('FIREBASE_VAPID_KEY');
     const nativeVapidKey = Deno.env.get('VAPID_PUBLIC_KEY');
-    const publicKey = firebaseVapidKey || nativeVapidKey;
-    if (!publicKey) {
-      return Response.json({ error: 'No VAPID key configured — set FIREBASE_VAPID_KEY from Firebase Console > Project Settings > Cloud Messaging > Web Push certificate' }, { status: 500 });
-    }
-    console.log(`getVapidPublicKey: using ${firebaseVapidKey ? 'FIREBASE_VAPID_KEY' : 'VAPID_PUBLIC_KEY (fallback — may not match Firebase web push cert)'}`);
 
-    return Response.json({ public_key: publicKey });
+    const publicKey = usage === 'native'
+      ? nativeVapidKey
+      : (firebaseVapidKey || nativeVapidKey);
+
+    if (!publicKey) {
+      const msg = usage === 'native'
+        ? 'VAPID_PUBLIC_KEY not configured — needed for native Web Push'
+        : 'No VAPID key configured — set FIREBASE_VAPID_KEY from Firebase Console > Project Settings > Cloud Messaging > Web Push certificate';
+      return Response.json({ error: msg }, { status: 500 });
+    }
+    console.log(`getVapidPublicKey: usage=${usage}, key=${usage === 'native' ? 'VAPID_PUBLIC_KEY' : (firebaseVapidKey ? 'FIREBASE_VAPID_KEY' : 'VAPID_PUBLIC_KEY (fallback)')}`);
+
+    return Response.json({ public_key: publicKey, usage });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
