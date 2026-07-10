@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Search, Baby, Phone, Calendar, ChevronDown, ChevronUp, X, AlertCircle } from "lucide-react";
+import { Search, Baby, Phone, Calendar, ChevronDown, ChevronUp, X, AlertCircle, UserPlus } from "lucide-react";
+import DirectoryAddForm from "@/components/nursery/DirectoryAddForm";
 
 const AGE_COLORS = {
   "Infant (0-12m)": "bg-pink-900/40 border-pink-500/30 text-pink-300",
@@ -15,13 +16,17 @@ export default function NurseryDirectory() {
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState(null);
   const [filterAge, setFilterAge] = useState("All");
+  const [showAdd, setShowAdd] = useState(false);
 
-  useEffect(() => {
+  const reload = () => {
+    setLoading(true);
     base44.entities.NurseryChild.list("-created_date", 500)
       .then(records => setAllRecords(records))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { reload(); }, []);
 
   // Group by child name + parent name to deduplicate and show visit history
   const grouped = allRecords.reduce((acc, record) => {
@@ -56,9 +61,17 @@ export default function NurseryDirectory() {
 
   return (
     <div className="space-y-3">
-      <h2 className="text-xs uppercase tracking-widest text-[#d4a843] font-semibold flex items-center gap-2">
-        <Baby className="w-3.5 h-3.5" /> Family Directory ({families.length} families)
-      </h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-xs uppercase tracking-widest text-[#d4a843] font-semibold flex items-center gap-2">
+          <Baby className="w-3.5 h-3.5" /> Family Directory ({families.length} families)
+        </h2>
+        <button
+          onClick={() => setShowAdd(true)}
+          className="flex items-center gap-1.5 text-xs font-bold bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] px-3 py-1.5 rounded-lg transition-colors"
+        >
+          <UserPlus className="w-3.5 h-3.5" /> Add
+        </button>
+      </div>
 
       {/* Search Bar */}
       <div className="relative">
@@ -167,6 +180,9 @@ export default function NurseryDirectory() {
             );
           })}
         </div>
+      )}
+      {showAdd && (
+        <DirectoryAddForm onClose={() => setShowAdd(false)} onAdded={reload} />
       )}
     </div>
   );
