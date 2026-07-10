@@ -37,8 +37,8 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.child_name || !form.parent_name) {
-      toast.error("Child name and parent name are required");
+    if (!form.parent_name) {
+      toast.error("Parent name is required");
       return;
     }
     setLoading(true);
@@ -192,7 +192,7 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
           )}
 
           <div>
-            <label className="text-xs text-slate-400 mb-1 block">Child's Name *</label>
+            <label className="text-xs text-slate-400 mb-1 block">Child's Name</label>
             <input
               className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60"
               value={form.child_name}
