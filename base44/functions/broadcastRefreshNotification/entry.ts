@@ -26,18 +26,12 @@ Deno.serve(async (req) => {
 
     let fcmSuccessCount = 0;
 
+    // Push-only: we intentionally do NOT create in-app Notification records.
+    // Those persist as unread and would reappear in the bell every time the
+    // user opens the app. The FCM push (with a "Refresh Now" action button) is
+    // the sole delivery mechanism — it only fires when the admin clicks
+    // "Refresh All", and the service worker handles the refresh directly.
     for (const u of allUsers) {
-      // In-app notification (works on all platforms)
-      await base44.asServiceRole.entities.Notification.create({
-        user_email: u.email,
-        title,
-        message: customMessage,
-        type: 'general',
-        read: false,
-      }).catch(() => {});
-
-      // FCM push with 'refresh' notification_type — the service worker adds
-      // a "Refresh Now" action button
       const fcmRes = await base44.asServiceRole.functions.invoke('sendFCMNotification', {
         recipient_email: u.email,
         title,
@@ -48,7 +42,7 @@ Deno.serve(async (req) => {
       if (fcmRes?.data?.success) fcmSuccessCount++;
     }
 
-    console.log(`Refresh notification broadcast by ${user.email}: ${allUsers.length} in-app, ${fcmSuccessCount} FCM`);
+    console.log(`Refresh notification broadcast by ${user.email}: ${fcmSuccessCount}/${allUsers.length} FCM`);
 
     return Response.json({
       success: true,
