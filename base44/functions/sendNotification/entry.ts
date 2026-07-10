@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const results = { email_sent: false, in_app_created: false, push_sent: false };
+    const results = { in_app_created: false, push_sent: false };
 
     // Check if user wants this type of notification
     let shouldNotify = false;
@@ -32,20 +32,6 @@ Deno.serve(async (req) => {
         message: 'User has disabled this notification type',
         results 
       });
-    }
-
-    // Send email if enabled
-    if (user.notifications_email !== false) {
-      try {
-        await base44.asServiceRole.integrations.Core.SendEmail({
-          to: user_email,
-          subject: title,
-          body: message
-        });
-        results.email_sent = true;
-      } catch (error) {
-        console.error('Email send error:', error);
-      }
     }
 
     // Create in-app notification if enabled
