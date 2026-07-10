@@ -5,17 +5,24 @@ const LEADERSHIP_EMAILS = [
   "pachecosmailbox@gmail.com",
 ];
 
-// Regular (non-leadership) members who can access the full app — not locked to Nursery.
-const REGULAR_MEMBER_EMAILS = [
-  "tamitha4@hotmail.com",
-  "mikebt40@hotmail.com",
+// Users authorized to access the Nursery module (admins always allowed).
+const NURSERY_ACCESS_EMAILS = [
+  "wilbert.ryan@gmail.com",
+  "pachecosmailbox@gmail.com",
+  "wintersnorma@yahoo.com",
+  "wintersjamesg@hotmail.com",
+  "lilskey311@gmail.com",
 ];
 
+// All authenticated users can access the main app.
 export function canAccessMainApp(user) {
+  return !!user;
+}
+
+export function canAccessNursery(user) {
   if (!user) return false;
   if (user.role === "admin") return true;
-  const email = (user.email || "").toLowerCase();
-  return LEADERSHIP_EMAILS.includes(email) || REGULAR_MEMBER_EMAILS.includes(email);
+  return NURSERY_ACCESS_EMAILS.includes((user.email || "").toLowerCase());
 }
 
 export function canBroadcastNotifications(user) {

@@ -7,7 +7,7 @@ import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bel
 
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { cacheUserVibrationPrefs, primeAudioContext } from "@/lib/notificationEffects";
-import { canAccessMainApp } from "@/lib/leadership";
+import { canAccessMainApp, canAccessNursery } from "@/lib/leadership";
 import EmergencyOverrideFlash from "@/components/notifications/EmergencyOverrideFlash";
 import AlertNotificationSystem from "@/components/notifications/AlertNotificationSystem";
 import UserSwitcher from "@/components/UserSwitcher";
@@ -65,12 +65,11 @@ export default function Layout({ children, currentPageName }) {
   const pageTitle = PAGE_TITLES[currentPageName] || currentPageName;
   const goBack = () => { if (window.history.length > 1) navigate(-1); else navigate("/"); };
 
-  // Only admins, Wilbert Ryan, and Pacheco can see anything besides Nursery.
-  // Everyone else is locked to the Nursery Dashboard.
+  // Nursery access is restricted to authorized users — redirect others away.
   useEffect(() => {
     if (!user) return;
-    if (!canAccessMainApp(user) && location.pathname !== '/NurseryDashboard') {
-      navigate('/NurseryDashboard', { replace: true });
+    if (!canAccessNursery(user) && (location.pathname === '/NurseryDashboard' || location.pathname === '/NurseryMonitor')) {
+      navigate('/', { replace: true });
     }
   }, [user, location.pathname]);
 
@@ -148,10 +147,8 @@ export default function Layout({ children, currentPageName }) {
   const noLayoutPages = ["Login"];
   if (noLayoutPages.includes(currentPageName)) return children;
 
-  // Only admins, Wilbert Ryan, and Pacheco get the full app layout.
-  // Everyone else only sees the Nursery Dashboard (no layout wrapper).
-  const canSeeNursery = canAccessMainApp(user);
-  if (user && !canAccessMainApp(user)) return <>{children}</>;
+  // All authenticated users get the full app layout.
+  const canSeeNursery = canAccessNursery(user);
 
 
   return (
@@ -304,7 +301,7 @@ export default function Layout({ children, currentPageName }) {
                   Nursery
                 </Link>
               )}
-              {canAccessMainApp(user) && (
+              {canAccessNursery(user) && (
                 <Link
                   to="/NurseryMonitor"
                   onClick={() => setSidebarOpen(false)}
@@ -449,7 +446,7 @@ export default function Layout({ children, currentPageName }) {
               Nursery
             </Link>
           )}
-          {canAccessMainApp(user) && (
+          {canAccessNursery(user) && (
             <Link
               to="/NurseryMonitor"
               className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-all ${
