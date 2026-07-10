@@ -102,6 +102,36 @@ async function encryptPayload(payloadObj, p256dhB64, authB64) {
   return concatBytes([header, ciphertext]);
 }
 
+// ─── Key pair verification ───
+// Signs a test message with the private key and verifies with the public key.
+// If the keys aren't a matching pair, verification fails — this detects the
+// mismatch that causes 403 errors from push services.
+async function verifyKeyPair(publicKeyB64, privateKeyB64) {
+  try {
+    const pubBytes = b64urlDecode(publicKeyB64);  // 65 bytes: 0x04 || x || y
+    const x = pubBytes.slice(1, 33);
+    const y = pubBytes.slice(33, 65);
+    const d = b64urlDecode(privateKeyB64);        // 32-byte private scalar
+
+    const privKey = await crypto.subtle.importKey('jwk', {
+      kty: 'EC', crv: 'P-256',
+      x: b64urlEncode(x), y: b64urlEncode(y), d: b64urlEncode(d),
+      ext: true,
+    }, { name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign']);
+
+    const pubKey = await crypto.subtle.importKey('raw', pubBytes,
+      { name: 'ECDSA', namedCurve: 'P-256' }, true, ['verify']);
+
+    const testMsg = strToBytes('vapid-key-pair-check');
+    const derSig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, privKey, testMsg);
+    const isValid = await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, pubKey, derSig, testMsg);
+    return isValid;
+  } catch (e) {
+    console.error('Key pair verification error:', e.message);
+    return false;
+  }
+}
+
 // ─── VAPID JWT (RFC 8292) signed with ES256 ───
 async function buildVapidAuthHeader(endpoint, publicKeyB64, privateKeyB64) {
   const pubBytes = b64urlDecode(publicKeyB64);  // 65 bytes: 0x04 || x || y
@@ -172,6 +202,15 @@ Deno.serve(async (req) => {
     const privateKey = Deno.env.get('VAPID_PRIVATE_KEY');
     if (!publicKey || !privateKey) {
       return Response.json({ error: 'VAPID keys not configured' }, { status: 500 });
+    }
+
+    // Verify the VAPID key pair matches: if the public key wasn't derived from
+    // the private key, every push will fail with 403 (signature mismatch).
+    // We sign a test message with the private key and verify with the public key.
+    const keysMatch = await verifyKeyPair(publicKey, privateKey);
+    if (!keysMatch) {
+      console.error('VAPID KEY PAIR MISMATCH: VAPID_PUBLIC_KEY does not correspond to VAPID_PRIVATE_KEY. All Web Push sends will fail with 403. Regenerate the key pair and update both secrets.');
+      return Response.json({ error: 'VAPID key pair mismatch — VAPID_PUBLIC_KEY does not match VAPID_PRIVATE_KEY. Update the secrets with a matching pair.' }, { status: 500 });
     }
 
     const subs = await base44.asServiceRole.entities.PushSubscription.filter({ user_email: recipientEmail });
