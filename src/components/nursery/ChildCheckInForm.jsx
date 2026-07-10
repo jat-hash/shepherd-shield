@@ -67,7 +67,7 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
           <div className="px-6 pt-6 pb-2">
             <CheckCircle2 className="w-12 h-12 text-green-400 mx-auto mb-3" />
             <h2 className="text-white font-bold text-lg">Checked In!</h2>
-            <p className="text-slate-400 text-sm mt-1">{checkedInChild.child_name} is now in the nursery</p>
+            <p className="text-slate-400 text-sm mt-1">{checkedInChild.child_name?.trim() ? `${checkedInChild.child_name} is now in the nursery` : `${checkedInChild.parent_name}'s child is now in the nursery`}</p>
           </div>
 
           {/* Summary */}
@@ -160,7 +160,7 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
                   </div>
                   <div className="overflow-y-auto flex-1">
                     {pastChildren
-                      .filter(c => !search || c.child_name.toLowerCase().includes(search.toLowerCase()) || c.parent_name.toLowerCase().includes(search.toLowerCase()))
+                      .filter(c => !search || (c.child_name || "").toLowerCase().includes(search.toLowerCase()) || (c.parent_name || "").toLowerCase().includes(search.toLowerCase()))
                       .map(c => (
                         <button
                           key={c.id}
@@ -178,11 +178,11 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
                           }}
                           className="w-full text-left px-4 py-2.5 hover:bg-[rgba(212,168,67,0.08)] transition-colors border-b border-[rgba(212,168,67,0.05)] last:border-0"
                         >
-                          <p className="text-white text-sm font-medium">{c.child_name}</p>
+                          <p className="text-white text-sm font-medium">{c.child_name?.trim() || `Child of ${c.parent_name}`}</p>
                           <p className="text-slate-400 text-xs">{c.parent_name}{c.parent_phone ? ` · ${c.parent_phone}` : ""} · {c.age_group}</p>
                         </button>
                       ))}
-                    {pastChildren.filter(c => !search || c.child_name.toLowerCase().includes(search.toLowerCase()) || c.parent_name.toLowerCase().includes(search.toLowerCase())).length === 0 && (
+                    {pastChildren.filter(c => !search || (c.child_name || "").toLowerCase().includes(search.toLowerCase()) || (c.parent_name || "").toLowerCase().includes(search.toLowerCase())).length === 0 && (
                       <p className="text-slate-500 text-sm text-center py-4">No matches found</p>
                     )}
                   </div>

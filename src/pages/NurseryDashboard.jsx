@@ -264,7 +264,7 @@ export default function NurseryDashboard() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <Baby className="w-4 h-4 shrink-0" />
-                          <p className="font-bold text-white">{child.child_name}</p>
+                          <p className="font-bold text-white">{child.child_name?.trim() || `Child of ${child.parent_name}`}</p>
                         </div>
                         <p className="text-xs mt-1 opacity-80">Parent: {child.parent_name}{child.parent_phone ? ` · ${child.parent_phone}` : ""}</p>
                         <p className="text-xs opacity-60 mt-0.5">{child.age_group} · In at {child.check_in_time ? new Date(child.check_in_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}</p>
@@ -275,7 +275,7 @@ export default function NurseryDashboard() {
                       <button
                         onClick={async () => {
                           await base44.entities.NurseryChild.update(child.id, { checked_in: false, check_out_time: new Date().toISOString() });
-                          toast.success(`${child.child_name} checked out`);
+                          toast.success(`${child.child_name?.trim() || `Child of ${child.parent_name}`} checked out`);
                         }}
                         className="text-xs bg-black/30 hover:bg-black/50 text-white px-2.5 py-1.5 rounded-lg flex-shrink-0 transition-colors"
                       >
