@@ -5,6 +5,13 @@ import { toast } from "sonner";
 
 const REQUEST_TYPES = ["Parent Needed", "Diaper Change", "Feeding", "Medical", "Pick Up", "Other"];
 
+// Nursery notifications go ONLY to these three leads
+const NURSERY_LEADS = [
+  "wilbert.ryan@gmail.com",
+  "pachecosmailbox@gmail.com",
+  "wintersjamesg@hotmail.com",
+];
+
 export default function ParentRequestForm({ children, user, onClose }) {
   const [form, setForm] = useState({
     parent_name: "",
@@ -44,10 +51,11 @@ export default function ParentRequestForm({ children, user, onClose }) {
         status: "Pending",
         service_date: todayStr,
       });
-      // Send in-app notification to all team members
+      // Send notification ONLY to the three nursery leads
       await base44.functions.invoke("sendTeamNotification", {
         title: `🍼 Nursery: ${form.request_type}`,
         message: `Parent: ${form.parent_name}${form.child_name ? ` — Child: ${form.child_name}` : ""}${form.message ? ` — ${form.message}` : ""}. Requested by nursery staff.`,
+        recipient_emails: NURSERY_LEADS,
       });
       toast.success("Request sent to team");
       onClose();

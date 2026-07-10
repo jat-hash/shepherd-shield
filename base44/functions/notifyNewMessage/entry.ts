@@ -1,5 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+// Nursery channel notifications go ONLY to these three leads
+const NURSERY_LEADS = [
+  'wilbert.ryan@gmail.com',
+  'pachecosmailbox@gmail.com',
+  'wintersjamesg@hotmail.com',
+];
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -30,8 +37,12 @@ Deno.serve(async (req) => {
     } else {
       // For group channels, notify all users except the sender — fetch once
       const users = await base44.asServiceRole.entities.User.list(undefined, 1000);
+      // Nursery channel: restrict to the three designated leads only
+      const recipientFilter = data.channel === 'Nursery'
+        ? (u => NURSERY_LEADS.includes(u.email) && u.email !== data.sender_email)
+        : (u => u.email !== data.sender_email);
       notifications = users
-        .filter(u => u.email !== data.sender_email)
+        .filter(recipientFilter)
         .map(u => ({
           user_email: u.email,
           title: `New message in ${data.channel}`,
