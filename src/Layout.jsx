@@ -79,6 +79,39 @@ export default function Layout({ children, currentPageName }) {
     setTimeout(() => setIsRefreshing(false), 1500);
   };
 
+  // Auto-refresh the app when it returns to the foreground after being
+  // backgrounded or closed (e.g. switching apps on mobile). A threshold
+  // avoids reloading on quick app switches.
+  useEffect(() => {
+    let hiddenAt = null;
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAt = Date.now();
+      } else if (document.visibilityState === 'visible' && hiddenAt) {
+        const elapsed = Date.now() - hiddenAt;
+        hiddenAt = null;
+        if (elapsed > 30000) {
+          window.location.reload();
+        }
+      }
+    };
+
+    const onPageShow = (e) => {
+      // Restored from bfcache — app was frozen by the OS
+      if (e.persisted) {
+        window.location.reload();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('pageshow', onPageShow);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('pageshow', onPageShow);
+    };
+  }, []);
+
   useEffect(() => {
     if (!authUser) {
       base44.auth.me().then(u => { setFallbackUser(u); cacheUserVibrationPrefs(u); }).catch(() => {});
