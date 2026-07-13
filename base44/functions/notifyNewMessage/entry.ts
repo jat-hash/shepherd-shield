@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
     // browser notification via BrowserNotificationDispatcher).
     if (data.channel !== 'Nursery') {
       await Promise.all(notifications.map(notif =>
-        base44.functions.invoke('sendDualPush', {
+        base44.asServiceRole.functions.invoke('sendDualPush', {
           recipient_email: notif.user_email,
           title: pushTitle,
           body: pushBody,

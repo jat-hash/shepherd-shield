@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
 
     // Send push (FCM + Web Push) to each recipient
     const promises = recipients.map(recipient =>
-      base44.functions.invoke('sendDualPush', {
+      base44.asServiceRole.functions.invoke('sendDualPush', {
         recipient_email: recipient.email,
         title: `New message in ${channel} from ${sender_name}`,
         body: content?.substring(0, 100) || 'Sent a file',

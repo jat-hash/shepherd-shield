@@ -7,9 +7,11 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
+    // No auth check — sendDualPush is an internal dispatcher called from other
+    // backend functions (entity automations, scheduled tasks) where there is no
+    // user session. Requiring auth here silently broke Web Push (iOS) delivery
+    // for every notification type triggered without a user context.
     const params = await req.json();
     const { recipient_email, title, body, alert_id, incident_id, dm_channel,
             notification_type, click_url, allow_quick_reply } = params;
@@ -38,9 +40,11 @@ Deno.serve(async (req) => {
     };
 
     // Fire both channels concurrently — total latency = max(FCM, WebPush), not sum
+    // Use sendWebPushService (no auth gate) instead of sendWebPush (requires auth).
+    // sendWebPush fails in service-role contexts, silently dropping iOS/Safari pushes.
     const [fcmRes, wpRes] = await Promise.allSettled([
-      base44.functions.invoke('sendFCMNotification', fcmParams),
-      base44.functions.invoke('sendWebPush', webPushParams),
+      base44.asServiceRole.functions.invoke('sendFCMNotification', fcmParams),
+      base44.asServiceRole.functions.invoke('sendWebPushService', webPushParams),
     ]);
 
     const fcm = fcmRes.status === 'fulfilled' ? fcmRes.value?.data : { error: fcmRes.reason?.message };
