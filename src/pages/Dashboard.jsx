@@ -8,6 +8,7 @@ import QuickActionGrid from "@/components/dashboard/QuickActionGrid";
 import SOPQuickAccess from "@/components/dashboard/SOPQuickAccess";
 import SpecialEventsDropdown from "@/components/dashboard/SpecialEventsDropdown";
 import NotifyTeamButton from "@/components/dashboard/NotifyTeamButton";
+import HotMicButton from "@/components/dashboard/HotMicButton";
 import SafetyCheckInPanel from "@/components/dashboard/SafetyCheckInPanel";
 import { WifiOff, MapPin, X, Bell, AlertTriangle } from "lucide-react";
 import RadioCheckInScanner from "@/components/dashboard/RadioCheckInScanner";
@@ -413,6 +414,7 @@ export default function Dashboard() {
         <div className="flex flex-col gap-2 shrink-0">
           <NotifyTeamButton user={user} />
           <EmergencyButton user={user} />
+          <HotMicButton user={user} />
         </div>
       </div>
 
