@@ -79,6 +79,11 @@
     "reminder_minutes": {
       "type": "integer",
       "description": "Minutes before assignment to send reminder (0 to disable)"
+    },
+    "late_notified": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if a late check-in push notification has already been sent"
     }
   },
   "required": [
