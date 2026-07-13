@@ -88,6 +88,7 @@ import PWAInstaller from '@/components/PWAInstaller';
 import WakeLock from '@/components/WakeLock';
 import PocketMode from '@/components/PocketMode';
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
+import WebPushRegistrar from '@/components/notifications/WebPushRegistrar';
 import { Toaster } from 'sonner';
 
 const { Pages, Layout, mainPage } = pagesConfig;
@@ -200,6 +201,9 @@ const AuthenticatedApp = () => {
           </ErrorBoundary>
           <ErrorBoundary>
             <PocketMode />
+          </ErrorBoundary>
+          <ErrorBoundary>
+            <WebPushRegistrar />
           </ErrorBoundary>
           <Routes>
             <Route path="/" element={

@@ -97,6 +97,9 @@ export function useWebPushSubscription(user) {
         }
         localStorage.setItem("webpush_vapid_version", VAPID_KEY_VERSION);
         subbedRef.current = true;
+        // Notify the Dashboard that registration completed so the "incomplete"
+        // banner disappears immediately (mirrors the FCM flow in ServiceWorkerRegister).
+        window.dispatchEvent(new CustomEvent("push:registered"));
       } catch (err) {
         console.warn("Web Push subscription failed:", err.message);
       }
