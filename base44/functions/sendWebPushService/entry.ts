@@ -197,6 +197,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'VAPID key pair mismatch' }, { status: 500 });
     }
 
+    const pubKeyBytes = b64urlDecode(publicKey);
+    console.log(`VAPID key debug: publicKeyB64 length=${publicKey.length}, decoded bytes=${pubKeyBytes.length}, first byte=0x${pubKeyBytes[0]?.toString(16)}`);
+
     const subs = await base44.asServiceRole.entities.PushSubscription.filter({ user_email: recipientEmail });
     if (!subs || subs.length === 0) {
       return Response.json({ success: true, recipient: recipientEmail, sent: 0, reason: 'no subscriptions' });
@@ -218,6 +221,7 @@ Deno.serve(async (req) => {
     let successCount = 0;
     let failureCount = 0;
     const deadSubIds = [];
+    const errors = [];
 
     await Promise.all(subs.map(async (sub) => {
       try {
@@ -228,6 +232,7 @@ Deno.serve(async (req) => {
           headers: {
             'Authorization': authHeader,
             'Content-Type': 'application/octet-stream',
+            'Content-Encoding': 'aes128gcm',
             'TTL': '86400',
             'Urgency': urgency,
           },
@@ -240,11 +245,14 @@ Deno.serve(async (req) => {
           if (res.status === 404 || res.status === 410) deadSubIds.push(sub.id);
           let errBody = '';
           try { errBody = await res.text(); } catch (_) {}
-          console.log(`Web Push (service) failed (${res.status}) for ${recipientEmail}: ${errBody.substring(0, 150)}`);
+          const msg = `HTTP ${res.status}: ${errBody.substring(0, 200)}`;
+          console.log(`Web Push (service) failed for ${recipientEmail}: ${msg}`);
+          errors.push({ endpoint: sub.endpoint.substring(0, 50), status: res.status, body: errBody.substring(0, 200) });
         }
       } catch (err) {
         failureCount++;
         console.log('Web Push (service) error:', err.message);
+        errors.push({ error: err.message });
       }
     }));
 
@@ -253,7 +261,7 @@ Deno.serve(async (req) => {
     ));
 
     console.log(`Web Push (service) sent to ${recipientEmail} (${subs.length} sub(s)), success: ${successCount}, failure: ${failureCount}`);
-    return Response.json({ success: true, recipient: recipientEmail, sent: successCount, failure: failureCount, pruned: deadSubIds.length });
+    return Response.json({ success: true, recipient: recipientEmail, sent: successCount, failure: failureCount, pruned: deadSubIds.length, errors });
   } catch (error) {
     console.error('Error in sendWebPushService:', error);
     return Response.json({ error: error.message }, { status: 500 });
