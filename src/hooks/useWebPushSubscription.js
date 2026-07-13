@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 
 const isFCMSupported = () => {
@@ -54,7 +55,10 @@ export function useWebPushSubscription(user) {
 
     const subscribe = async () => {
       try {
-        if (window.Notification?.permission !== "granted") return;
+        if (window.Notification?.permission !== "granted") {
+          toast.info('Tap "Enable Now" first to allow notifications.', { duration: 5000 });
+          return;
+        }
         await navigator.serviceWorker.register("/web-push-sw.js");
         const reg = await navigator.serviceWorker.ready;
 
@@ -63,7 +67,10 @@ export function useWebPushSubscription(user) {
         // BadWebPushRequest because the server signs with VAPID_PRIVATE_KEY.
         const res = await base44.functions.invoke("getVapidPublicKey", { usage: "native" });
         const publicKey = res?.data?.public_key;
-        if (!publicKey) return;
+        if (!publicKey) {
+          toast.error('Could not fetch push key. Try again or contact support.', { duration: 6000 });
+          return;
+        }
 
         // Migration: if the VAPID key version changed, the existing browser
         // subscription was created with a different key and pushes to it will
@@ -100,8 +107,13 @@ export function useWebPushSubscription(user) {
         // Notify the Dashboard that registration completed so the "incomplete"
         // banner disappears immediately (mirrors the FCM flow in ServiceWorkerRegister).
         window.dispatchEvent(new CustomEvent("push:registered"));
+        const alreadyEnabled = localStorage.getItem('pushRegistered') === 'true';
+        if (!alreadyEnabled) {
+          toast.success('✅ Push notifications enabled!', { duration: 4000 });
+        }
       } catch (err) {
         console.warn("Web Push subscription failed:", err.message);
+        toast.error('Push setup failed: ' + err.message, { duration: 8000 });
       }
     };
 

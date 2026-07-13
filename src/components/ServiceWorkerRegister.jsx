@@ -69,6 +69,13 @@ export default function ServiceWorkerRegister() {
         }
         const support = isFCMSupported();
         if (!support.ok) {
+          // iOS uses native Web Push (handled by WebPushRegistrar) — don't show
+          // an error toast, just skip silently. Only show errors for genuinely
+          // unsupported browsers (missing SW/PushManager on non-iOS).
+          if (/iOS/i.test(support.reason)) {
+            addLog('iOS detected — native Web Push handles this device');
+            return;
+          }
           notify('❌ Push not supported: ' + support.reason, 'error');
           return;
         }
