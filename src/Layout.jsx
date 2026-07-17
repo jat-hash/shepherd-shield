@@ -94,19 +94,15 @@ export default function Layout({ children, currentPageName }) {
       if (document.visibilityState === 'hidden') {
         hiddenAt = Date.now();
       } else if (document.visibilityState === 'visible' && hiddenAt) {
-        const elapsed = Date.now() - hiddenAt;
         hiddenAt = null;
-        if (elapsed > 30000) {
-          window.location.reload();
-        }
+        // Always reload when returning to the foreground so the app is fresh.
+        window.location.reload();
       }
     };
 
     const onPageShow = (e) => {
-      // Restored from bfcache — app was frozen by the OS
-      if (e.persisted) {
-        window.location.reload();
-      }
+      // Restored from bfcache or tab/app reopened — always refresh.
+      window.location.reload();
     };
 
     document.addEventListener('visibilitychange', onVisibilityChange);
