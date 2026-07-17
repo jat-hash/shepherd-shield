@@ -9,6 +9,7 @@ import NotificationBell from "@/components/notifications/NotificationBell";
 import ChildCheckInForm from "@/components/nursery/ChildCheckInForm";
 import CheckOutByCode from "@/components/nursery/CheckOutByCode";
 import ParentRequestForm from "@/components/nursery/ParentRequestForm";
+import NurseryRequestReply from "@/components/nursery/NurseryRequestReply";
 import NurseryChat from "@/components/nursery/NurseryChat";
 import NurseryDirectory from "@/components/nursery/NurseryDirectory";
 import DailySummary from "@/components/nursery/DailySummary";
@@ -39,6 +40,7 @@ export default function NurseryDashboard() {
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showCheckOut, setShowCheckOut] = useState(false);
   const [showRequest, setShowRequest] = useState(false);
+  const [replyToRequest, setReplyToRequest] = useState(null);
   const [staffCheckedIn, setStaffCheckedIn] = useState(false);
   const [checkInRecord, setCheckInRecord] = useState(null);
   const [activeTab, setActiveTab] = useState("children");
@@ -314,11 +316,27 @@ export default function NurseryDashboard() {
                       <p className="text-slate-400 text-xs mt-1">By {req.requested_by} · {new Date(req.created_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
                     </div>
                     {req.status === "Pending" && (
+                      <div className="flex flex-col gap-1.5 flex-shrink-0">
+                        <button
+                          onClick={() => setReplyToRequest(req)}
+                          className="bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg"
+                        >
+                          Reply
+                        </button>
+                        <button
+                          onClick={() => resolveRequest(req)}
+                          className="bg-green-700 hover:bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg"
+                        >
+                          Resolve
+                        </button>
+                      </div>
+                    )}
+                    {req.status === "Acknowledged" && (
                       <button
-                        onClick={() => resolveRequest(req)}
-                        className="bg-green-700 hover:bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex-shrink-0"
+                        onClick={() => setReplyToRequest(req)}
+                        className="bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex-shrink-0"
                       >
-                        Resolve
+                        Reply
                       </button>
                     )}
                   </div>
@@ -386,6 +404,9 @@ export default function NurseryDashboard() {
       )}
       {showRequest && (
         <ParentRequestForm children={children} user={user} onClose={() => setShowRequest(false)} />
+      )}
+      {replyToRequest && (
+        <NurseryRequestReply request={replyToRequest} user={user} onClose={() => setReplyToRequest(null)} />
       )}
     </div>
   );
