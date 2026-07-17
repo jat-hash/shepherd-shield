@@ -66,9 +66,14 @@ export default function Layout({ children, currentPageName }) {
   const goBack = () => { if (window.history.length > 1) navigate(-1); else navigate("/"); };
 
   // Nursery access is restricted to authorized users — redirect others away.
+  // Nursery-only users are redirected to the Nursery dashboard from any main app page.
   useEffect(() => {
     if (!user) return;
-    if (!canAccessNursery(user) && (location.pathname === '/NurseryDashboard' || location.pathname === '/NurseryMonitor')) {
+    const onNurseryPage = location.pathname === '/NurseryDashboard' || location.pathname === '/NurseryMonitor';
+    if (!canAccessMainApp(user) && !onNurseryPage) {
+      navigate('/NurseryDashboard', { replace: true });
+    }
+    if (!canAccessNursery(user) && onNurseryPage) {
       navigate('/', { replace: true });
     }
   }, [user, location.pathname]);
