@@ -69,21 +69,20 @@ export default function ParentRequestForm({ children: propChildren, user, onClos
         status: "Pending",
         service_date: todayStr,
       });
-      // Fetch admin users so they are also alerted
-      const allUsers = await base44.entities.User.list(undefined, 200);
-      const adminEmails = (allUsers || [])
-        .filter(u => u.role === 'admin')
-        .map(u => (u.email || '').toLowerCase());
+      // Alert ONLY Ryan, Pacheco, and the current admin user
       const recipientEmails = [...new Set([
         ...NURSERY_HELP_RECIPIENTS.map(e => e.toLowerCase()),
-        ...adminEmails,
+        (user?.email || '').toLowerCase(),
       ])];
 
-      // Send in-app + push notification (push alerts them even if app is closed)
+      // Send in-app + persistent push notification (incident-level urgency
+      // ensures the push is high-priority and persistent on all platforms)
       await base44.functions.invoke("sendTeamNotification", {
         title: `🍼 Nursery: ${form.request_type}`,
         message: `Parent: ${form.parent_name}${form.child_name ? ` — Child: ${form.child_name}` : ""}${form.message ? ` — ${form.message}` : ""}. Requested by nursery staff.`,
         recipient_emails: recipientEmails,
+        notification_type: 'incident',
+        click_url: '/NurseryDashboard',
       });
       toast.success("Request sent to team");
       onClose();

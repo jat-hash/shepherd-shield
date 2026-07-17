@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { title, message, recipient_emails, send_sms, skip_push } = await req.json();
+    const { title, message, recipient_emails, send_sms, skip_push, notification_type, click_url } = await req.json();
 
     if (!title || !message) {
       return Response.json({ error: 'title and message are required' }, { status: 400 });
@@ -50,8 +50,8 @@ Deno.serve(async (req) => {
           recipient_email: recipient.email,
           title,
           body: message,
-          notification_type: 'general',
-          click_url: '/Communications',
+          notification_type: notification_type || 'general',
+          click_url: click_url || '/Communications',
         }).catch(err => console.log(`Push skipped for ${recipient.email}:`, err.message));
       }
 
