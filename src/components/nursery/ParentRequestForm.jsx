@@ -5,11 +5,10 @@ import { toast } from "sonner";
 
 const REQUEST_TYPES = ["Parent Needed", "Diaper Change", "Feeding", "Medical", "Pick Up", "Other"];
 
-// Nursery notifications go ONLY to these three leads
-const NURSERY_LEADS = [
+// Nursery help requests alert Ryan, Pacheco, and all admins
+const NURSERY_HELP_RECIPIENTS = [
   "wilbert.ryan@gmail.com",
   "pachecosmailbox@gmail.com",
-  "wintersjamesg@hotmail.com",
 ];
 
 export default function ParentRequestForm({ children: propChildren, user, onClose }) {
@@ -70,13 +69,21 @@ export default function ParentRequestForm({ children: propChildren, user, onClos
         status: "Pending",
         service_date: todayStr,
       });
-      // Send notification ONLY to the three nursery leads; skip push to avoid
-      // duplicate notifications (in-app Notification triggers browser alert)
+      // Fetch admin users so they are also alerted
+      const allUsers = await base44.entities.User.list(undefined, 200);
+      const adminEmails = (allUsers || [])
+        .filter(u => u.role === 'admin')
+        .map(u => (u.email || '').toLowerCase());
+      const recipientEmails = [...new Set([
+        ...NURSERY_HELP_RECIPIENTS.map(e => e.toLowerCase()),
+        ...adminEmails,
+      ])];
+
+      // Send in-app + push notification (push alerts them even if app is closed)
       await base44.functions.invoke("sendTeamNotification", {
         title: `🍼 Nursery: ${form.request_type}`,
         message: `Parent: ${form.parent_name}${form.child_name ? ` — Child: ${form.child_name}` : ""}${form.message ? ` — ${form.message}` : ""}. Requested by nursery staff.`,
-        recipient_emails: NURSERY_LEADS,
-        skip_push: true,
+        recipient_emails: recipientEmails,
       });
       toast.success("Request sent to team");
       onClose();
