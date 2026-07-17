@@ -233,7 +233,7 @@ export default function NurseryDashboard() {
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{tab.label}</span>
+                <span>{tab.label}</span>
                 {badge > 0 && (
                   <span className={`absolute -top-1 -right-1 w-4 h-4 text-white text-[9px] font-bold rounded-full flex items-center justify-center ${tab.id === "alerts" ? "bg-red-500" : "bg-orange-500"}`}>
                     {badge}
