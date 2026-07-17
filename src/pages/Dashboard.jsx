@@ -14,6 +14,7 @@ import { WifiOff, MapPin, X, Bell, AlertTriangle } from "lucide-react";
 import RadioCheckInScanner from "@/components/dashboard/RadioCheckInScanner";
 import QuickEquipmentCheckIn from "@/components/dashboard/QuickEquipmentCheckIn";
 import PersonalCheckIn from "@/components/dashboard/PersonalCheckIn";
+import NurseryMonitorWidget from "@/components/dashboard/NurseryMonitorWidget";
 import AdminDashboardPanel from "@/components/dashboard/AdminDashboardPanel";
 import MyCheckInStatus from "@/components/dashboard/MyCheckInStatus";
 import ChurchServiceAlerts from "@/components/dashboard/ChurchServiceAlerts";
@@ -426,6 +427,9 @@ export default function Dashboard() {
 
       {/* Personal Check-in Status */}
       {user && <PersonalCheckIn user={user} />}
+
+      {/* Nursery Monitor — Ryan, Pacheco, and admins only */}
+      {user && <NurseryMonitorWidget user={user} />}
 
       {/* Admin: Team Status Panel */}
       {user?.role === 'admin' && <AdminDashboardPanel allUsers={allUsers} />}
