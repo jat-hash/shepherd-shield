@@ -18,6 +18,7 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
   const [selectedChildren, setSelectedChildren] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [search, setSearch] = useState("");
+  const [checkedInToday, setCheckedInToday] = useState([]);
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const checkedInBy = user?.display_name || user?.full_name || user?.email;
@@ -37,8 +38,18 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
     }).catch(() => {});
   }, []);
 
+  // Fetch today's checked-in children so we can badge returning kids who are
+  // already in the nursery, and auto-check-out stale records before re-check-in
+  // so the head count stays accurate.
+  useEffect(() => {
+    base44.entities.NurseryChild.filter({ service_date: todayStr, checked_in: true }, "-check_in_time", 200)
+      .then(setCheckedInToday)
+      .catch(() => {});
+  }, [todayStr]);
+
   const childKey = (c) => `${c.child_name}|${c.parent_name}`;
   const isChildSelected = (c) => selectedChildren.some(s => childKey(s) === childKey(c));
+  const isAlreadyInToday = (c) => checkedInToday.some(t => childKey(t) === childKey(c));
 
   const toggleChild = (child) => {
     setSelectedChildren(prev =>
@@ -52,6 +63,22 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
     if (selectedChildren.length === 0) return;
     setLoading(true);
     try {
+      // Auto-check-out any existing active records for these children so
+      // the head count stays accurate when a parent is re-checked-in.
+      const staleIds = checkedInToday
+        .filter(t => selectedChildren.some(s => childKey(s) === childKey(t)))
+        .map(t => t.id);
+      if (staleIds.length > 0) {
+        await base44.entities.NurseryChild.bulkUpdate(
+          staleIds.map(id => ({
+            id,
+            checked_in: false,
+            check_out_time: new Date().toISOString(),
+            checked_out_by: `${checkedInBy} (auto re-check-in)`,
+          }))
+        );
+      }
+
       const records = selectedChildren.map(c => ({
         child_name: c.child_name || "",
         parent_name: c.parent_name || "",
@@ -82,6 +109,16 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
     }
     setLoading(true);
     try {
+      // Auto-check-out any existing active record for the same child+parent today
+      const stale = checkedInToday.find(t => t.child_name === form.child_name && t.parent_name === form.parent_name);
+      if (stale) {
+        await base44.entities.NurseryChild.update(stale.id, {
+          checked_in: false,
+          check_out_time: new Date().toISOString(),
+          checked_out_by: `${checkedInBy} (auto re-check-in)`,
+        });
+      }
+
       const child = await base44.entities.NurseryChild.create({
         ...form,
         checked_in: true,
@@ -102,6 +139,9 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
     setCheckedInList([]);
     setSelectedChildren([]);
     setForm({ child_name: "", parent_name: "", parent_phone: "", sponsor: "", age_group: "Toddler (1-2y)", allergies_notes: "" });
+    base44.entities.NurseryChild.filter({ service_date: todayStr, checked_in: true }, "-check_in_time", 200)
+      .then(setCheckedInToday)
+      .catch(() => {});
   };
 
   // ── Confirmation Screen ──────────────────────────────────────────
@@ -230,6 +270,9 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
                             <div>
                               <p className="text-white text-sm font-medium">{c.child_name?.trim() || `Child of ${c.parent_name}`}</p>
                               <p className="text-slate-400 text-xs">{c.parent_name}{c.parent_phone ? ` · ${c.parent_phone}` : ""} · {c.age_group}</p>
+                              {isAlreadyInToday(c) && (
+                                <span className="inline-block mt-1 text-[9px] font-bold bg-green-700 text-green-200 px-1.5 py-0.5 rounded">IN NOW</span>
+                              )}
                             </div>
                             {selected && <CheckCircle2 className="w-4 h-4 text-[#d4a843] flex-shrink-0" />}
                           </button>
