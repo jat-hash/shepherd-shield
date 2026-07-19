@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { X, Baby, CheckCircle2, Phone, Search, ChevronDown, UserPlus, Trash2 } from "lucide-react";
+import { X, Baby, CheckCircle2, Phone, Search, ChevronDown, UserPlus, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
@@ -12,6 +12,7 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
     age_group: "Toddler (1-2y)",
     allergies_notes: "",
   });
+  const [additionalParents, setAdditionalParents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [checkedInList, setCheckedInList] = useState([]);
   const [pastChildren, setPastChildren] = useState([]);
@@ -121,6 +122,7 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
 
       const child = await base44.entities.NurseryChild.create({
         ...form,
+        additional_parents: additionalParents.filter(p => p.name?.trim()),
         checked_in: true,
         check_in_time: new Date().toISOString(),
         checked_in_by: checkedInBy,
@@ -139,6 +141,7 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
     setCheckedInList([]);
     setSelectedChildren([]);
     setForm({ child_name: "", parent_name: "", parent_phone: "", sponsor: "", age_group: "Toddler (1-2y)", allergies_notes: "" });
+    setAdditionalParents([]);
     base44.entities.NurseryChild.filter({ service_date: todayStr, checked_in: true }, "-check_in_time", 200)
       .then(setCheckedInToday)
       .catch(() => {});
@@ -173,6 +176,20 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
                     <span className="text-white">{child.parent_name}</span>
                   </div>
                 )}
+                {child.additional_parents?.map((p, i) => (
+                  <div key={i} className="space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Parent</span>
+                      <span className="text-white">{p.name}</span>
+                    </div>
+                    {p.phone && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">Phone</span>
+                        <span className="text-white flex items-center gap-1"><Phone className="w-3 h-3" />{p.phone}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
                 {child.parent_phone && (
                   <div className="flex justify-between items-center">
                     <span className="text-slate-400">Phone</span>
@@ -369,6 +386,46 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
                 type="tel"
               />
             </div>
+
+            {/* Additional Parents */}
+            {additionalParents.length > 0 && (
+              <div className="space-y-2">
+                {additionalParents.map((p, idx) => (
+                  <div key={idx} className="flex gap-2 items-start">
+                    <div className="flex-1 space-y-2">
+                      <input
+                        className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60"
+                        value={p.name}
+                        onChange={e => setAdditionalParents(prev => prev.map((pp, i) => i === idx ? { ...pp, name: e.target.value } : pp))}
+                        placeholder="Additional parent name"
+                      />
+                      <input
+                        className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60"
+                        value={p.phone}
+                        onChange={e => setAdditionalParents(prev => prev.map((pp, i) => i === idx ? { ...pp, phone: e.target.value } : pp))}
+                        placeholder="(optional) phone"
+                        type="tel"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAdditionalParents(prev => prev.filter((_, i) => i !== idx))}
+                      className="text-red-400 hover:text-red-300 p-2 mt-1"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setAdditionalParents(prev => [...prev, { name: "", phone: "" }])}
+              className="w-full flex items-center justify-center gap-2 bg-[#0a1128]/50 border border-dashed border-[#d4a843]/30 rounded-lg px-3 py-2.5 text-sm text-[#d4a843] hover:border-[#d4a843]/60 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add Another Parent
+            </button>
 
             <div>
               <label className="text-xs text-slate-400 mb-1 block">Sponsor</label>

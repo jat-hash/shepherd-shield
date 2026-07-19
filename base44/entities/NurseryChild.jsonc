@@ -15,6 +15,22 @@
     "parent_phone": {
       "type": "string"
     },
+    "additional_parents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          }
+        }
+      },
+      "default": [],
+      "description": "Additional primary contacts beyond the primary parent"
+    },
     "sponsor": {
       "type": "string",
       "description": "Optional sponsoring member or family"
