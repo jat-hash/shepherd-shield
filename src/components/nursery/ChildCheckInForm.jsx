@@ -147,6 +147,25 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
       .catch(() => {});
   };
 
+  // Auto-fill parent info when a returning child's name is typed
+  const lookupChild = (name) => {
+    const trimmed = (name || "").trim().toLowerCase();
+    if (!trimmed) return;
+    const match = pastChildren.find(c => (c.child_name || "").trim().toLowerCase() === trimmed);
+    if (match) {
+      setForm(f => ({
+        ...f,
+        child_name: match.child_name || name,
+        parent_name: match.parent_name || "",
+        parent_phone: match.parent_phone || "",
+        sponsor: match.sponsor || "",
+        age_group: match.age_group || f.age_group,
+        allergies_notes: match.allergies_notes || "",
+      }));
+      setAdditionalParents(match.additional_parents || []);
+    }
+  };
+
   // ── Confirmation Screen ──────────────────────────────────────────
   if (checkedInList.length > 0) {
     const multiple = checkedInList.length > 1;
@@ -349,6 +368,7 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
                 className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60"
                 value={form.child_name}
                 onChange={e => setForm(f => ({ ...f, child_name: e.target.value }))}
+                onBlur={e => lookupChild(e.target.value)}
                 placeholder="First and last name"
               />
             </div>

@@ -24,10 +24,10 @@ export default function ParentRequestForm({ children: propChildren, user, onClos
   const [allChildren, setAllChildren] = useState(propChildren || []);
   const todayStr = new Date().toISOString().slice(0, 10);
 
-  // Fetch ALL of today's nursery children (including checked-out) so the
-  // parent/sponsor dropdown is always populated — not just checked-in kids.
+  // Fetch ALL nursery children (including past visits) so the child and parent
+  // dropdowns are always populated — not just today's checked-in kids.
   useEffect(() => {
-    base44.entities.NurseryChild.filter({ service_date: todayStr }, "-check_in_time", 200)
+    base44.entities.NurseryChild.list("-created_date", 200)
       .then(setAllChildren)
       .catch(() => {});
   }, []);
@@ -50,6 +50,29 @@ export default function ParentRequestForm({ children: propChildren, user, onClos
       (p.sponsor || "").toLowerCase().includes(q)
     );
   }, [parents, search]);
+
+  // Deduplicated list of all children for the child-first selector
+  const allKids = useMemo(() => {
+    const seen = new Set();
+    const unique = [];
+    for (const c of (allChildren || [])) {
+      const key = `${c.child_name}|${c.parent_name}`;
+      if (c.child_name && !seen.has(key)) {
+        seen.add(key);
+        unique.push(c);
+      }
+    }
+    return unique.sort((a, b) => (a.child_name || "").localeCompare(b.child_name || ""));
+  }, [allChildren]);
+
+  const filteredKids = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return allKids;
+    return allKids.filter(c =>
+      (c.child_name || "").toLowerCase().includes(q) ||
+      (c.parent_name || "").toLowerCase().includes(q)
+    );
+  }, [allKids, search]);
 
   const selectedParent = parents.find(p => p.parent_name === form.parent_name);
   const parentKids = selectedParent?.kids || [];
@@ -115,6 +138,28 @@ export default function ParentRequestForm({ children: propChildren, user, onClos
                 placeholder="Type parent or sponsor name..."
               />
             </div>
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">Select Child (auto-fills parent)</label>
+            <select
+              className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-[#d4a843]/60"
+              value={form.child_id}
+              onChange={e => {
+                const child = allKids.find(c => c.id === e.target.value);
+                if (child) {
+                  setForm(f => ({ ...f, child_id: child.id, child_name: child.child_name || "", parent_name: child.parent_name || "" }));
+                } else {
+                  setForm(f => ({ ...f, child_id: "", child_name: "" }));
+                }
+              }}
+            >
+              <option value="">-- Select a child --</option>
+              {filteredKids.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.child_name} ({c.parent_name})
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="text-xs text-slate-400 mb-1 block">Select Parent / Sponsor</label>
