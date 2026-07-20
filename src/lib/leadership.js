@@ -13,11 +13,13 @@ const NURSERY_ACCESS_EMAILS = [
   "wintersjamesg@hotmail.com",
   "lilskey311@gmail.com",
   "christinescls@gmail.com",
+  "rivera2981@gmail.com",
 ];
 
 // Users restricted to the Nursery module ONLY — no main app access.
 const NURSERY_ONLY_EMAILS = [
   "christinescls@gmail.com",
+  "rivera2981@gmail.com",
 ];
 
 export function canAccessMainApp(user) {
