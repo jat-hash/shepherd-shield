@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { X, Baby, CheckCircle2, Phone, Search, ChevronDown, UserPlus, Trash2, Plus } from "lucide-react";
+import { X, Baby, CheckCircle2, Phone, Search, ChevronDown, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
@@ -16,7 +16,6 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
   const [loading, setLoading] = useState(false);
   const [checkedInList, setCheckedInList] = useState([]);
   const [pastChildren, setPastChildren] = useState([]);
-  const [selectedChildren, setSelectedChildren] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [search, setSearch] = useState("");
   const [checkedInToday, setCheckedInToday] = useState([]);
@@ -49,57 +48,23 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
   }, [todayStr]);
 
   const childKey = (c) => `${c.child_name}|${c.parent_name}`;
-  const isChildSelected = (c) => selectedChildren.some(s => childKey(s) === childKey(c));
   const isAlreadyInToday = (c) => checkedInToday.some(t => childKey(t) === childKey(c));
 
-  const toggleChild = (child) => {
-    setSelectedChildren(prev =>
-      isChildSelected(child)
-        ? prev.filter(c => childKey(c) !== childKey(child))
-        : [...prev, child]
-    );
-  };
-
-  const handleBulkCheckIn = async () => {
-    if (selectedChildren.length === 0) return;
-    setLoading(true);
-    try {
-      // Auto-check-out any existing active records for these children so
-      // the head count stays accurate when a parent is re-checked-in.
-      const staleIds = checkedInToday
-        .filter(t => selectedChildren.some(s => childKey(s) === childKey(t)))
-        .map(t => t.id);
-      if (staleIds.length > 0) {
-        await base44.entities.NurseryChild.bulkUpdate(
-          staleIds.map(id => ({
-            id,
-            checked_in: false,
-            check_out_time: new Date().toISOString(),
-            checked_out_by: `${checkedInBy} (auto re-check-in)`,
-          }))
-        );
-      }
-
-      const records = selectedChildren.map(c => ({
-        child_name: c.child_name || "",
-        parent_name: c.parent_name || "",
-        parent_phone: c.parent_phone || "",
-        sponsor: c.sponsor || "",
-        age_group: c.age_group || "Toddler (1-2y)",
-        allergies_notes: c.allergies_notes || "",
-        checked_in: true,
-        check_in_time: new Date().toISOString(),
-        checked_in_by: checkedInBy,
-        service_date: todayStr,
-      }));
-      const created = await base44.entities.NurseryChild.bulkCreate(records);
-      setCheckedInList(created);
-      onCheckedIn?.(created);
-    } catch {
-      toast.error("Failed to check in children");
-    } finally {
-      setLoading(false);
-    }
+  // Clicking a returning child auto-fills the form with their last visit data
+  // (including parent name, phone, additional parents, etc.) so the parent
+  // name is always populated and the user can review/edit before checking in.
+  const fillFromChild = (child) => {
+    setForm({
+      child_name: child.child_name || "",
+      parent_name: child.parent_name || "",
+      parent_phone: child.parent_phone || "",
+      sponsor: child.sponsor || "",
+      age_group: child.age_group || "Toddler (1-2y)",
+      allergies_notes: child.allergies_notes || "",
+    });
+    setAdditionalParents(child.additional_parents || []);
+    setShowDropdown(false);
+    setSearch("");
   };
 
   const handleSubmit = async (e) => {
@@ -139,7 +104,6 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
 
   const resetAll = () => {
     setCheckedInList([]);
-    setSelectedChildren([]);
     setForm({ child_name: "", parent_name: "", parent_phone: "", sponsor: "", age_group: "Toddler (1-2y)", allergies_notes: "" });
     setAdditionalParents([]);
     base44.entities.NurseryChild.filter({ service_date: todayStr, checked_in: true }, "-check_in_time", 200)
@@ -266,7 +230,7 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
 
         <div className="p-5 space-y-3">
 
-          {/* Previously Registered Children — Multi-Select Dropdown */}
+          {/* Previously Registered Children — click to auto-fill form */}
           {pastChildren.length > 0 && (
             <div className="relative">
               <button
@@ -276,7 +240,7 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
               >
                 <span className="flex items-center gap-2">
                   <Search className="w-3.5 h-3.5" />
-                  Select returning children...
+                  Select returning child to auto-fill...
                 </span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${showDropdown ? "rotate-180" : ""}`} />
               </button>
@@ -294,26 +258,22 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
                   <div className="overflow-y-auto flex-1">
                     {pastChildren
                       .filter(c => !search || (c.child_name || "").toLowerCase().includes(search.toLowerCase()) || (c.parent_name || "").toLowerCase().includes(search.toLowerCase()))
-                      .map(c => {
-                        const selected = isChildSelected(c);
-                        return (
-                          <button
-                            key={c.id}
-                            type="button"
-                            onClick={() => toggleChild(c)}
-                            className={`w-full text-left px-4 py-2.5 transition-colors border-b border-[rgba(212,168,67,0.05)] last:border-0 flex items-center justify-between ${selected ? "bg-[rgba(212,168,67,0.12)]" : "hover:bg-[rgba(212,168,67,0.08)]"}`}
-                          >
-                            <div>
-                              <p className="text-white text-sm font-medium">{c.child_name?.trim() || `Child of ${c.parent_name}`}</p>
-                              <p className="text-slate-400 text-xs">{c.parent_name}{c.parent_phone ? ` · ${c.parent_phone}` : ""} · {c.age_group}</p>
-                              {isAlreadyInToday(c) && (
-                                <span className="inline-block mt-1 text-[9px] font-bold bg-green-700 text-green-200 px-1.5 py-0.5 rounded">IN NOW</span>
-                              )}
-                            </div>
-                            {selected && <CheckCircle2 className="w-4 h-4 text-[#d4a843] flex-shrink-0" />}
-                          </button>
-                        );
-                      })}
+                      .map(c => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => fillFromChild(c)}
+                          className="w-full text-left px-4 py-2.5 transition-colors border-b border-[rgba(212,168,67,0.05)] last:border-0 hover:bg-[rgba(212,168,67,0.08)] flex items-center justify-between"
+                        >
+                          <div>
+                            <p className="text-white text-sm font-medium">{c.child_name?.trim() || `Child of ${c.parent_name}`}</p>
+                            <p className="text-slate-400 text-xs">{c.parent_name}{c.parent_phone ? ` · ${c.parent_phone}` : ""} · {c.age_group}</p>
+                            {isAlreadyInToday(c) && (
+                              <span className="inline-block mt-1 text-[9px] font-bold bg-green-700 text-green-200 px-1.5 py-0.5 rounded">IN NOW</span>
+                            )}
+                          </div>
+                        </button>
+                      ))}
                     {pastChildren.filter(c => !search || (c.child_name || "").toLowerCase().includes(search.toLowerCase()) || (c.parent_name || "").toLowerCase().includes(search.toLowerCase())).length === 0 && (
                       <p className="text-slate-500 text-sm text-center py-4">No matches found</p>
                     )}
@@ -323,44 +283,7 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
             </div>
           )}
 
-          {/* Selected Children + Bulk Check-In */}
-          {selectedChildren.length > 0 && (
-            <div className="bg-[#0a1128]/50 rounded-xl border border-[#d4a843]/20 p-3 space-y-2">
-              <p className="text-xs text-[#d4a843] font-semibold uppercase tracking-wide">Selected ({selectedChildren.length})</p>
-              {selectedChildren.map((c, idx) => (
-                <div key={idx} className="flex items-center justify-between bg-[#1a2744] rounded-lg px-3 py-2">
-                  <div>
-                    <p className="text-white text-sm font-medium">{c.child_name?.trim() || `Child of ${c.parent_name}`}</p>
-                    <p className="text-slate-400 text-xs">{c.parent_name} · {c.age_group}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => toggleChild(c)}
-                    className="text-red-400 hover:text-red-300 p-1"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={handleBulkCheckIn}
-                disabled={loading}
-                className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2.5 rounded-xl transition-colors disabled:opacity-50 text-sm mt-1"
-              >
-                {loading ? "Checking In..." : `Check In ${selectedChildren.length} ${selectedChildren.length === 1 ? "Child" : "Children"}`}
-              </button>
-            </div>
-          )}
-
-          {/* Divider */}
-          <div className="flex items-center gap-2 py-1">
-            <div className="flex-1 h-px bg-[rgba(212,168,67,0.1)]"></div>
-            <span className="text-xs text-slate-500 flex items-center gap-1"><UserPlus className="w-3 h-3" /> New Child</span>
-            <div className="flex-1 h-px bg-[rgba(212,168,67,0.1)]"></div>
-          </div>
-
-          {/* Manual Entry Form for New Children */}
+          {/* Manual Entry Form (auto-filled when a returning child is selected) */}
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
               <label className="text-xs text-slate-400 mb-1 block">Child's Name</label>
