@@ -3,16 +3,18 @@ import { base44 } from "@/api/base44Client";
 import { X, Baby, CheckCircle2, Phone, Search, ChevronDown, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
+const AGE_GROUPS = ["Infant (0-12m)", "Toddler (1-2y)", "Pre-K (3-4y)", "Kindergarten (5y)"];
+
 export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
-  const [form, setForm] = useState({
-    child_name: "",
+  const [parent, setParent] = useState({
     parent_name: "",
     parent_phone: "",
     sponsor: "",
-    age_group: "Toddler (1-2y)",
-    allergies_notes: "",
   });
   const [additionalParents, setAdditionalParents] = useState([]);
+  const [children, setChildren] = useState([
+    { child_name: "", age_group: "Toddler (1-2y)", allergies_notes: "" },
+  ]);
   const [loading, setLoading] = useState(false);
   const [checkedInList, setCheckedInList] = useState([]);
   const [pastChildren, setPastChildren] = useState([]);
@@ -38,65 +40,142 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
     }).catch(() => {});
   }, []);
 
-  // Fetch today's checked-in children so we can badge returning kids who are
-  // already in the nursery, and auto-check-out stale records before re-check-in
-  // so the head count stays accurate.
   useEffect(() => {
-    base44.entities.NurseryChild.filter({ service_date: todayStr, checked_in: true }, "-check_in_time", 200)
+    base44.entities.NurseryChild.filter({ service_date: todayStr }, "-check_in_time", 200)
       .then(setCheckedInToday)
       .catch(() => {});
   }, [todayStr]);
 
-  const childKey = (c) => `${c.child_name}|${c.parent_name}`;
-  const isAlreadyInToday = (c) => checkedInToday.some(t => childKey(t) === childKey(c));
-
-  // Clicking a returning child auto-fills the form with their last visit data
-  // (including parent name, phone, additional parents, etc.) so the parent
-  // name is always populated and the user can review/edit before checking in.
+  // Selecting a returning child fills the parent info and adds that child
+  // to the check-in queue (only once).
   const fillFromChild = (child) => {
-    setForm({
-      child_name: child.child_name || "",
+    setParent({
       parent_name: child.parent_name || "",
       parent_phone: child.parent_phone || "",
       sponsor: child.sponsor || "",
-      age_group: child.age_group || "Toddler (1-2y)",
-      allergies_notes: child.allergies_notes || "",
     });
     setAdditionalParents(child.additional_parents || []);
+    setChildren(prev => {
+      // Avoid adding the same child twice
+      const exists = prev.some(c => c.child_name === (child.child_name || ""));
+      if (exists) {
+        toast.info(`${child.child_name || "That child"} is already in the list`);
+        return prev;
+      }
+      return [...prev, {
+        child_name: child.child_name || "",
+        age_group: child.age_group || "Toddler (1-2y)",
+        allergies_notes: child.allergies_notes || "",
+      }];
+    });
     setShowDropdown(false);
     setSearch("");
   };
 
+  const updateChild = (idx, field, value) => {
+    setChildren(prev => prev.map((c, i) => i === idx ? { ...c, [field]: value } : c));
+  };
+
+  const addChild = () => {
+    setChildren(prev => [...prev, { child_name: "", age_group: "Toddler (1-2y)", allergies_notes: "" }]);
+  };
+
+  const removeChild = (idx) => {
+    setChildren(prev => prev.length > 1 ? prev.filter((_, i) => i !== idx) : prev);
+  };
+
+  // Auto-fill parent info when a returning child's name is typed into the
+  // first child row.
+  const lookupParent = (name) => {
+    const trimmed = (name || "").trim().toLowerCase();
+    if (!trimmed) return;
+    const match = pastChildren.find(c => (c.child_name || "").trim().toLowerCase() === trimmed);
+    if (match) {
+      setParent(p => ({
+        ...p,
+        parent_name: p.parent_name || match.parent_name || "",
+        parent_phone: p.parent_phone || match.parent_phone || "",
+        sponsor: p.sponsor || match.sponsor || "",
+      }));
+      setAdditionalParents(prev => prev.length > 0 ? prev : (match.additional_parents || []));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.parent_name) {
+    if (!parent.parent_name) {
       toast.error("Parent name is required");
       return;
     }
+    // Filter out completely empty child rows (no name AND no allergies)
+    const validChildren = children.filter(c => (c.child_name || "").trim() || (c.allergies_notes || "").trim());
+    if (validChildren.length === 0) {
+      toast.error("Add at least one child");
+      return;
+    }
+
     setLoading(true);
     try {
-      // Auto-check-out any existing active record for the same child+parent today
-      const stale = checkedInToday.find(t => t.child_name === form.child_name && t.parent_name === form.parent_name);
-      if (stale) {
-        await base44.entities.NurseryChild.update(stale.id, {
-          checked_in: false,
-          check_out_time: new Date().toISOString(),
-          checked_out_by: `${checkedInBy} (auto re-check-in)`,
-        });
+      const results = [];
+
+      for (const child of validChildren) {
+        const trimmedName = (child.child_name || "").trim();
+
+        // Look for ANY existing record for this child+parent today.
+        // If found, reactivate it instead of creating a duplicate so
+        // the head count stays accurate.
+        const existing = checkedInToday.find(
+          t => (t.child_name || "").trim() === trimmedName && t.parent_name === parent.parent_name
+        );
+
+        if (existing) {
+          if (existing.checked_in) {
+            // Already checked in — skip to avoid duplicate
+            results.push(existing);
+            continue;
+          }
+          // Reactivate the checked-out record
+          const updated = await base44.entities.NurseryChild.update(existing.id, {
+            checked_in: true,
+            check_in_time: new Date().toISOString(),
+            checked_in_by: checkedInBy,
+            checked_out: false,
+            check_out_time: null,
+            checked_out_by: null,
+            age_group: child.age_group,
+            allergies_notes: child.allergies_notes || existing.allergies_notes || "",
+            additional_parents: additionalParents.filter(p => p.name?.trim()),
+            parent_phone: parent.parent_phone,
+            sponsor: parent.sponsor,
+          });
+          results.push(updated);
+        } else {
+          // New child — create a fresh record
+          const created = await base44.entities.NurseryChild.create({
+            child_name: trimmedName,
+            parent_name: parent.parent_name,
+            parent_phone: parent.parent_phone,
+            additional_parents: additionalParents.filter(p => p.name?.trim()),
+            sponsor: parent.sponsor,
+            age_group: child.age_group,
+            allergies_notes: child.allergies_notes,
+            checked_in: true,
+            check_in_time: new Date().toISOString(),
+            checked_in_by: checkedInBy,
+            service_date: todayStr,
+          });
+          results.push(created);
+        }
       }
 
-      const child = await base44.entities.NurseryChild.create({
-        ...form,
-        additional_parents: additionalParents.filter(p => p.name?.trim()),
-        checked_in: true,
-        check_in_time: new Date().toISOString(),
-        checked_in_by: checkedInBy,
-        service_date: todayStr,
-      });
-      setCheckedInList([child]);
-      onCheckedIn?.(child);
+      setCheckedInList(results);
+      onCheckedIn?.(results);
+
+      // Refresh the today list so re-check-ins are reflected
+      const refreshed = await base44.entities.NurseryChild.filter({ service_date: todayStr }, "-check_in_time", 200);
+      setCheckedInToday(refreshed);
     } catch {
-      toast.error("Failed to check in child");
+      toast.error("Failed to check in children");
     } finally {
       setLoading(false);
     }
@@ -104,30 +183,12 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
 
   const resetAll = () => {
     setCheckedInList([]);
-    setForm({ child_name: "", parent_name: "", parent_phone: "", sponsor: "", age_group: "Toddler (1-2y)", allergies_notes: "" });
+    setParent({ parent_name: "", parent_phone: "", sponsor: "" });
     setAdditionalParents([]);
-    base44.entities.NurseryChild.filter({ service_date: todayStr, checked_in: true }, "-check_in_time", 200)
+    setChildren([{ child_name: "", age_group: "Toddler (1-2y)", allergies_notes: "" }]);
+    base44.entities.NurseryChild.filter({ service_date: todayStr }, "-check_in_time", 200)
       .then(setCheckedInToday)
       .catch(() => {});
-  };
-
-  // Auto-fill parent info when a returning child's name is typed
-  const lookupChild = (name) => {
-    const trimmed = (name || "").trim().toLowerCase();
-    if (!trimmed) return;
-    const match = pastChildren.find(c => (c.child_name || "").trim().toLowerCase() === trimmed);
-    if (match) {
-      setForm(f => ({
-        ...f,
-        child_name: match.child_name || name,
-        parent_name: match.parent_name || "",
-        parent_phone: match.parent_phone || "",
-        sponsor: match.sponsor || "",
-        age_group: match.age_group || f.age_group,
-        allergies_notes: match.allergies_notes || "",
-      }));
-      setAdditionalParents(match.additional_parents || []);
-    }
   };
 
   // ── Confirmation Screen ──────────────────────────────────────────
@@ -268,9 +329,6 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
                           <div>
                             <p className="text-white text-sm font-medium">{c.child_name?.trim() || `Child of ${c.parent_name}`}</p>
                             <p className="text-slate-400 text-xs">{c.parent_name}{c.parent_phone ? ` · ${c.parent_phone}` : ""} · {c.age_group}</p>
-                            {isAlreadyInToday(c) && (
-                              <span className="inline-block mt-1 text-[9px] font-bold bg-green-700 text-green-200 px-1.5 py-0.5 rounded">IN NOW</span>
-                            )}
                           </div>
                         </button>
                       ))}
@@ -283,112 +341,139 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
             </div>
           )}
 
-          {/* Manual Entry Form (auto-filled when a returning child is selected) */}
           <form onSubmit={handleSubmit} className="space-y-3">
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">Child's Name</label>
-              <input
-                className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60"
-                value={form.child_name}
-                onChange={e => setForm(f => ({ ...f, child_name: e.target.value }))}
-                onBlur={e => lookupChild(e.target.value)}
-                placeholder="First and last name"
-              />
-            </div>
+            {/* ── Parent Section (shared) ── */}
+            <div className="space-y-3 pb-3 border-b border-[rgba(212,168,67,0.1)]">
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">Parent / Guardian Name *</label>
+                <input
+                  className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60"
+                  value={parent.parent_name}
+                  onChange={e => setParent(p => ({ ...p, parent_name: e.target.value }))}
+                  placeholder="Parent's full name"
+                />
+              </div>
 
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">Age Group</label>
-              <select
-                className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60"
-                value={form.age_group}
-                onChange={e => setForm(f => ({ ...f, age_group: e.target.value }))}
-              >
-                {["Infant (0-12m)", "Toddler (1-2y)", "Pre-K (3-4y)", "Kindergarten (5y)"].map(g => (
-                  <option key={g} value={g}>{g}</option>
-                ))}
-              </select>
-            </div>
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">Parent Phone</label>
+                <input
+                  className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60"
+                  value={parent.parent_phone}
+                  onChange={e => setParent(p => ({ ...p, parent_phone: e.target.value }))}
+                  placeholder="(optional) for emergencies"
+                  type="tel"
+                />
+              </div>
 
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">Parent / Guardian Name *</label>
-              <input
-                className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60"
-                value={form.parent_name}
-                onChange={e => setForm(f => ({ ...f, parent_name: e.target.value }))}
-                placeholder="Parent's full name"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">Parent Phone</label>
-              <input
-                className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60"
-                value={form.parent_phone}
-                onChange={e => setForm(f => ({ ...f, parent_phone: e.target.value }))}
-                placeholder="(optional) for emergencies"
-                type="tel"
-              />
-            </div>
-
-            {/* Additional Parents */}
-            {additionalParents.length > 0 && (
-              <div className="space-y-2">
-                {additionalParents.map((p, idx) => (
-                  <div key={idx} className="flex gap-2 items-start">
-                    <div className="flex-1 space-y-2">
-                      <input
-                        className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60"
-                        value={p.name}
-                        onChange={e => setAdditionalParents(prev => prev.map((pp, i) => i === idx ? { ...pp, name: e.target.value } : pp))}
-                        placeholder="Additional parent name"
-                      />
-                      <input
-                        className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60"
-                        value={p.phone}
-                        onChange={e => setAdditionalParents(prev => prev.map((pp, i) => i === idx ? { ...pp, phone: e.target.value } : pp))}
-                        placeholder="(optional) phone"
-                        type="tel"
-                      />
+              {/* Additional Parents */}
+              {additionalParents.length > 0 && (
+                <div className="space-y-2">
+                  {additionalParents.map((p, idx) => (
+                    <div key={idx} className="flex gap-2 items-start">
+                      <div className="flex-1 space-y-2">
+                        <input
+                          className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60"
+                          value={p.name}
+                          onChange={e => setAdditionalParents(prev => prev.map((pp, i) => i === idx ? { ...pp, name: e.target.value } : pp))}
+                          placeholder="Additional parent name"
+                        />
+                        <input
+                          className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60"
+                          value={p.phone}
+                          onChange={e => setAdditionalParents(prev => prev.map((pp, i) => i === idx ? { ...pp, phone: e.target.value } : pp))}
+                          placeholder="(optional) phone"
+                          type="tel"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAdditionalParents(prev => prev.filter((_, i) => i !== idx))}
+                        className="text-red-400 hover:text-red-300 p-2 mt-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
+                  ))}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => setAdditionalParents(prev => [...prev, { name: "", phone: "" }])}
+                className="w-full flex items-center justify-center gap-2 bg-[#0a1128]/50 border border-dashed border-[#d4a843]/30 rounded-lg px-3 py-2.5 text-sm text-[#d4a843] hover:border-[#d4a843]/60 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Another Parent
+              </button>
+
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">Sponsor</label>
+                <input
+                  className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60"
+                  value={parent.sponsor}
+                  onChange={e => setParent(p => ({ ...p, sponsor: e.target.value }))}
+                  placeholder="(optional) sponsoring member or family"
+                />
+              </div>
+            </div>
+
+            {/* ── Children Section ── */}
+            <div className="space-y-3">
+              <p className="text-xs text-[#d4a843] font-semibold uppercase tracking-wide">Children ({children.length})</p>
+
+              {children.map((child, idx) => (
+                <div key={idx} className="bg-[#0a1128]/40 rounded-xl border border-slate-700/50 p-3 space-y-2 relative">
+                  {children.length > 1 && (
                     <button
                       type="button"
-                      onClick={() => setAdditionalParents(prev => prev.filter((_, i) => i !== idx))}
-                      className="text-red-400 hover:text-red-300 p-2 mt-1"
+                      onClick={() => removeChild(idx)}
+                      className="absolute top-2 right-2 text-red-400 hover:text-red-300 p-1"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
+                  )}
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">Child {children.length > 1 ? idx + 1 : ""} Name</label>
+                    <input
+                      className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60"
+                      value={child.child_name}
+                      onChange={e => updateChild(idx, "child_name", e.target.value)}
+                      onBlur={e => idx === 0 && lookupParent(e.target.value)}
+                      placeholder="First and last name"
+                    />
                   </div>
-                ))}
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={() => setAdditionalParents(prev => [...prev, { name: "", phone: "" }])}
-              className="w-full flex items-center justify-center gap-2 bg-[#0a1128]/50 border border-dashed border-[#d4a843]/30 rounded-lg px-3 py-2.5 text-sm text-[#d4a843] hover:border-[#d4a843]/60 transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add Another Parent
-            </button>
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">Age Group</label>
+                    <select
+                      className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60"
+                      value={child.age_group}
+                      onChange={e => updateChild(idx, "age_group", e.target.value)}
+                    >
+                      {AGE_GROUPS.map(g => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">Allergies / Special Notes</label>
+                    <textarea
+                      className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60 resize-none"
+                      value={child.allergies_notes}
+                      onChange={e => updateChild(idx, "allergies_notes", e.target.value)}
+                      placeholder="Any allergies or special needs..."
+                      rows={2}
+                    />
+                  </div>
+                </div>
+              ))}
 
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">Sponsor</label>
-              <input
-                className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60"
-                value={form.sponsor}
-                onChange={e => setForm(f => ({ ...f, sponsor: e.target.value }))}
-                placeholder="(optional) sponsoring member or family"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">Allergies / Special Notes</label>
-              <textarea
-                className="w-full bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#d4a843]/60 resize-none"
-                value={form.allergies_notes}
-                onChange={e => setForm(f => ({ ...f, allergies_notes: e.target.value }))}
-                placeholder="Any allergies or special needs..."
-                rows={2}
-              />
+              <button
+                type="button"
+                onClick={addChild}
+                className="w-full flex items-center justify-center gap-2 bg-[#0a1128]/50 border border-dashed border-[#d4a843]/30 rounded-lg px-3 py-2.5 text-sm text-[#d4a843] hover:border-[#d4a843]/60 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Another Child
+              </button>
             </div>
 
             <button
@@ -396,7 +481,7 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
               disabled={loading}
               className="w-full bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold py-3 rounded-xl transition-colors disabled:opacity-50 text-sm"
             >
-              {loading ? "Checking In..." : "Check In New Child"}
+              {loading ? "Checking In..." : `Check In ${children.filter(c => (c.child_name || "").trim() || (c.allergies_notes || "").trim()).length || "Child"}${children.filter(c => (c.child_name || "").trim() || (c.allergies_notes || "").trim()).length !== 1 ? "ren" : ""}`}
             </button>
           </form>
         </div>
