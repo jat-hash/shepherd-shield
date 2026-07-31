@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { X, Plus, Pencil, Trash2, Check, Lock, AlertTriangle } from "lucide-react";
+import { X, Plus, Pencil, Trash2, Check, Lock, AlertTriangle, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
 export default function PropertyManager({ onClose, onChanged }) {
@@ -81,6 +81,27 @@ export default function PropertyManager({ onClose, onChanged }) {
     }
   };
 
+  const handleMove = async (index, dir) => {
+    const newIndex = index + dir;
+    if (newIndex < 0 || newIndex >= posts.length) return;
+    const reordered = [...posts];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(newIndex, 0, moved);
+    setPosts(reordered);
+    setBusy(true);
+    try {
+      await base44.entities.PropertyPost.bulkUpdate(
+        reordered.map((p, i) => ({ id: p.id, order: i }))
+      );
+      onChanged?.();
+    } catch {
+      toast.error("Failed to reorder");
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleDelete = async (post) => {
     setBusy(true);
     try {
@@ -142,7 +163,7 @@ export default function PropertyManager({ onClose, onChanged }) {
             <p className="text-center text-slate-500 text-sm py-6">No properties yet. Add one above.</p>
           ) : (
             <div className="space-y-2">
-              {posts.map(post => (
+              {posts.map((post, index) => (
                 <div key={post.id} className="bg-[#0a1128]/60 border border-[rgba(212,168,67,0.1)] rounded-lg p-2.5">
                   {editingId === post.id ? (
                     <div className="flex gap-2 items-center">
@@ -199,6 +220,24 @@ export default function PropertyManager({ onClose, onChanged }) {
                     </div>
                   ) : (
                     <div className="flex items-center justify-between gap-2">
+                      <div className="flex flex-col">
+                        <button
+                          onClick={() => handleMove(index, -1)}
+                          disabled={busy || index === 0}
+                          className="text-slate-400 hover:text-[#d4a843] disabled:opacity-30 p-0.5"
+                          title="Move up"
+                        >
+                          <ChevronUp className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleMove(index, 1)}
+                          disabled={busy || index === posts.length - 1}
+                          className="text-slate-400 hover:text-[#d4a843] disabled:opacity-30 p-0.5"
+                          title="Move down"
+                        >
+                          <ChevronDown className="w-4 h-4" />
+                        </button>
+                      </div>
                       <p className="text-white text-sm font-medium truncate flex-1">{post.name}</p>
                       <button
                         onClick={() => { setEditingId(post.id); setEditName(post.name); }}
