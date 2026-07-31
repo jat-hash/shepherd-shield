@@ -365,6 +365,20 @@ export default function Layout({ children, currentPageName }) {
                   Admin Monitor
                 </Link>
               )}
+              {canAccessPropertyMonitor(user) && (
+                <Link
+                  to={createPageUrl("PropertyMonitor")}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-all ${
+                    currentPageName === "PropertyMonitor"
+                      ? "text-[#d4a843] bg-[rgba(212,168,67,0.08)] border-r-2 border-[#d4a843]"
+                      : "text-slate-400 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <MonitorCheck className="w-4 h-4" />
+                  Property Monitor
+                </Link>
+              )}
 
               {/* Resources Dropdown */}
               <div>
@@ -423,8 +437,7 @@ export default function Layout({ children, currentPageName }) {
                       ...(user?.role === 'admin' ? [{ name: "Auto Rotate Schedule", page: "AutoRotation", icon: Bot }] : []),
                       { name: "Documents", page: "Documents", icon: FolderOpen },
                       { name: "Property Security", page: "PropertySecurity", icon: Lock },
-                      ...(canAccessPropertyMonitor(user) ? [{ name: "Property Monitor", page: "PropertyMonitor", icon: MonitorCheck }] : []),
-                    ].map(item => (
+                      ].map(item => (
                       <Link
                         key={item.page}
                         to={createPageUrl(item.page)}
@@ -510,6 +523,19 @@ export default function Layout({ children, currentPageName }) {
               Admin Monitor
             </Link>
           )}
+          {canAccessPropertyMonitor(user) && (
+            <Link
+              to={createPageUrl("PropertyMonitor")}
+              className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-all ${
+                currentPageName === "PropertyMonitor"
+                  ? "text-[#d4a843] bg-[rgba(212,168,67,0.08)] border-r-2 border-[#d4a843]"
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <MonitorCheck className="w-4 h-4" />
+              Property Monitor
+            </Link>
+          )}
 
           {/* Resources Dropdown */}
           <div>
@@ -567,7 +593,6 @@ export default function Layout({ children, currentPageName }) {
                   ...(user?.role === 'admin' ? [{ name: "Auto Rotate Schedule", page: "AutoRotation", icon: Bot }] : []),
                   { name: "Documents", page: "Documents", icon: FolderOpen },
                   { name: "Property Security", page: "PropertySecurity", icon: Lock },
-                  ...(canAccessPropertyMonitor(user) ? [{ name: "Property Monitor", page: "PropertyMonitor", icon: MonitorCheck }] : []),
                 ].map(item => (
                   <Link
                     key={item.page}
