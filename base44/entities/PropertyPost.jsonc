@@ -1,0 +1,26 @@
+{
+  "name": "PropertyPost",
+  "type": "object",
+  "title": "Property Post",
+  "description": "Managed roster of campus property posts tracked by the Property Security module",
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Display name of the property post"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this post appears on the active dashboard"
+    },
+    "order": {
+      "type": "integer",
+      "default": 0,
+      "description": "Sort order for display"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

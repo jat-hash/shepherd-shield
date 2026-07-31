@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { ShieldCheck, ShieldAlert, Plus, History, Lock, FileText } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Plus, History, Lock, FileText, Settings } from "lucide-react";
 import PropertySecurityCheckForm, { DEFAULT_LOCATIONS } from "@/components/property/PropertySecurityCheckForm";
+import PropertyManager from "@/components/property/PropertyManager";
 
 export default function PropertySecurity() {
   const { user } = useAuth();
@@ -13,6 +14,9 @@ export default function PropertySecurity() {
   const [showHistory, setShowHistory] = useState(false);
   const [incidents, setIncidents] = useState({});
   const [fallbackUser, setFallbackUser] = useState(null);
+  const [posts, setPosts] = useState([]);
+  const [managerOpen, setManagerOpen] = useState(false);
+  const seedingRef = useRef(false);
   const currentUser = user || fallbackUser;
 
   useEffect(() => {
@@ -20,6 +24,25 @@ export default function PropertySecurity() {
       base44.auth.me().then(setFallbackUser).catch(() => {});
     }
   }, [user]);
+
+  const loadPosts = async () => {
+    try {
+      let recs = await base44.entities.PropertyPost.filter({ is_active: true }, "order", 200);
+      // First-run fallback: seed defaults if the roster is empty so the
+      // dashboard always shows the known campus posts.
+      if (recs.length === 0 && !seedingRef.current) {
+        seedingRef.current = true;
+        try {
+          await base44.entities.PropertyPost.bulkCreate(
+            DEFAULT_LOCATIONS.map((name, i) => ({ name, is_active: true, order: i }))
+          );
+          recs = await base44.entities.PropertyPost.filter({ is_active: true }, "order", 200);
+        } catch {}
+      }
+      recs.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || (a.name || "").localeCompare(b.name || ""));
+      setPosts(recs);
+    } catch {}
+  };
 
   const load = async () => {
     try {
@@ -36,6 +59,7 @@ export default function PropertySecurity() {
   };
 
   useEffect(() => {
+    loadPosts();
     load();
     const unsub = base44.entities.PropertySecurityCheck.subscribe(() => load());
     return unsub;
@@ -53,19 +77,20 @@ export default function PropertySecurity() {
     return map;
   }, [checks]);
 
-  // Build the full location list (defaults + any custom seen in history)
+  // Build the full location list (managed roster + any custom seen in history)
+  const rosterNames = posts.map(p => p.name);
   const locations = useMemo(() => {
-    const list = DEFAULT_LOCATIONS.map(name =>
+    const list = rosterNames.map(name =>
       latestByLocation[name] || { location_name: name, status: null }
     );
     Object.keys(latestByLocation).forEach(name => {
-      if (!DEFAULT_LOCATIONS.includes(name)) list.push(latestByLocation[name]);
+      if (!rosterNames.includes(name)) list.push(latestByLocation[name]);
     });
     // Sort: unsecured (needs attention) first, then unchecked, then secure
     const priority = (l) => (l.status === "Unsecured" ? 0 : !l.status ? 1 : 2);
     list.sort((a, b) => priority(a) - priority(b));
     return list;
-  }, [latestByLocation]);
+  }, [latestByLocation, rosterNames]);
 
   const stats = useMemo(() => {
     const total = locations.length;
@@ -98,6 +123,13 @@ export default function PropertySecurity() {
           <h1 className="text-white font-bold text-xl">Property Security</h1>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => setManagerOpen(true)}
+            className="flex items-center gap-2 bg-[#141f3d] hover:bg-[#1a2744] text-slate-300 border border-[rgba(212,168,67,0.15)] px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            <Settings className="w-4 h-4" />
+            Manage
+          </button>
           <button
             onClick={() => setShowHistory(v => !v)}
             className="flex items-center gap-2 bg-[#141f3d] hover:bg-[#1a2744] text-slate-300 border border-[rgba(212,168,67,0.15)] px-3 py-2 rounded-lg text-sm font-medium transition-colors"
@@ -281,8 +313,16 @@ export default function PropertySecurity() {
         <PropertySecurityCheckForm
           user={currentUser}
           initialLocation={formLocation}
+          availableLocations={rosterNames.length ? rosterNames : DEFAULT_LOCATIONS}
           onClose={() => setFormOpen(false)}
           onSaved={() => load()}
+        />
+      )}
+
+      {managerOpen && (
+        <PropertyManager
+          onClose={() => setManagerOpen(false)}
+          onChanged={() => { loadPosts(); load(); }}
         />
       )}
     </div>

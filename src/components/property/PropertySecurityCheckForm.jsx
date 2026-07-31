@@ -41,8 +41,9 @@ const INCIDENT_CATEGORIES = [
 
 const SEVERITIES = ["Low", "Medium", "High", "Critical"];
 
-export default function PropertySecurityCheckForm({ user, initialLocation, onClose, onSaved }) {
-  const [location, setLocation] = useState(initialLocation || DEFAULT_LOCATIONS[0]);
+export default function PropertySecurityCheckForm({ user, initialLocation, onClose, onSaved, availableLocations }) {
+  const locations = availableLocations?.length ? availableLocations : DEFAULT_LOCATIONS;
+  const [location, setLocation] = useState(initialLocation || locations[0]);
   const [customLocation, setCustomLocation] = useState("");
   const [status, setStatus] = useState("Secure");
   const [reasons, setReasons] = useState([]);
@@ -158,7 +159,7 @@ export default function PropertySecurityCheckForm({ user, initialLocation, onClo
               value={location}
               onChange={e => setLocation(e.target.value)}
             >
-              {DEFAULT_LOCATIONS.map(l => (
+              {locations.map(l => (
                 <option key={l} value={l}>{l}</option>
               ))}
               <option value="__custom">+ Custom location…</option>
