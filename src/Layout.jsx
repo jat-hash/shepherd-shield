@@ -31,6 +31,7 @@ const PAGE_TITLES = {
   TeamMap: "Live Map",
   WatchList: "Watch List",
   PropertySecurity: "Property Security",
+  PropertyMonitor: "Property Monitor",
   SOPLibrary: "SOP Library",
   Positions: "Positions",
   EquipmentInventory: "Equipment",
@@ -422,6 +423,7 @@ export default function Layout({ children, currentPageName }) {
                       ...(user?.role === 'admin' ? [{ name: "Auto Rotate Schedule", page: "AutoRotation", icon: Bot }] : []),
                       { name: "Documents", page: "Documents", icon: FolderOpen },
                       { name: "Property Security", page: "PropertySecurity", icon: Lock },
+                      { name: "Property Monitor", page: "PropertyMonitor", icon: MonitorCheck },
                     ].map(item => (
                       <Link
                         key={item.page}
