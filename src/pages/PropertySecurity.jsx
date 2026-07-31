@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { ShieldCheck, ShieldAlert, Plus, History, Lock, FileText, Settings } from "lucide-react";
 import PropertySecurityCheckForm, { DEFAULT_LOCATIONS } from "@/components/property/PropertySecurityCheckForm";
 import PropertyManager from "@/components/property/PropertyManager";
+import PropertyChecklist from "@/components/property/PropertyChecklist";
 
 export default function PropertySecurity() {
   const { user } = useAuth();
@@ -11,6 +12,7 @@ export default function PropertySecurity() {
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [formLocation, setFormLocation] = useState(null);
+  const [checklistOpen, setChecklistOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [incidents, setIncidents] = useState({});
   const [fallbackUser, setFallbackUser] = useState(null);
@@ -138,7 +140,7 @@ export default function PropertySecurity() {
             {showHistory ? "Current Status" : "History"}
           </button>
           <button
-            onClick={() => { setFormLocation(null); setFormOpen(true); }}
+            onClick={() => setChecklistOpen(true)}
             className="flex items-center gap-2 bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] px-3 py-2 rounded-lg text-sm font-bold transition-colors"
           >
             <Plus className="w-4 h-4" />
@@ -323,6 +325,15 @@ export default function PropertySecurity() {
         <PropertyManager
           onClose={() => setManagerOpen(false)}
           onChanged={() => { loadPosts(); load(); }}
+        />
+      )}
+
+      {checklistOpen && (
+        <PropertyChecklist
+          user={currentUser}
+          locations={rosterNames.length ? rosterNames : DEFAULT_LOCATIONS}
+          onClose={() => setChecklistOpen(false)}
+          onSaved={() => load()}
         />
       )}
     </div>
