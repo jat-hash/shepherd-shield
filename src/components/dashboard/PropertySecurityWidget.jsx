@@ -86,8 +86,17 @@ export default function PropertySecurityWidget({ user }) {
             matched.push({ location: loc, assignment: a });
           }
         }
-        setPosts(matched);
-        if (matched.length > 0) loadCycle();
+        // Only admins and users assigned to Marathon/Bonco posts see this widget.
+        let filtered = user?.role === 'admin'
+          ? matched
+          : matched.filter(p => /marathon|bonco/i.test(p.location));
+        // Admins always see the widget even without a property assignment.
+        if (user?.role === 'admin' && filtered.length === 0) {
+          const first = (roster.length ? roster : DEFAULT_LOCATIONS)[0];
+          if (first) filtered = [{ location: first, assignment: null }];
+        }
+        setPosts(filtered);
+        if (filtered.length > 0) loadCycle();
       } catch {}
     };
 
