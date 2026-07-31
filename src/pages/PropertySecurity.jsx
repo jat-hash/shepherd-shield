@@ -244,7 +244,12 @@ export default function PropertySecurity() {
         </div>
       ) : (
         /* ── Current status grid ── */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div>
+          <h2 className="text-white font-semibold text-sm uppercase tracking-wide mb-3 flex items-center gap-2">
+            <Lock className="w-4 h-4 text-[#d4a843]" />
+            Locations — tap to check
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {locations.map(loc => {
             const isSecure = loc.status === "Secure";
             const isUnsecured = loc.status === "Unsecured";
@@ -252,7 +257,8 @@ export default function PropertySecurity() {
             return (
               <div
                 key={loc.location_name}
-                className={`bg-[#1a2744] rounded-xl border p-4 flex flex-col gap-3 ${
+                onClick={() => setChecklistOpen(true)}
+                className={`bg-[#1a2744] rounded-xl border p-4 flex flex-col gap-3 cursor-pointer hover:border-[#d4a843]/50 transition-colors ${
                   isSecure ? "border-green-500/30" : isUnsecured ? "border-red-500/40" : "border-[rgba(212,168,67,0.1)]"
                 }`}
               >
@@ -300,7 +306,7 @@ export default function PropertySecurity() {
                 )}
 
                 <button
-                  onClick={() => openForm(loc.location_name)}
+                  onClick={(e) => { e.stopPropagation(); openForm(loc.location_name); }}
                   className="w-full bg-[#0a1128] hover:bg-[#141f3d] border border-[rgba(212,168,67,0.2)] text-[#d4a843] text-sm font-medium py-2 rounded-lg transition-colors mt-auto"
                 >
                   {unchecked ? "Check Now" : "Update Status"}
@@ -308,6 +314,7 @@ export default function PropertySecurity() {
               </div>
             );
           })}
+          </div>
         </div>
       )}
 
