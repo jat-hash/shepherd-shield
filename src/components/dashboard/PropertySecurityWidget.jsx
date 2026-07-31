@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { ShieldCheck, ShieldAlert, Lock } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Lock, ChevronRight } from "lucide-react";
 import PropertySecurityCheckForm, { DEFAULT_LOCATIONS } from "@/components/property/PropertySecurityCheckForm";
 
 // Local-date string (not UTC) so an assignment dated "today" is never
@@ -25,11 +26,13 @@ const matchLocation = (positionName, roster) => {
 };
 
 export default function PropertySecurityWidget({ user }) {
+  const navigate = useNavigate();
   const [roster, setRoster] = useState([]);
   const [posts, setPosts] = useState([]);
   const [latestByLoc, setLatestByLoc] = useState({});
   const [showForm, setShowForm] = useState(false);
   const [formLoc, setFormLoc] = useState("");
+  const [selected, setSelected] = useState("");
 
   // Load the managed property roster (source of truth for which locations
   // count as property posts).
@@ -89,43 +92,59 @@ export default function PropertySecurityWidget({ user }) {
   const openForm = (loc) => { setFormLoc(loc); setShowForm(true); };
   const available = roster.length ? roster : DEFAULT_LOCATIONS;
 
+  const loc = selected || posts[0].location;
+  const latest = latestByLoc[loc];
+  const secure = latest?.status === "Secure";
+  const hasCheck = !!latest;
+
   return (
     <div className="space-y-3">
       <h2 className="text-sm uppercase tracking-widest text-[#d4a843] font-semibold flex items-center gap-2">
         <Lock className="w-4 h-4" />
         Property Security
       </h2>
-      {posts.map(({ location, assignment }) => {
-        const latest = latestByLoc[location];
-        const secure = latest?.status === "Secure";
-        const hasCheck = !!latest;
-        return (
-          <div key={location} className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                {hasCheck ? (
-                  secure ? <ShieldCheck className="w-5 h-5 text-green-400 shrink-0" /> : <ShieldAlert className="w-5 h-5 text-red-400 shrink-0" />
-                ) : (
-                  <Lock className="w-5 h-5 text-slate-400 shrink-0" />
-                )}
-                <div>
-                  <p className="text-white font-semibold text-sm">{location}</p>
-                  <p className="text-slate-400 text-xs">
-                    {hasCheck ? (secure ? "Secure" : "Unsecured") : "Not checked yet"}
-                    {assignment.service_date && ` · ${assignment.service_date.slice(0, 10)}`}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => openForm(location)}
-                className="bg-[#d4a843]/15 hover:bg-[#d4a843]/25 text-[#d4a843] text-xs font-semibold px-3 py-2 rounded-lg transition-colors shrink-0"
-              >
-                {hasCheck ? "Update Status" : "Check Now"}
-              </button>
-            </div>
+      <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-4">
+        <div className="flex items-center gap-3">
+          {hasCheck ? (
+            secure ? <ShieldCheck className="w-5 h-5 text-green-400 shrink-0" /> : <ShieldAlert className="w-5 h-5 text-red-400 shrink-0" />
+          ) : (
+            <Lock className="w-5 h-5 text-slate-400 shrink-0" />
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-slate-400 text-xs uppercase tracking-wide">Property</p>
+            <select
+              value={loc}
+              onChange={e => setSelected(e.target.value)}
+              className="bg-transparent text-white font-semibold text-sm outline-none w-full cursor-pointer -ml-1 px-1"
+            >
+              {available.map(l => (
+                <option key={l} value={l} className="bg-[#1a2744] text-white">{l}</option>
+              ))}
+            </select>
+            <p className="text-slate-400 text-xs mt-0.5">
+              {hasCheck ? (secure ? "Secure" : "Unsecured") : "Not checked yet"}
+            </p>
           </div>
-        );
-      })}
+        </div>
+        <div className="mt-3">
+          {hasCheck && !secure ? (
+            <button
+              onClick={() => navigate("/PropertySecurity")}
+              className="w-full flex items-center justify-center gap-1.5 bg-red-500/15 hover:bg-red-500/25 text-red-300 text-xs font-semibold py-2.5 rounded-lg transition-colors"
+            >
+              Unsecured — open Property Security
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <button
+              onClick={() => openForm(loc)}
+              className="w-full bg-[#d4a843]/15 hover:bg-[#d4a843]/25 text-[#d4a843] text-xs font-semibold py-2.5 rounded-lg transition-colors"
+            >
+              {hasCheck ? "Update Status" : "Check Now"}
+            </button>
+          )}
+        </div>
+      </div>
       {showForm && (
         <PropertySecurityCheckForm
           user={user}
