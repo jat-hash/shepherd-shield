@@ -56,11 +56,25 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
     });
     setAdditionalParents(child.additional_parents || []);
     setChildren(prev => {
-      // Avoid adding the same child twice
-      const exists = prev.some(c => c.child_name === (child.child_name || ""));
-      if (exists) {
-        toast.info(`${child.child_name || "That child"} is already in the list`);
-        return prev;
+      const selectedName = (child.child_name || "").trim();
+      // If this child is already in the queue, just refresh that row.
+      const existingIdx = prev.findIndex(c => (c.child_name || "").trim() === selectedName);
+      if (existingIdx !== -1) {
+        return prev.map((c, i) => i === existingIdx ? {
+          child_name: child.child_name || "",
+          age_group: child.age_group || "Toddler (1-2y)",
+          allergies_notes: child.allergies_notes || "",
+        } : c);
+      }
+      // Otherwise, replace the first empty row (no name) if one exists,
+      // so we don't stack a new row on top of the default blank one.
+      const emptyIdx = prev.findIndex(c => !(c.child_name || "").trim() && !(c.allergies_notes || "").trim());
+      if (emptyIdx !== -1) {
+        return prev.map((c, i) => i === emptyIdx ? {
+          child_name: child.child_name || "",
+          age_group: child.age_group || "Toddler (1-2y)",
+          allergies_notes: child.allergies_notes || "",
+        } : c);
       }
       return [...prev, {
         child_name: child.child_name || "",
