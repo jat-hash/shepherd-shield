@@ -24,6 +24,12 @@ export const UNSECURED_REASONS = [
   "Other",
 ];
 
+// Unsecured property alerts go to Ryan and Pacheco for acknowledgement.
+const UNSECURED_ALERT_RECIPIENTS = [
+  "wilbert.ryan@gmail.com",
+  "pachecosmailbox@gmail.com",
+];
+
 const INCIDENT_CATEGORIES = [
   "Unsecured Property",
   "Suspicious Activity",
@@ -100,6 +106,26 @@ export default function PropertySecurityCheckForm({ user, initialLocation, onClo
         checked_by_email: user?.email,
         checked_at: new Date().toISOString(),
       });
+
+      // When a property is marked unsecured, alert Ryan and Pacheco so they
+      // can acknowledge it and file an incident report.
+      if (status === "Unsecured") {
+        try {
+          const reasonText = reasons.length > 0 ? ` Reasons: ${reasons.join(", ")}.` : "";
+          const noteText = notes.trim() ? ` Notes: ${notes.trim()}.` : "";
+          const incidentText = incidentId ? " (incident report attached)." : " No incident report filed yet.";
+          await base44.functions.invoke("sendTeamNotification", {
+            title: `🚨 Unsecured: ${finalLocation}`,
+            message: `${finalLocation} was marked UNSECURED by ${user?.display_name || user?.full_name || user?.email || "security"}.${reasonText}${noteText}${incidentText} Open Property Security to acknowledge and file a report.`,
+            recipient_emails: UNSECURED_ALERT_RECIPIENTS.map(e => e.toLowerCase()),
+            notification_type: "incident",
+            click_url: "/PropertySecurity",
+          });
+        } catch (err) {
+          console.error("Failed to send unsecured alert:", err);
+        }
+      }
+
       onSaved?.(record);
       toast.success(`${finalLocation} marked ${status}`);
       onClose?.();
