@@ -61,6 +61,9 @@ export default function PropertySecurity() {
     Object.keys(latestByLocation).forEach(name => {
       if (!DEFAULT_LOCATIONS.includes(name)) list.push(latestByLocation[name]);
     });
+    // Sort: unsecured (needs attention) first, then unchecked, then secure
+    const priority = (l) => (l.status === "Unsecured" ? 0 : !l.status ? 1 : 2);
+    list.sort((a, b) => priority(a) - priority(b));
     return list;
   }, [latestByLocation]);
 
@@ -131,6 +134,37 @@ export default function PropertySecurity() {
           <p className="text-xs text-slate-400 uppercase tracking-wide">Not Checked</p>
         </div>
       </div>
+
+      {/* Overall status banner — quick at-a-glance summary */}
+      {!loading && !showHistory && (
+        <div className={`rounded-xl border p-4 flex items-center gap-3 ${
+          stats.unsecured > 0 ? "bg-red-900/40 border-red-500/50"
+            : stats.unchecked > 0 ? "bg-yellow-900/30 border-yellow-500/40"
+            : "bg-green-900/30 border-green-500/40"
+        }`}>
+          {stats.unsecured > 0
+            ? <ShieldAlert className="w-6 h-6 text-red-400 shrink-0" />
+            : stats.unchecked > 0
+              ? <Lock className="w-6 h-6 text-yellow-400 shrink-0" />
+              : <ShieldCheck className="w-6 h-6 text-green-400 shrink-0" />}
+          <div>
+            <p className={`font-bold text-sm ${
+              stats.unsecured > 0 ? "text-red-200"
+                : stats.unchecked > 0 ? "text-yellow-200"
+                : "text-green-200"
+            }`}>
+              {stats.unsecured > 0
+                ? `${stats.unsecured} location${stats.unsecured > 1 ? "s" : ""} need attention`
+                : stats.unchecked > 0
+                  ? `${stats.unchecked} not yet checked`
+                  : "All locations secure"}
+            </p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {stats.secured} of {stats.total} secure · last updated {fmtTime(checks[0]?.checked_at)}
+            </p>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-12 text-slate-400 text-sm">Loading…</div>
