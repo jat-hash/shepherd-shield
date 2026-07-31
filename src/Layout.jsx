@@ -564,6 +564,7 @@ export default function Layout({ children, currentPageName }) {
                   { name: "Special Events", page: "SpecialEvents", icon: Calendar },
                   ...(user?.role === 'admin' ? [{ name: "Auto Rotate Schedule", page: "AutoRotation", icon: Bot }] : []),
                   { name: "Documents", page: "Documents", icon: FolderOpen },
+                  { name: "Property Security", page: "PropertySecurity", icon: Lock },
                 ].map(item => (
                   <Link
                     key={item.page}
