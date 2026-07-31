@@ -1,0 +1,20 @@
+{
+  "name": "PropertySecurityCycle",
+  "type": "object",
+  "title": "Property Security Cycle",
+  "description": "Marks the start of the current property security service cycle; checks made before last_reset_at belong to a previous cycle and are excluded from the current-status grid",
+  "properties": {
+    "last_reset_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO timestamp when the current cycle started (most recent reset)"
+    },
+    "reset_by": {
+      "type": "string",
+      "description": "What triggered the reset (service label, 'scheduled', or 'manual')"
+    }
+  },
+  "required": [
+    "last_reset_at"
+  ]
+}

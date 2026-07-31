@@ -26,6 +26,11 @@ export default function PropertyMonitor() {
   const [locFilter, setLocFilter] = useState("all");
   const [reorderOpen, setReorderOpen] = useState(false);
   const [reordering, setReordering] = useState(false);
+  const [cycleAt, setCycleAt] = useState(null);
+  const [reportMonth, setReportMonth] = useState(() => {
+    const d = new Date();
+    return { year: d.getFullYear(), month: d.getMonth() };
+  });
 
   const loadPosts = async () => {
     try {
@@ -52,12 +57,21 @@ export default function PropertyMonitor() {
     setLoading(false);
   };
 
+  const loadCycle = async () => {
+    try {
+      const recs = await base44.entities.PropertySecurityCycle.list("-last_reset_at", 1);
+      setCycleAt(recs.length > 0 ? recs[0].last_reset_at : null);
+    } catch {}
+  };
+
   useEffect(() => {
     loadPosts();
     load();
+    loadCycle();
     const unsub = base44.entities.PropertySecurityCheck.subscribe(() => load());
     const unsubInc = base44.entities.Incident.subscribe(() => load());
-    return () => { unsub && unsub(); unsubInc && unsubInc(); };
+    const unsubCycle = base44.entities.PropertySecurityCycle.subscribe(() => loadCycle());
+    return () => { unsub && unsub(); unsubInc && unsubInc(); unsubCycle && unsubCycle(); };
   }, []);
 
   const rosterNames = posts.map(p => p.name);
@@ -109,6 +123,27 @@ export default function PropertyMonitor() {
     return { total, secured, unsecured, openIncidents };
   }, [checks, incidents]);
 
+  const monthlyUnsecured = useMemo(() => {
+    const map = {};
+    for (const c of checks) {
+      if (c.status !== "Unsecured") continue;
+      const d = new Date(c.checked_at);
+      if (d.getFullYear() === reportMonth.year && d.getMonth() === reportMonth.month) {
+        map[c.location_name] = (map[c.location_name] || 0) + 1;
+      }
+    }
+    return map;
+  }, [checks, reportMonth]);
+
+  const shiftMonth = (delta) => {
+    setReportMonth(prev => {
+      const d = new Date(prev.year, prev.month + delta, 1);
+      return { year: d.getFullYear(), month: d.getMonth() };
+    });
+  };
+  const monthLabel = new Date(reportMonth.year, reportMonth.month, 1)
+    .toLocaleString("en-US", { month: "long", year: "numeric" });
+
   if (user && !canAccessPropertyMonitor(user)) {
     navigate("/", { replace: true });
     return null;
@@ -130,6 +165,12 @@ export default function PropertyMonitor() {
           {reorderOpen ? "Done" : "Reorder"}
         </button>
       </div>
+
+      {cycleAt && (
+        <p className="text-xs text-slate-500">
+          Last cycle reset {fmtTime(cycleAt)} · statuses reset automatically after each service
+        </p>
+      )}
 
       {/* Reorder panel */}
       {reorderOpen && (
@@ -288,6 +329,42 @@ export default function PropertyMonitor() {
           })}
         </div>
       )}
+
+      {/* Monthly unsecured report */}
+      <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-3">
+        <div className="flex items-center justify-between mb-2 gap-2">
+          <h3 className="text-white font-semibold text-sm flex items-center gap-2">
+            <ShieldAlert className="w-4 h-4 text-red-400" />
+            Monthly Unsecured Report
+          </h3>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => shiftMonth(-1)}
+              className="px-2 py-1 rounded-lg text-xs bg-[#0a1128] border border-slate-700 text-slate-300 hover:border-[#d4a843]/60 transition-colors"
+            >
+              ‹
+            </button>
+            <span className="text-xs text-slate-300 min-w-[120px] text-center">{monthLabel}</span>
+            <button
+              onClick={() => shiftMonth(1)}
+              className="px-2 py-1 rounded-lg text-xs bg-[#0a1128] border border-slate-700 text-slate-300 hover:border-[#d4a843]/60 transition-colors"
+            >
+              ›
+            </button>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {locationNames.map(loc => {
+            const count = monthlyUnsecured[loc] || 0;
+            return (
+              <div key={loc} className="bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2 flex items-center justify-between">
+                <span className="text-slate-300 text-xs truncate">{loc}</span>
+                <span className={`text-sm font-bold ml-2 ${count > 0 ? "text-red-400" : "text-slate-500"}`}>{count}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { ShieldCheck, ShieldAlert, Lock, ChevronRight } from "lucide-react";
@@ -33,6 +33,7 @@ export default function PropertySecurityWidget({ user }) {
   const [showForm, setShowForm] = useState(false);
   const [formLoc, setFormLoc] = useState("");
   const [selected, setSelected] = useState("");
+  const cycleAtRef = useRef(null);
 
   // Load the managed property roster (source of truth for which locations
   // count as property posts).
@@ -54,12 +55,21 @@ export default function PropertySecurityWidget({ user }) {
       base44.entities.PropertySecurityCheck.list("-checked_at", 200)
         .then(checks => {
           const map = {};
+          const cutoff = cycleAtRef.current ? new Date(cycleAtRef.current).getTime() : 0;
           for (const c of checks) {
+            if (cutoff && new Date(c.checked_at).getTime() < cutoff) continue;
             if (!map[c.location_name]) map[c.location_name] = c;
           }
           setLatestByLoc(map);
         })
         .catch(() => {});
+    };
+
+    const loadCycle = () => {
+      base44.entities.PropertySecurityCycle.list("-last_reset_at", 1)
+        .then(recs => { cycleAtRef.current = recs.length ? recs[0].last_reset_at : null; })
+        .catch(() => {})
+        .finally(() => loadChecks());
     };
 
     const loadAssignments = async () => {
@@ -77,14 +87,15 @@ export default function PropertySecurityWidget({ user }) {
           }
         }
         setPosts(matched);
-        if (matched.length > 0) loadChecks();
+        if (matched.length > 0) loadCycle();
       } catch {}
     };
 
     loadAssignments();
     const unsub = base44.entities.Assignment.subscribe(() => loadAssignments());
     const unsubChecks = base44.entities.PropertySecurityCheck.subscribe(() => loadChecks());
-    return () => { unsub && unsub(); unsubChecks && unsubChecks(); };
+    const unsubCycle = base44.entities.PropertySecurityCycle.subscribe(() => loadCycle());
+    return () => { unsub && unsub(); unsubChecks && unsubChecks(); unsubCycle && unsubCycle(); };
   }, [user, roster]);
 
   if (posts.length === 0) return null;

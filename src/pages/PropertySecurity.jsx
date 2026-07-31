@@ -18,6 +18,7 @@ export default function PropertySecurity() {
   const [fallbackUser, setFallbackUser] = useState(null);
   const [posts, setPosts] = useState([]);
   const [managerOpen, setManagerOpen] = useState(false);
+  const [cycleAt, setCycleAt] = useState(null);
   const seedingRef = useRef(false);
   const currentUser = user || fallbackUser;
 
@@ -60,24 +61,35 @@ export default function PropertySecurity() {
     setLoading(false);
   };
 
+  const loadCycle = async () => {
+    try {
+      const recs = await base44.entities.PropertySecurityCycle.list("-last_reset_at", 1);
+      setCycleAt(recs.length > 0 ? recs[0].last_reset_at : null);
+    } catch {}
+  };
+
   useEffect(() => {
     loadPosts();
     load();
+    loadCycle();
     const unsub = base44.entities.PropertySecurityCheck.subscribe(() => load());
-    return unsub;
+    const unsubCycle = base44.entities.PropertySecurityCycle.subscribe(() => { loadCycle(); load(); });
+    return () => { unsub && unsub(); unsubCycle && unsubCycle(); };
   }, []);
 
   // Latest check per location name
   const latestByLocation = useMemo(() => {
     const map = {};
+    const cutoff = cycleAt ? new Date(cycleAt).getTime() : 0;
     for (const c of checks) {
+      if (cutoff && new Date(c.checked_at).getTime() < cutoff) continue;
       const existing = map[c.location_name];
       if (!existing || new Date(c.checked_at) > new Date(existing.checked_at)) {
         map[c.location_name] = c;
       }
     }
     return map;
-  }, [checks]);
+  }, [checks, cycleAt]);
 
   // Build the full location list (managed roster + any custom seen in history)
   const rosterNames = posts.map(p => p.name);
@@ -168,6 +180,12 @@ export default function PropertySecurity() {
           <p className="text-xs text-slate-400 uppercase tracking-wide">Not Checked</p>
         </div>
       </div>
+
+      {cycleAt && (
+        <p className="text-xs text-slate-500">
+          Current cycle started {fmtTime(cycleAt)} · statuses reset automatically after each service
+        </p>
+      )}
 
       {/* Overall status banner — quick at-a-glance summary */}
       {!loading && !showHistory && (
