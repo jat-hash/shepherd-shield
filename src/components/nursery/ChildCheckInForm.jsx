@@ -121,18 +121,16 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
       toast.error("Parent name is required");
       return;
     }
-    // Filter out completely empty child rows (no name AND no allergies)
+    // Child info is optional — if no child rows have any data, still create
+    // one record under the parent's name (no child name).
     const validChildren = children.filter(c => (c.child_name || "").trim() || (c.allergies_notes || "").trim());
-    if (validChildren.length === 0) {
-      toast.error("Add at least one child");
-      return;
-    }
+    const childrenToCheckIn = validChildren.length > 0 ? validChildren : [{ child_name: "", age_group: "Toddler (1-2y)", allergies_notes: "" }];
 
     setLoading(true);
     try {
       const results = [];
 
-      for (const child of validChildren) {
+      for (const child of childrenToCheckIn) {
         const trimmedName = (child.child_name || "").trim();
 
         // Look for ANY existing record for this child+parent today.
@@ -492,7 +490,7 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
               disabled={loading}
               className="w-full bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold py-3 rounded-xl transition-colors disabled:opacity-50 text-sm"
             >
-              {loading ? "Checking In..." : `Check In ${children.filter(c => (c.child_name || "").trim() || (c.allergies_notes || "").trim()).length || "Child"}${children.filter(c => (c.child_name || "").trim() || (c.allergies_notes || "").trim()).length !== 1 ? "ren" : ""}`}
+              {loading ? "Checking In..." : "Check In"}
             </button>
           </form>
         </div>
