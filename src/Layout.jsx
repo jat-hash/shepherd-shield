@@ -567,6 +567,7 @@ export default function Layout({ children, currentPageName }) {
                   ...(user?.role === 'admin' ? [{ name: "Auto Rotate Schedule", page: "AutoRotation", icon: Bot }] : []),
                   { name: "Documents", page: "Documents", icon: FolderOpen },
                   { name: "Property Security", page: "PropertySecurity", icon: Lock },
+                  ...(canAccessPropertyMonitor(user) ? [{ name: "Property Monitor", page: "PropertyMonitor", icon: MonitorCheck }] : []),
                 ].map(item => (
                   <Link
                     key={item.page}
