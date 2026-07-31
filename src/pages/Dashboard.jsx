@@ -15,6 +15,7 @@ import RadioCheckInScanner from "@/components/dashboard/RadioCheckInScanner";
 import QuickEquipmentCheckIn from "@/components/dashboard/QuickEquipmentCheckIn";
 import PersonalCheckIn from "@/components/dashboard/PersonalCheckIn";
 import NurseryMonitorWidget from "@/components/dashboard/NurseryMonitorWidget";
+import PropertySecurityWidget from "@/components/dashboard/PropertySecurityWidget";
 import AdminDashboardPanel from "@/components/dashboard/AdminDashboardPanel";
 import MyCheckInStatus from "@/components/dashboard/MyCheckInStatus";
 import ChurchServiceAlerts from "@/components/dashboard/ChurchServiceAlerts";
@@ -451,6 +452,9 @@ export default function Dashboard() {
           ))
         )}
       </div>
+
+      {/* Property Security — surfaces when assigned to a property post */}
+      {user && <PropertySecurityWidget user={user} />}
 
       <SafetyCheckInPanel />
       <StatusBar />
