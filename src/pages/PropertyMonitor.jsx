@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { canAccessPropertyMonitor } from "@/lib/leadership";
 import { ShieldCheck, ShieldAlert, FileText, Lock, Filter, MapPin } from "lucide-react";
 import { DEFAULT_LOCATIONS } from "@/components/property/PropertySecurityCheckForm";
 
@@ -15,6 +17,7 @@ const fmtTime = (iso) => {
 
 export default function PropertyMonitor() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [checks, setChecks] = useState([]);
   const [incidents, setIncidents] = useState([]);
   const [posts, setPosts] = useState([]);
@@ -83,6 +86,11 @@ export default function PropertyMonitor() {
     const openIncidents = incidents.filter(i => i.status === "Open" || i.status === "Under Review").length;
     return { total, secured, unsecured, openIncidents };
   }, [checks, incidents]);
+
+  if (user && !canAccessPropertyMonitor(user)) {
+    navigate("/", { replace: true });
+    return null;
+  }
 
   return (
     <div className="p-4 max-w-5xl mx-auto space-y-4">

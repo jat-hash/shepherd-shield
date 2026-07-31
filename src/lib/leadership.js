@@ -39,3 +39,10 @@ export function canBroadcastNotifications(user) {
   if (user.role === "admin") return true;
   return LEADERSHIP_EMAILS.includes((user.email || "").toLowerCase());
 }
+
+// Users authorized to view the Property Monitor page (admins always allowed).
+export function canAccessPropertyMonitor(user) {
+  if (!user) return false;
+  if (user.role === "admin") return true;
+  return LEADERSHIP_EMAILS.includes((user.email || "").toLowerCase());
+}

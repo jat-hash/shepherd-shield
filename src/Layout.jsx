@@ -7,7 +7,7 @@ import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bel
 
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { cacheUserVibrationPrefs, primeAudioContext } from "@/lib/notificationEffects";
-import { canAccessMainApp, canAccessNursery } from "@/lib/leadership";
+import { canAccessMainApp, canAccessNursery, canAccessPropertyMonitor } from "@/lib/leadership";
 import EmergencyOverrideFlash from "@/components/notifications/EmergencyOverrideFlash";
 import AlertNotificationSystem from "@/components/notifications/AlertNotificationSystem";
 import UserSwitcher from "@/components/UserSwitcher";
@@ -423,7 +423,7 @@ export default function Layout({ children, currentPageName }) {
                       ...(user?.role === 'admin' ? [{ name: "Auto Rotate Schedule", page: "AutoRotation", icon: Bot }] : []),
                       { name: "Documents", page: "Documents", icon: FolderOpen },
                       { name: "Property Security", page: "PropertySecurity", icon: Lock },
-                      { name: "Property Monitor", page: "PropertyMonitor", icon: MonitorCheck },
+                      ...(canAccessPropertyMonitor(user) ? [{ name: "Property Monitor", page: "PropertyMonitor", icon: MonitorCheck }] : []),
                     ].map(item => (
                       <Link
                         key={item.page}
