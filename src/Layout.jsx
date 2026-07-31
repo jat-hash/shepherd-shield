@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, RotateCw, Baby, MonitorCheck, ChevronLeft } from "lucide-react";
+import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, RotateCw, Baby, MonitorCheck, ChevronLeft, Lock } from "lucide-react";
 
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { cacheUserVibrationPrefs, primeAudioContext } from "@/lib/notificationEffects";
@@ -30,6 +30,7 @@ const PAGE_TITLES = {
   Members: "Team Members",
   TeamMap: "Live Map",
   WatchList: "Watch List",
+  PropertySecurity: "Property Security",
   SOPLibrary: "SOP Library",
   Positions: "Positions",
   EquipmentInventory: "Equipment",
@@ -420,6 +421,7 @@ export default function Layout({ children, currentPageName }) {
                       { name: "Special Events", page: "SpecialEvents", icon: Calendar },
                       ...(user?.role === 'admin' ? [{ name: "Auto Rotate Schedule", page: "AutoRotation", icon: Bot }] : []),
                       { name: "Documents", page: "Documents", icon: FolderOpen },
+                      { name: "Property Security", page: "PropertySecurity", icon: Lock },
                     ].map(item => (
                       <Link
                         key={item.page}

@@ -1,0 +1,51 @@
+{
+  "name": "PropertySecurityCheck",
+  "type": "object",
+  "title": "Property Security Check",
+  "description": "Secure/unsecured status checks for campus posts and structures",
+  "properties": {
+    "location_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Name of the post or structure (e.g. Bonco Post, Marathon Post, Villa Lean-to, Shed, Shack P1)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Secure",
+        "Unsecured"
+      ],
+      "default": "Secure"
+    },
+    "unsecured_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Checklist of why the location was unsecured (e.g. Front Door, Back Door, Window)"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "incident_id": {
+      "type": "string",
+      "description": "Linked incident report ID"
+    },
+    "checked_by": {
+      "type": "string",
+      "description": "Name of the team member who performed the check"
+    },
+    "checked_by_email": {
+      "type": "string"
+    },
+    "checked_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "location_name",
+    "status"
+  ]
+}
