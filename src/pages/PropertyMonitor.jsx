@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { canAccessPropertyMonitor } from "@/lib/leadership";
-import { ShieldCheck, ShieldAlert, FileText, Lock, Filter, MapPin, ChevronUp, ChevronDown, GripVertical } from "lucide-react";
+import { ShieldCheck, ShieldAlert, FileText, Lock, Filter, MapPin, ChevronUp, ChevronDown, GripVertical, RotateCw } from "lucide-react";
 import { DEFAULT_LOCATIONS } from "@/components/property/PropertySecurityCheckForm";
 
 const fmtTime = (iso) => {
@@ -27,6 +27,18 @@ export default function PropertyMonitor() {
   const [reorderOpen, setReorderOpen] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [cycleAt, setCycleAt] = useState(null);
+  const [resetting, setResetting] = useState(false);
+
+  const handleManualReset = async () => {
+    setResetting(true);
+    try {
+      await base44.functions.invoke("resetPropertySecurityCycle", { reset_by: "manual" });
+      await loadCycle();
+    } catch {
+    } finally {
+      setResetting(false);
+    }
+  };
   const [reportMonth, setReportMonth] = useState(() => {
     const d = new Date();
     return { year: d.getFullYear(), month: d.getMonth() };
@@ -157,13 +169,24 @@ export default function PropertyMonitor() {
           <Lock className="w-6 h-6 text-[#d4a843]" />
           <h1 className="text-white font-bold text-xl">Property Monitor</h1>
         </div>
-        <button
-          onClick={() => setReorderOpen(o => !o)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border bg-[#0a1128] border-slate-700 text-slate-300 hover:border-[#d4a843]/60 hover:text-[#d4a843] transition-colors"
-        >
-          <GripVertical className="w-3.5 h-3.5" />
-          {reorderOpen ? "Done" : "Reorder"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleManualReset}
+            disabled={resetting}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border bg-[#d4a843]/10 border-[#d4a843]/40 text-[#d4a843] hover:bg-[#d4a843]/20 transition-colors disabled:opacity-50"
+            title="Clear the current status grid for a fresh cycle"
+          >
+            <RotateCw className={`w-3.5 h-3.5 ${resetting ? "animate-spin" : ""}`} />
+            {resetting ? "Resetting…" : "Reset Status"}
+          </button>
+          <button
+            onClick={() => setReorderOpen(o => !o)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border bg-[#0a1128] border-slate-700 text-slate-300 hover:border-[#d4a843]/60 hover:text-[#d4a843] transition-colors"
+          >
+            <GripVertical className="w-3.5 h-3.5" />
+            {reorderOpen ? "Done" : "Reorder"}
+          </button>
+        </div>
       </div>
 
       {cycleAt && (
