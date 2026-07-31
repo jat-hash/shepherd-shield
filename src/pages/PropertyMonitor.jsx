@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { canAccessPropertyMonitor } from "@/lib/leadership";
-import { ShieldCheck, ShieldAlert, FileText, Lock, Filter, MapPin } from "lucide-react";
+import { ShieldCheck, ShieldAlert, FileText, Lock, Filter, MapPin, ChevronUp, ChevronDown, GripVertical } from "lucide-react";
 import { DEFAULT_LOCATIONS } from "@/components/property/PropertySecurityCheckForm";
 
 const fmtTime = (iso) => {
@@ -24,6 +24,8 @@ export default function PropertyMonitor() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all"); // all | unsecured | secure
   const [locFilter, setLocFilter] = useState("all");
+  const [reorderOpen, setReorderOpen] = useState(false);
+  const [reordering, setReordering] = useState(false);
 
   const loadPosts = async () => {
     try {
@@ -64,6 +66,26 @@ export default function PropertyMonitor() {
     return [...set].sort();
   }, [rosterNames, checks]);
 
+  const movePost = async (idx, dir) => {
+    const target = idx + dir;
+    if (target < 0 || target >= posts.length) return;
+    const next = [...posts];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    next.forEach((p, i) => (p.order = i));
+    setPosts(next);
+    setReordering(true);
+    try {
+      await base44.entities.PropertyPost.bulkUpdate(
+        next.map(p => ({ id: p.id, order: p.order }))
+      );
+      await loadPosts();
+    } catch {
+      await loadPosts();
+    } finally {
+      setReordering(false);
+    }
+  };
+
   const filtered = useMemo(() => {
     return checks.filter(c => {
       if (filter === "unsecured" && c.status !== "Unsecured") return false;
@@ -95,10 +117,55 @@ export default function PropertyMonitor() {
   return (
     <div className="p-4 max-w-5xl mx-auto space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-2">
-        <Lock className="w-6 h-6 text-[#d4a843]" />
-        <h1 className="text-white font-bold text-xl">Property Monitor</h1>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Lock className="w-6 h-6 text-[#d4a843]" />
+          <h1 className="text-white font-bold text-xl">Property Monitor</h1>
+        </div>
+        <button
+          onClick={() => setReorderOpen(o => !o)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border bg-[#0a1128] border-slate-700 text-slate-300 hover:border-[#d4a843]/60 hover:text-[#d4a843] transition-colors"
+        >
+          <GripVertical className="w-3.5 h-3.5" />
+          {reorderOpen ? "Done" : "Reorder"}
+        </button>
       </div>
+
+      {/* Reorder panel */}
+      {reorderOpen && (
+        <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.15)] p-3 space-y-2">
+          <p className="text-xs text-slate-400 uppercase tracking-wide">Location order</p>
+          {posts.length === 0 ? (
+            <p className="text-slate-500 text-sm py-3 text-center">No managed locations.</p>
+          ) : (
+            posts.map((p, i) => (
+              <div
+                key={p.id}
+                className="flex items-center gap-2 bg-[#0a1128] border border-slate-700 rounded-lg px-3 py-2"
+              >
+                <GripVertical className="w-4 h-4 text-slate-500" />
+                <span className="flex-1 text-white text-sm font-medium truncate">{p.name}</span>
+                <button
+                  disabled={reordering || i === 0}
+                  onClick={() => movePost(i, -1)}
+                  className="p-1.5 rounded-lg text-slate-300 hover:text-[#d4a843] hover:bg-white/5 disabled:opacity-30 transition-colors"
+                  title="Move up"
+                >
+                  <ChevronUp className="w-4 h-4" />
+                </button>
+                <button
+                  disabled={reordering || i === posts.length - 1}
+                  onClick={() => movePost(i, 1)}
+                  className="p-1.5 rounded-lg text-slate-300 hover:text-[#d4a843] hover:bg-white/5 disabled:opacity-30 transition-colors"
+                  title="Move down"
+                >
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
