@@ -129,12 +129,9 @@ export default function ChildCheckInForm({ user, onClose, onCheckedIn }) {
         );
 
         if (existing) {
-          if (existing.checked_in) {
-            // Already checked in — skip to avoid duplicate
-            results.push(existing);
-            continue;
-          }
-          // Reactivate the checked-out record
+          // Update the existing record (whether checked in or checked out)
+          // instead of creating a duplicate — refreshes check-in time and
+          // resets any checkout state so the child is marked present again.
           const updated = await base44.entities.NurseryChild.update(existing.id, {
             checked_in: true,
             check_in_time: new Date().toISOString(),
