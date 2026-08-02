@@ -3,14 +3,15 @@ import { base44 } from "@/api/base44Client";
 import { X, Baby, BookUser } from "lucide-react";
 import { toast } from "sonner";
 
-export default function DirectoryAddForm({ onClose, onAdded }) {
+export default function DirectoryAddForm({ onClose, onAdded, family }) {
+  const isEdit = !!family;
   const [form, setForm] = useState({
-    child_name: "",
-    parent_name: "",
-    parent_phone: "",
-    sponsor: "",
-    age_group: "Toddler (1-2y)",
-    allergies_notes: "",
+    child_name: family?.child_name || "",
+    parent_name: family?.parent_name || "",
+    parent_phone: family?.parent_phone || "",
+    sponsor: family?.sponsor || "",
+    age_group: family?.age_group || "Toddler (1-2y)",
+    allergies_notes: family?.allergies_notes || "",
   });
   const [loading, setLoading] = useState(false);
 
@@ -24,16 +25,25 @@ export default function DirectoryAddForm({ onClose, onAdded }) {
     }
     setLoading(true);
     try {
-      await base44.entities.NurseryChild.create({
-        ...form,
-        checked_in: false,
-        service_date: todayStr,
-      });
-      toast.success("Added to directory");
+      if (isEdit && family) {
+        // Update all visit records for this family so the directory stays consistent
+        const ids = (family.visits || []).map(v => v.id).filter(Boolean);
+        if (ids.length) {
+          await base44.entities.NurseryChild.bulkUpdate(ids.map(id => ({ id, ...form })));
+        }
+        toast.success("Family updated");
+      } else {
+        await base44.entities.NurseryChild.create({
+          ...form,
+          checked_in: false,
+          service_date: todayStr,
+        });
+        toast.success("Added to directory");
+      }
       onAdded?.();
       onClose();
     } catch {
-      toast.error("Failed to add to directory");
+      toast.error(isEdit ? "Failed to update family" : "Failed to add to directory");
     } finally {
       setLoading(false);
     }
@@ -45,7 +55,7 @@ export default function DirectoryAddForm({ onClose, onAdded }) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-[rgba(212,168,67,0.1)]">
           <div className="flex items-center gap-2">
             <BookUser className="w-5 h-5 text-[#d4a843]" />
-            <h2 className="text-white font-bold">Add to Directory</h2>
+            <h2 className="text-white font-bold">{isEdit ? "Edit Family" : "Add to Directory"}</h2>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white">
             <X className="w-5 h-5" />
@@ -124,7 +134,7 @@ export default function DirectoryAddForm({ onClose, onAdded }) {
             disabled={loading}
             className="w-full bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold py-3 rounded-xl transition-colors disabled:opacity-50 text-sm"
           >
-            {loading ? "Adding..." : "Add to Directory"}
+            {loading ? (isEdit ? "Saving..." : "Adding...") : (isEdit ? "Save Changes" : "Add to Directory")}
           </button>
         </form>
       </div>

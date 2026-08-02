@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Search, Baby, Phone, Calendar, ChevronDown, ChevronUp, X, AlertCircle, UserPlus } from "lucide-react";
+import { Search, Baby, Phone, Calendar, ChevronDown, ChevronUp, X, AlertCircle, UserPlus, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import DirectoryAddForm from "@/components/nursery/DirectoryAddForm";
 
 const AGE_COLORS = {
@@ -17,6 +18,22 @@ export default function NurseryDirectory() {
   const [expandedId, setExpandedId] = useState(null);
   const [filterAge, setFilterAge] = useState("All");
   const [showAdd, setShowAdd] = useState(false);
+  const [editFamily, setEditFamily] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+  const handleDeleteFamily = async (family) => {
+    try {
+      const ids = (family.visits || []).map(v => v.id).filter(Boolean);
+      await Promise.all(ids.map(id => base44.entities.NurseryChild.delete(id)));
+      toast.success("Family removed from directory");
+    } catch {
+      toast.error("Failed to delete family");
+    } finally {
+      setConfirmDeleteId(null);
+      setExpandedId(null);
+      reload();
+    }
+  };
 
   const reload = () => {
     setLoading(true);
@@ -158,7 +175,35 @@ export default function NurseryDirectory() {
                 {/* Expanded: visit history */}
                 {isExpanded && (
                   <div className="border-t border-black/20 px-4 py-3 space-y-2">
-                    <p className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold mb-2">Visit History</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold">Visit History</p>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setEditFamily(family)}
+                          className="p-1.5 rounded-lg text-slate-300 hover:text-[#d4a843] hover:bg-white/5 transition-colors"
+                          title="Edit family"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        {confirmDeleteId === family.id ? (
+                          <button
+                            onClick={() => handleDeleteFamily(family)}
+                            className="px-2 py-1 rounded-lg text-[10px] font-bold bg-red-600 hover:bg-red-500 text-white animate-pulse"
+                            title="Click to confirm deletion"
+                          >
+                            Confirm delete?
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDeleteId(family.id)}
+                            className="p-1.5 rounded-lg text-slate-300 hover:text-red-400 hover:bg-white/5 transition-colors"
+                            title="Delete family"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
                     {family.visits
                       .sort((a, b) => new Date(b.service_date) - new Date(a.service_date))
                       .map((v, i) => (
@@ -183,6 +228,13 @@ export default function NurseryDirectory() {
       )}
       {showAdd && (
         <DirectoryAddForm onClose={() => setShowAdd(false)} onAdded={reload} />
+      )}
+      {editFamily && (
+        <DirectoryAddForm
+          family={editFamily}
+          onClose={() => setEditFamily(null)}
+          onAdded={reload}
+        />
       )}
     </div>
   );
