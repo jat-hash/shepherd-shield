@@ -17,6 +17,7 @@ export default function NotifyTeamButton({ user }) {
   const [selectedEmails, setSelectedEmails] = useState([]);
   const [selectAll, setSelectAll] = useState(true);
   const [sending, setSending] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [sendSMS, setSendSMS] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
 
@@ -59,6 +60,7 @@ export default function NotifyTeamButton({ user }) {
       toast.warning(`WhatsApp skipped for ${res.data.whatsapp_skipped.length} member(s) with no phone number on file.`);
     }
     setSending(false);
+    setConfirming(false);
     setOpen(false);
     setTitle("");
     setMessage("");
@@ -76,7 +78,7 @@ export default function NotifyTeamButton({ user }) {
         <Bell className="w-4 h-4" /> Notify Team
       </Button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setConfirming(false); }}>
         <DialogContent className="bg-[#1a2744] border-[rgba(212,168,67,0.2)] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
@@ -150,16 +152,23 @@ export default function NotifyTeamButton({ user }) {
               )}
             </div>
           </div>
-          <div className="flex gap-2 pt-2">
-            <Button variant="ghost" onClick={() => setOpen(false)} className="text-slate-400">Cancel</Button>
-            <Button
-              onClick={handleSend}
-              disabled={sending || !title || !message || (!selectAll && selectedEmails.length === 0)}
-              className="flex-1 bg-blue-600 hover:bg-blue-500 text-white gap-2"
-            >
-              <Send className="w-4 h-4" />
-              {sending ? "Sending..." : "Send Notification"}
-            </Button>
+          <div className="pt-2 space-y-2">
+            {confirming && (
+              <p className="text-xs text-amber-300 text-center bg-amber-500/10 border border-amber-500/30 rounded-lg py-2">
+                Send to {selectAll ? "ALL team members" : `${selectedEmails.length} member(s)`}? Click confirm to send.
+              </p>
+            )}
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => { setOpen(false); setConfirming(false); }} className="text-slate-400">Cancel</Button>
+              <Button
+                onClick={() => (confirming ? handleSend() : setConfirming(true))}
+                disabled={sending || !title || !message || (!selectAll && selectedEmails.length === 0)}
+                className={`flex-1 gap-2 text-white ${confirming ? "bg-blue-700 hover:bg-blue-800" : "bg-blue-600 hover:bg-blue-500"}`}
+              >
+                <Send className="w-4 h-4" />
+                {sending ? "Sending..." : confirming ? "Confirm & Send" : "Send Notification"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

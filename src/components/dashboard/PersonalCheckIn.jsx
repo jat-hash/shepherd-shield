@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { LogIn, LogOut, MapPin, Loader2, WifiOff } from "lucide-react";
 import { toast } from "sonner";
@@ -32,7 +32,9 @@ export default function PersonalCheckIn({ user }) {
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
-  const watchIdRef = useState(null);
+  // NOTE: useRef (not useState) — the geolocation watch id must persist across
+  // renders without triggering re-renders, so we can reliably clear it on checkout.
+  const watchIdRef = useRef(null);
 
   useEffect(() => {
     const onOnline = async () => {
@@ -175,7 +177,7 @@ export default function PersonalCheckIn({ user }) {
             try { await base44.entities.LiveLocation.update(currentLiveId, { is_active: false }); } catch (e) { /* silent */ }
           }
           navigator.geolocation.clearWatch(id);
-          watchIdRef[0] = null;
+          watchIdRef.current = null;
           await savePersonalCheckInState({ checkedIn: false });
           setCheckedIn(false);
           setRecordId(null);
@@ -186,13 +188,13 @@ export default function PersonalCheckIn({ user }) {
       () => {},
       { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
     );
-    watchIdRef[0] = id;
+    watchIdRef.current = id;
   };
 
   const stopLiveTracking = async (liveId) => {
-    if (watchIdRef[0] != null) {
-      navigator.geolocation.clearWatch(watchIdRef[0]);
-      watchIdRef[0] = null;
+    if (watchIdRef.current != null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
     }
     if (liveId) {
       try { await base44.entities.LiveLocation.update(liveId, { is_active: false }); } catch (e) { /* silent */ }
@@ -212,6 +214,36 @@ export default function PersonalCheckIn({ user }) {
     };
 
     if (navigator.onLine) {
+      // Prevent duplicate open check-ins: if an open record already exists for
+      // today (e.g. after an app reload), reuse it instead of creating a new one.
+      try {
+        const existing = await base44.entities.PersonalCheckIn.filter({ user_email: user.email, check_in_date: data.check_in_date });
+        const open = existing.find(r => !r.check_out_time);
+        if (open) {
+          setRecordId(open.id);
+          setCheckedIn(true);
+          setCheckInTime(open.check_in_time);
+          const userName = user.display_name || user.full_name || user.email;
+          const existingLive = await base44.entities.LiveLocation.filter({ user_email: user.email }).catch(() => []);
+          let liveId = existingLive[0]?.id || null;
+          if (existingLive.length > 0) {
+            await base44.entities.LiveLocation.update(existingLive[0].id, { is_active: true, last_updated: now.toISOString(), user_name: userName }).catch(() => {});
+          } else {
+            const liveRec = await base44.entities.LiveLocation.create({ user_email: user.email, user_name: userName, last_updated: now.toISOString(), is_active: true }).catch(() => null);
+            liveId = liveRec?.id || null;
+          }
+          setLiveLocationId(liveId);
+          await savePersonalCheckInState({ checkedIn: true, recordId: open.id, liveLocationId: liveId, checkInTime: open.check_in_time });
+          if (liveId) startLiveTracking(liveId, userName);
+          setWorking(false);
+          toast.info("You're already checked in", {
+            description: `Since ${new Date(open.check_in_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`,
+            duration: 4000,
+          });
+          return;
+        }
+      } catch (e) { /* proceed to create a new record */ }
+
       const rec = await base44.entities.PersonalCheckIn.create(data);
       setRecordId(rec.id);
 

@@ -189,10 +189,24 @@ export default function PropertyMonitor() {
         </div>
       </div>
 
-      {cycleAt && (
-        <p className="text-xs text-slate-500">
-          Last cycle reset {fmtTime(cycleAt)} · statuses reset automatically after each service
-        </p>
+      {cycleAt ? (
+        <div className="flex items-center gap-3 bg-[#1a2744] border border-[rgba(212,168,67,0.2)] rounded-xl px-3 py-2">
+          <div className="w-8 h-8 rounded-full bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+            <RotateCw className="w-4 h-4 text-emerald-400" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] text-slate-400 uppercase tracking-widest">Last Reset</p>
+            <p className="text-sm text-white font-semibold truncate">{fmtTime(cycleAt)}</p>
+          </div>
+          <span className="ml-auto text-[10px] font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 rounded-full whitespace-nowrap">
+            ✓ Cycle active
+          </span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 text-xs text-slate-500 bg-[#1a2744] border border-slate-700 rounded-xl px-3 py-2">
+          <RotateCw className="w-4 h-4 text-slate-500" />
+          No reset recorded yet — use "Reset Status" to start a cycle.
+        </div>
       )}
 
       {/* Reorder panel */}

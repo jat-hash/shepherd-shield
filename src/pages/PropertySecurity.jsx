@@ -181,9 +181,28 @@ export default function PropertySecurity() {
         </div>
       </div>
 
-      {cycleAt && (
+      {cycleAt ? (
+        <div className="flex items-center gap-3 bg-[#1a2744] border border-[rgba(212,168,67,0.2)] rounded-xl px-3 py-2">
+          <div className="w-8 h-8 rounded-full bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] text-slate-400 uppercase tracking-widest">Last Reset</p>
+            <p className="text-sm text-white font-semibold truncate">Current cycle started {fmtTime(cycleAt)}</p>
+          </div>
+          {stats.unchecked === stats.total ? (
+            <span className="ml-auto text-[10px] font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 rounded-full whitespace-nowrap">
+              ✓ Reset complete
+            </span>
+          ) : (
+            <span className="ml-auto text-[10px] font-bold text-slate-300 bg-slate-500/10 border border-slate-500/30 px-2 py-1 rounded-full whitespace-nowrap">
+              Cycle active
+            </span>
+          )}
+        </div>
+      ) : (
         <p className="text-xs text-slate-500">
-          Current cycle started {fmtTime(cycleAt)} · statuses reset automatically after each service
+          No cycle reset recorded — statuses will accumulate until a reset occurs after service.
         </p>
       )}
 

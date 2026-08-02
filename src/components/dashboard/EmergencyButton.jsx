@@ -54,6 +54,7 @@ export default function EmergencyButton({ user }) {
   const [alertType, setAlertType] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [loadingSuggestion, setLoadingSuggestion] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const stopTorchRef = useRef(false);
@@ -128,6 +129,7 @@ export default function EmergencyButton({ user }) {
     if (navigator.vibrate) navigator.vibrate(0);
 
     setSending(false);
+    setConfirming(false);
     setOpen(false);
     setAlertType("");
     setMessage("");
@@ -144,7 +146,7 @@ export default function EmergencyButton({ user }) {
         <span className="text-white font-bold text-base tracking-wider uppercase">Emergency Alert</span>
       </button>
 
-      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setAlertType(""); setMessage(""); setSuggestions([]); } }}>
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setAlertType(""); setMessage(""); setSuggestions([]); setConfirming(false); } }}>
         <DialogContent className="bg-[#1a2744] border-red-500/30 text-white max-w-md">
           <DialogHeader>
             <DialogTitle className="text-red-400 flex items-center gap-2">
@@ -210,11 +212,22 @@ export default function EmergencyButton({ user }) {
             )}
           </div>
 
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(false)} className="text-slate-400">Cancel</Button>
-            <Button onClick={handleSend} disabled={sending || !alertType || !message} className="bg-red-600 hover:bg-red-500 text-white font-bold">
-              {sending ? "Sending..." : "SEND ALERT"}
-            </Button>
+          <DialogFooter className="flex-col gap-2">
+            {confirming && (
+              <p className="text-xs text-red-300 text-center bg-red-500/10 border border-red-500/30 rounded-lg py-2 animate-pulse">
+                ⚠ This will alert ALL team members immediately. Confirm to send.
+              </p>
+            )}
+            <div className="flex gap-2 w-full">
+              <Button variant="ghost" onClick={() => { setOpen(false); setConfirming(false); }} className="text-slate-400">Cancel</Button>
+              <Button
+                onClick={() => (confirming ? handleSend() : setConfirming(true))}
+                disabled={sending || !alertType || !message}
+                className={`flex-1 font-bold text-white ${confirming ? "bg-red-700 hover:bg-red-800 animate-pulse" : "bg-red-600 hover:bg-red-500"}`}
+              >
+                {sending ? "Sending..." : confirming ? "CONFIRM & SEND" : "SEND ALERT"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
