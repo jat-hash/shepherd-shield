@@ -429,6 +429,9 @@ export default function Dashboard() {
       {/* Personal Check-in Status */}
       {user && <PersonalCheckIn user={user} />}
 
+      {/* Property Security Checklist — surfaces when assigned to a property post */}
+      {user && <PropertySecurityWidget user={user} />}
+
       {/* Nursery Monitor — Ryan, Pacheco, and admins only */}
       {user && <NurseryMonitorWidget user={user} />}
 
@@ -452,9 +455,6 @@ export default function Dashboard() {
           ))
         )}
       </div>
-
-      {/* Property Security — surfaces when assigned to a property post */}
-      {user && <PropertySecurityWidget user={user} />}
 
       <SafetyCheckInPanel />
       <StatusBar />
