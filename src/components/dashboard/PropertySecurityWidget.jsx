@@ -121,7 +121,7 @@ export default function PropertySecurityWidget({ user }) {
     <div className="space-y-3">
       <h2 className="text-sm uppercase tracking-widest text-[#d4a843] font-semibold flex items-center gap-2">
         <Lock className="w-4 h-4" />
-        Property Security Checklist
+        Marathon Property Checklist
       </h2>
       <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] p-4">
         <div className="flex items-center gap-3">
