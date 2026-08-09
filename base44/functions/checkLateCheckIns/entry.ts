@@ -27,11 +27,22 @@ Deno.serve(async (req) => {
     // ─── Fetch today's assignments ───
     const assignments = await base44.asServiceRole.entities.Assignment.filter({ service_date: todayStr });
 
+    // ─── Fetch today's personal check-ins so a member who already checked in
+    //      via the dashboard isn't falsely flagged as late for their assignment.
+    //      (Personal check-in and assignment check-in are separate actions; a
+    //      member who is on-site but hasn't tapped the assignment check-in
+    //      should not get a "you're late — check in to Marathon" alert.)
+    const personalCheckIns = await base44.asServiceRole.entities.PersonalCheckIn.filter({ check_in_date: todayStr });
+    const personallyCheckedIn = new Set(
+      personalCheckIns.filter(r => !r.check_out_time).map(r => (r.user_email || '').toLowerCase())
+    );
+
     // ─── Find late assignments ───
     const lateAssignments = assignments.filter(a => {
       if (a.checked_in) return false;
       if (a.status === 'Declined') return false;
       if (a.late_notified) return false;
+      if (personallyCheckedIn.has((a.assigned_to_email || '').toLowerCase())) return false;
       const parts = (a.start_time || '').split(':').map(Number);
       if (parts.length < 1 || isNaN(parts[0])) return false;
       const startMinutes = parts[0] * 60 + (parts[1] || 0);

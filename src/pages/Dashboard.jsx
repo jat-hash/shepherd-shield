@@ -224,6 +224,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user) return;
+    // Load assignments immediately on mount — without this, the list stays
+    // empty until a realtime Assignment event happens, so users see "No
+    // assignments" even when assignments exist.
+    reload();
     const unsub = base44.entities.Assignment.subscribe(() => reload());
     return unsub;
   }, [user, reload]);
