@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MapPin, Clock, CheckCircle, BookOpen, Edit2, Trash2 } from "lucide-react";
+import { MapPin, Clock, CheckCircle, BookOpen, Edit2, Trash2, FileText, Bell } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -137,6 +137,29 @@ export default function AssignmentCard({ assignment, onUpdate }) {
           </div>
         )}
       </div>
+
+      {(assignment.area_responsibilities || assignment.notes || assignment.reminder_minutes) && (
+        <div className="space-y-1.5 text-xs text-slate-300 bg-[#0a1128]/50 rounded-lg p-3 border border-[rgba(212,168,67,0.08)]">
+          {assignment.area_responsibilities && (
+            <div className="flex items-start gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-[#d4a843] shrink-0 mt-0.5" />
+              <span className="text-slate-300 whitespace-pre-wrap">{assignment.area_responsibilities}</span>
+            </div>
+          )}
+          {assignment.notes && (
+            <div className="flex items-start gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+              <span className="text-slate-400 whitespace-pre-wrap">{assignment.notes}</span>
+            </div>
+          )}
+          {assignment.reminder_minutes && assignment.reminder_minutes > 0 && (
+            <div className="flex items-center gap-1.5">
+              <Bell className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="text-amber-300">Reminder {assignment.reminder_minutes} min before shift</span>
+            </div>
+          )}
+        </div>
+      )}
 
         <div className="flex gap-2">
           {!assignment.checked_in ? (
