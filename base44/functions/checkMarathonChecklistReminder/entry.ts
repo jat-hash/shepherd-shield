@@ -7,7 +7,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 // the America/Los_Angeles timezone so it lines up with the service schedule.
 
 const TZ = 'America/Los_Angeles';
-const END_LEAD_MINUTES = 20;    // fire this far before the shift ends
+const END_LEAD_MINUTES = 15;    // fire this far before the shift ends
 const END_WINDOW_MINUTES = 45;  // don't fire more than this late after the end
 const REMINDER_TITLE = '📋 Complete the Marathon Property Checklist';
 
