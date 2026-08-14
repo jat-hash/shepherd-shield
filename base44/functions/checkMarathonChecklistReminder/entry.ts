@@ -1,14 +1,14 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 
 // Scheduled monitor: reminds the member assigned to the Marathon post to
-// complete the Marathon Property Checklist near the end of their shift.
-// Fires once per Marathon assignment (~20 min before the shift ends) and is
+// complete the Marathon Property Checklist before their shift begins.
+// Fires once per Marathon assignment (~15 min before the shift starts) and is
 // deduped by notification title + assignment_id. Runs every 5 minutes in
 // the America/Los_Angeles timezone so it lines up with the service schedule.
 
 const TZ = 'America/Los_Angeles';
-const END_LEAD_MINUTES = 15;    // fire this far before the shift ends
-const END_WINDOW_MINUTES = 45;  // don't fire more than this late after the end
+const START_LEAD_MINUTES = 15;    // fire this far before the shift starts
+const START_WINDOW_MINUTES = 30;  // don't fire more than this late after the start
 const REMINDER_TITLE = '📋 Complete the Marathon Property Checklist';
 
 function pacificNowMinutes(): number {
@@ -43,12 +43,12 @@ Deno.serve(async (req) => {
       if (!assignment.assigned_to_email) continue;
       if (!/marathon/i.test(assignment.position_name || '')) continue;
 
-      const endMinutes = timeToMinutes(assignment.end_time);
-      if (endMinutes == null) continue;
+      const startMinutes = timeToMinutes(assignment.start_time);
+      if (startMinutes == null) continue;
 
       const due =
-        currentMinutes >= endMinutes - END_LEAD_MINUTES &&
-        currentMinutes <= endMinutes + END_WINDOW_MINUTES;
+        currentMinutes >= startMinutes - START_LEAD_MINUTES &&
+        currentMinutes <= startMinutes + START_WINDOW_MINUTES;
       if (!due) continue;
 
       // Dedupe — already reminded for this assignment?
@@ -63,8 +63,8 @@ Deno.serve(async (req) => {
       }
       if (existing.some((n: any) => n.title === REMINDER_TITLE)) continue;
 
-      const endTimeStr = assignment.end_time || 'your shift end';
-      const body = `Your Marathon shift ends at ${endTimeStr}. Please complete the Marathon Property Checklist (secure all property posts) before you leave.`;
+      const startTimeStr = assignment.start_time || 'your shift start';
+      const body = `Your Marathon shift starts at ${startTimeStr}. Please complete the Marathon Property Checklist (secure all property posts) before your assignment begins.`;
 
       await sendMarathonAlert(base44, assignment.assigned_to_email, REMINDER_TITLE, body, assignment.id);
       results.push({ assignment_id: assignment.id, position: assignment.position_name });
