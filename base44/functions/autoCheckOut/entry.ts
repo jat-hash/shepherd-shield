@@ -209,23 +209,6 @@ Deno.serve(async (req) => {
         }
       }
 
-      // 15-min before end reminder: "Wrap up your tasks"
-      const fifteenMinBeforeEnd = new Date(endDateTime.getTime() - 15 * 60 * 1000);
-      if (assignment.checked_in && !assignment.checked_out && now >= fifteenMinBeforeEnd && now < endDateTime) {
-        const alerted = await alreadyNotified(base44, assignment.assigned_to_email, "Shift Ending Soon", 30 * 60 * 1000);
-        if (!alerted) {
-          await notify(base44, {
-            user_email: assignment.assigned_to_email,
-            title: "Shift Ending Soon",
-            message: `Your ${assignment.position_name} shift ends in 15 minutes. Please begin wrapping up your tasks and ensure your area is secure.`,
-            type: "assignment_reminder",
-            assignment_id: assignment.id
-          });
-          await sendPush(base44, assignment.assigned_to_email, "⏰ Shift Ending Soon", `Your ${assignment.position_name} shift ends in 15 minutes. Begin wrapping up your tasks.`);
-          console.log(`15-min end reminder sent to: ${assignment.assigned_to_name}`);
-        }
-      }
-
       // Auto check-out if user has left the 3-mile vicinity (GPS) OR 45 min after service end (time fallback)
       if (assignment.checked_in && !assignment.checked_out) {
         let shouldCheckOut = false;
