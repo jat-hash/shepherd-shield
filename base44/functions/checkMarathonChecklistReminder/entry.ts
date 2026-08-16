@@ -1,8 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 
-// Scheduled monitor: reminds the member assigned to the Marathon post to
-// complete the Marathon Property Checklist before their shift begins.
-// Fires once per Marathon assignment (~15 min before the shift starts) and is
+// Scheduled monitor: reminds members assigned to the Marathon or Bonco posts
+// to complete the Marathon Property Checklist before their shift begins.
+// Fires once per matching assignment (~15 min before the shift starts) and is
 // deduped by notification title + assignment_id. Runs every 5 minutes in
 // the America/Los_Angeles timezone so it lines up with the service schedule.
 
@@ -41,7 +41,9 @@ Deno.serve(async (req) => {
     for (const assignment of assignments) {
       if (assignment.status === 'Declined') continue;
       if (!assignment.assigned_to_email) continue;
-      if (!/marathon/i.test(assignment.position_name || '')) continue;
+      // The Marathon Property Checklist widget is visible to members assigned
+      // to the Marathon or Bonco posts — remind both before their shift.
+      if (!/marathon|bonco/i.test(assignment.position_name || '')) continue;
 
       const startMinutes = timeToMinutes(assignment.start_time);
       if (startMinutes == null) continue;
@@ -64,7 +66,8 @@ Deno.serve(async (req) => {
       if (existing.some((n: any) => n.title === REMINDER_TITLE)) continue;
 
       const startTimeStr = assignment.start_time || 'your shift start';
-      const body = `Your Marathon shift starts at ${startTimeStr}. Please complete the Marathon Property Checklist (secure all property posts) before your assignment begins.`;
+      const positionName = assignment.position_name || 'your post';
+      const body = `Your ${positionName} shift starts at ${startTimeStr}. Please complete the Marathon Property Checklist (secure all property posts) before your assignment begins.`;
 
       await sendMarathonAlert(base44, assignment.assigned_to_email, REMINDER_TITLE, body, assignment.id);
       results.push({ assignment_id: assignment.id, position: assignment.position_name });
