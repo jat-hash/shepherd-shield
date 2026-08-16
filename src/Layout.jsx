@@ -62,8 +62,10 @@ export default function Layout({ children, currentPageName }) {
   const vibrationPrimedRef = useRef(false);
 
   const user = authUser || fallbackUser;
+  const isNurseryOnly = !!user && !canAccessMainApp(user);
+  const onNurseryPage = location.pathname === '/NurseryDashboard' || location.pathname === '/NurseryMonitor';
 
-  const isRootPage = ROOT_PAGES.includes(currentPageName);
+  const isRootPage = ROOT_PAGES.includes(currentPageName) || (isNurseryOnly && onNurseryPage);
   const pageTitle = PAGE_TITLES[currentPageName] || currentPageName;
   const goBack = () => { if (window.history.length > 1) navigate(-1); else navigate("/"); };
 
@@ -258,9 +260,11 @@ export default function Layout({ children, currentPageName }) {
       >
         {isRootPage ? (
           <>
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-1">
-              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+            {!isNurseryOnly && (
+              <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-1">
+                {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            )}
             <div className="flex items-center gap-2">
               <img src="https://media.base44.com/images/public/699778b133b0b54bbf2b985e/3cfb4be4f_generated_image.png" alt="Shepherd Shield" className="w-8 h-8 object-contain" />
               <span className="font-bold text-sm tracking-widest uppercase hidden sm:inline">Shepherd Shield</span>
@@ -461,9 +465,12 @@ export default function Layout({ children, currentPageName }) {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-6 lg:ml-56 overflow-x-hidden">
-        {children}
+      <main className={`flex-1 overflow-x-hidden ${isNurseryOnly ? 'pb-6' : 'pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-6 lg:ml-56'}`}>
+        {isNurseryOnly && !onNurseryPage ? (
+          <div className="flex items-center justify-center min-h-[60vh] text-slate-400 text-sm">Loading…</div>
+        ) : children}
       </main>
+      {!isNurseryOnly && (
       <nav className="hidden lg:flex fixed left-0 top-[57px] bottom-0 w-56 bg-[#141f3d] border-r border-[rgba(212,168,67,0.15)] flex-col py-4 z-[1001] overflow-y-auto">
         {NAV_ITEMS.map(item => {
           const isActive = currentPageName === item.page;
@@ -482,137 +489,10 @@ export default function Layout({ children, currentPageName }) {
             </Link>
           );
         })}
-
-        <div className="border-t border-[rgba(212,168,67,0.15)] mt-4 pt-4">
-          {canSeeNursery && (
-            <Link
-              to="/NurseryDashboard"
-              className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-all ${
-                currentPageName === "NurseryDashboard"
-                  ? "text-[#d4a843] bg-[rgba(212,168,67,0.08)] border-r-2 border-[#d4a843]"
-                  : "text-slate-400 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <Baby className="w-4 h-4" />
-              Nursery
-            </Link>
-          )}
-          {canAccessNursery(user) && (
-            <Link
-              to="/NurseryMonitor"
-              className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-all ${
-                currentPageName === "NurseryMonitor"
-                  ? "text-[#d4a843] bg-[rgba(212,168,67,0.08)] border-r-2 border-[#d4a843]"
-                  : "text-slate-400 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <MonitorCheck className="w-4 h-4" />
-              Nursery Monitor
-            </Link>
-          )}
-          {user?.role === 'admin' && (
-            <Link
-              to={createPageUrl("AdminMonitor")}
-              className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-all ${
-                currentPageName === "AdminMonitor"
-                  ? "text-[#d4a843] bg-[rgba(212,168,67,0.08)] border-r-2 border-[#d4a843]"
-                  : "text-slate-400 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <Shield className="w-4 h-4" />
-              Admin Monitor
-            </Link>
-          )}
-          {canAccessPropertyMonitor(user) && (
-            <Link
-              to={createPageUrl("PropertyMonitor")}
-              className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-all ${
-                currentPageName === "PropertyMonitor"
-                  ? "text-[#d4a843] bg-[rgba(212,168,67,0.08)] border-r-2 border-[#d4a843]"
-                  : "text-slate-400 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <MonitorCheck className="w-4 h-4" />
-              Property Monitor
-            </Link>
-          )}
-
-          {/* Resources Dropdown */}
-          <div>
-            <button
-              onClick={() => setResourcesOpen(!resourcesOpen)}
-              className="w-full flex items-center justify-between px-5 py-3 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-all"
-            >
-              <div className="flex items-center gap-3">
-                <BookOpen className="w-4 h-4" />
-                Resources
-              </div>
-              <ChevronDown className={`w-4 h-4 transition-transform ${resourcesOpen ? "rotate-180" : ""}`} />
-            </button>
-            {resourcesOpen && (
-              <div className="bg-[#0a1128]/30">
-                {[
-                  { name: "Watch List", page: "WatchList", icon: Eye },
-                  { name: "SOP Library", page: "SOPLibrary", icon: BookOpen },
-                  { name: "Positions", page: "Positions", icon: MapPin },
-                ].map(item => (
-                  <Link
-                    key={item.page}
-                    to={createPageUrl(item.page)}
-                    className={`flex items-center gap-3 px-5 py-2.5 pl-12 text-sm font-medium transition-all ${
-                      currentPageName === item.page
-                        ? "text-[#d4a843] bg-[rgba(212,168,67,0.08)] border-r-2 border-[#d4a843]"
-                        : "text-slate-400 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    <item.icon className="w-3.5 h-3.5" />
-                    {item.name}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Tools Dropdown */}
-          <div>
-            <button
-              onClick={() => setToolsOpen(!toolsOpen)}
-              className="w-full flex items-center justify-between px-5 py-3 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-all"
-            >
-              <div className="flex items-center gap-3">
-                <Wrench className="w-4 h-4" />
-                Tools
-              </div>
-              <ChevronDown className={`w-4 h-4 transition-transform ${toolsOpen ? "rotate-180" : ""}`} />
-            </button>
-            {toolsOpen && (
-              <div className="bg-[#0a1128]/30">
-                {[
-                  { name: "Equipment", page: "EquipmentInventory", icon: Wrench },
-                  { name: "Special Events", page: "SpecialEvents", icon: Calendar },
-                  ...(user?.role === 'admin' ? [{ name: "Auto Rotate Schedule", page: "AutoRotation", icon: Bot }] : []),
-                  { name: "Documents", page: "Documents", icon: FolderOpen },
-                  { name: "Property Security", page: "PropertySecurity", icon: Lock },
-                ].map(item => (
-                  <Link
-                    key={item.page}
-                    to={createPageUrl(item.page)}
-                    className={`flex items-center gap-3 px-5 py-2.5 pl-12 text-sm font-medium transition-all ${
-                      currentPageName === item.page
-                        ? "text-[#d4a843] bg-[rgba(212,168,67,0.08)] border-r-2 border-[#d4a843]"
-                        : "text-slate-400 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    <item.icon className="w-3.5 h-3.5" />
-                    {item.name}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+...
       </nav>
-      <BottomTabs />
+      )}
+      {!isNurseryOnly && <BottomTabs />}
     </div>
     <NotificationToast userEmail={user?.email} />
     {/* Emergency Override: only for admins and Wilbert Ryan */}
