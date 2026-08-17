@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
 
       const startTimeStr = assignment.start_time || 'your shift start';
       const positionName = assignment.position_name || 'your post';
-      const body = `Your ${positionName} shift starts at ${startTimeStr}. Please complete the Marathon Property Checklist (secure all property posts) before your assignment begins.`;
+      const body = `Your ${positionName} shift starts at ${startTimeStr}. Please complete the Marathon Property Checklist (secure all property posts).`;
 
       await sendMarathonAlert(base44, assignment.assigned_to_email, REMINDER_TITLE, body, assignment.id);
       results.push({ assignment_id: assignment.id, position: assignment.position_name });
