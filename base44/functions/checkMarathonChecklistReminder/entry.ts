@@ -96,19 +96,32 @@ async function sendMarathonAlert(base44: any, email: string, title: string, body
     read: false,
   }).catch(() => {});
 
-  await base44.asServiceRole.functions.invoke('sendFCMNotification', {
-    recipient_email: email,
-    title,
-    body,
-    notification_type: 'assignment',
-    click_url: '/PropertySecurity',
-  }).catch((err: Error) => console.log(`FCM skipped for ${email}:`, err.message));
+  // Send exactly ONE push per recipient: prefer FCM (Android/Chrome/Desktop);
+  // fall back to Web Push only if the user has no FCM device token (iOS/Safari).
+  // Calling both channels duplicated the alert for members registered on both.
+  let hasFCM = false;
+  try {
+    const devices = await base44.asServiceRole.entities.UserDevice.filter({ user_email: email });
+    hasFCM = Array.isArray(devices) && devices.some((d: any) => d.fcm_token);
+  } catch (e) {
+    console.log(`FCM lookup failed for ${email}:`, (e as Error).message);
+  }
 
-  await base44.asServiceRole.functions.invoke('sendWebPushService', {
-    recipient_email: email,
-    title,
-    body,
-    notification_type: 'assignment',
-    click_url: '/PropertySecurity',
-  }).catch((err: Error) => console.log(`WebPush skipped for ${email}:`, err.message));
+  if (hasFCM) {
+    await base44.asServiceRole.functions.invoke('sendFCMNotification', {
+      recipient_email: email,
+      title,
+      body,
+      notification_type: 'assignment',
+      click_url: '/PropertySecurity',
+    }).catch((err: Error) => console.log(`FCM skipped for ${email}:`, err.message));
+  } else {
+    await base44.asServiceRole.functions.invoke('sendWebPushService', {
+      recipient_email: email,
+      title,
+      body,
+      notification_type: 'assignment',
+      click_url: '/PropertySecurity',
+    }).catch((err: Error) => console.log(`WebPush skipped for ${email}:`, err.message));
+  }
 }
