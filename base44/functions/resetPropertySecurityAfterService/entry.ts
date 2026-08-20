@@ -1,15 +1,17 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 
 // Scheduled monitor (runs every ~10 minutes) that resets the property
-// security current-status grid after each service ends. "A service ended"
-// is derived from real assignment data: we group today's assignments by
-// service_type, take the latest end_time, and once the Pacific wall clock
-// passes that time (plus a grace buffer) we record a new cycle boundary.
-// This is robust to daylight-saving shifts because everything is computed
-// in the church's America/Los_Angeles wall-clock time.
+// security current-status grid at the START of each service, so checks
+// from a previous service/event never carry over into the new one.
+// "A service is starting" is derived from real assignment data: we group
+// today's assignments by service_type, take the earliest start_time, and
+// once the Pacific wall clock reaches that time (within a catch-up window)
+// we record a new cycle boundary. One reset per service per day.
+// Robust to daylight-saving shifts because everything is computed in the
+// church's America/Los_Angeles wall-clock time.
 
 const TZ = 'America/Los_Angeles';
-const GRACE_MINUTES = 15; // wait this long after the last assignment ends
+const START_WINDOW_MINUTES = 120; // reset within this long after a service starts
 
 function pacificParts(date) {
   const fmt = new Intl.DateTimeFormat('en-US', {
@@ -39,34 +41,37 @@ export default async function(req) {
     // Today's assignments (service_date is stored as the church's local date)
     const assignments = await base44.asServiceRole.entities.Assignment.filter({ service_date: todayStr });
 
-    // Latest end time (in minutes) per service_type
-    const serviceEnds = {};
+    // Earliest start time (in minutes) per service_type
+    const serviceStarts = {};
     for (const a of assignments) {
-      if (!a.service_type) continue;
-      const parts = (a.end_time || '').split(':').map(Number);
+      if (!a.service_type || a.status === 'Declined') continue;
+      const parts = (a.start_time || '').split(':').map(Number);
       if (parts.length < 1 || isNaN(parts[0])) continue;
-      const endMinutes = parts[0] * 60 + (parts[1] || 0);
-      if (serviceEnds[a.service_type] == null || endMinutes > serviceEnds[a.service_type]) {
-        serviceEnds[a.service_type] = endMinutes;
+      const startMinutes = parts[0] * 60 + (parts[1] || 0);
+      if (serviceStarts[a.service_type] == null || startMinutes < serviceStarts[a.service_type]) {
+        serviceStarts[a.service_type] = startMinutes;
       }
     }
 
     // Most recent reset boundary
     const cycles = await base44.asServiceRole.entities.PropertySecurityCycle.list("-last_reset_at", 1);
-    let lastResetParts = null;
-    if (cycles.length) {
-      lastResetParts = pacificParts(new Date(cycles[0].last_reset_at));
-    }
+    const lastReset = cycles.length ? cycles[0] : null;
+    const lastResetParts = lastReset ? pacificParts(new Date(lastReset.last_reset_at)) : null;
 
-    // Process services earliest-ending first; one reset per run is enough.
-    const services = Object.keys(serviceEnds).sort((a, b) => serviceEnds[a] - serviceEnds[b]);
+    // Process earliest-starting service first; one reset per run is enough.
+    const services = Object.keys(serviceStarts).sort((a, b) => serviceStarts[a] - serviceStarts[b]);
 
     for (const serviceType of services) {
-      const endMinutes = serviceEnds[serviceType];
-      if (nowMinutes < endMinutes + GRACE_MINUTES) continue; // service not fully ended yet
-      const alreadyReset = lastResetParts &&
+      const startMinutes = serviceStarts[serviceType];
+      if (nowMinutes < startMinutes) continue; // service hasn't started yet
+      if (nowMinutes > startMinutes + START_WINDOW_MINUTES) continue; // catch-up window passed
+
+      // Already reset for this service's start today?
+      const alreadyReset =
+        lastResetParts &&
         lastResetParts.dateStr === todayStr &&
-        lastResetParts.minutes >= endMinutes + GRACE_MINUTES;
+        lastResetParts.minutes >= startMinutes &&
+        lastReset.reset_by === serviceType;
       if (alreadyReset) continue;
 
       await base44.asServiceRole.functions.invoke('resetPropertySecurityCycle', {
