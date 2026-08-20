@@ -211,13 +211,13 @@ export default function Assignments() {
                     <p className="text-xs text-white font-medium truncate">{a.position_name}</p>
                     <p className="text-[10px] text-slate-400 truncate">{a.assigned_to_name} · {a.start_time}</p>
                     {a.area_responsibilities && (
-                      <p className="text-[10px] text-[#d4a843]/80 truncate flex items-center gap-0.5">
-                        <MapPin className="w-2.5 h-2.5 shrink-0" />{a.area_responsibilities}
+                      <p className="text-[10px] text-[#d4a843]/80 flex items-start gap-0.5 leading-snug">
+                        <MapPin className="w-2.5 h-2.5 shrink-0 mt-px" /><span className="whitespace-pre-wrap break-words">{a.area_responsibilities}</span>
                       </p>
                     )}
                     {a.notes && (
-                      <p className="text-[10px] text-slate-500 truncate flex items-center gap-0.5">
-                        <FileText className="w-2.5 h-2.5 shrink-0" />{a.notes}
+                      <p className="text-[10px] text-slate-500 flex items-start gap-0.5 leading-snug">
+                        <FileText className="w-2.5 h-2.5 shrink-0 mt-px" /><span className="whitespace-pre-wrap break-words">{a.notes}</span>
                       </p>
                     )}
                     {a.reminder_minutes && a.reminder_minutes > 0 && (
