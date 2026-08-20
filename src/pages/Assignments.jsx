@@ -258,7 +258,7 @@ export default function Assignments() {
                 <div className="flex-1 space-y-2">
                   {/* Events */}
                   {dayEvents.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1.5 sm:gap-2">
                       {dayEvents.map(evt => (
                         <div key={evt.id} className="flex items-center gap-1.5 bg-purple-900/30 rounded px-2 py-1.5 border border-purple-500/30">
                           <Calendar className="w-3 h-3 text-purple-400 shrink-0" />
@@ -287,7 +287,7 @@ export default function Assignments() {
                             </button>
                           )}
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1.5 sm:gap-2">
                           {amAssignments.length === 0 ? (
                             <span className="text-[10px] text-slate-600">No assignments</span>
                           ) : amAssignments.map(renderAssignment)}
@@ -307,7 +307,7 @@ export default function Assignments() {
                             </button>
                           )}
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1.5 sm:gap-2">
                           {pmAssignments.length === 0 ? (
                             <span className="text-[10px] text-slate-600">No assignments</span>
                           ) : pmAssignments.map(renderAssignment)}
@@ -316,7 +316,7 @@ export default function Assignments() {
 
                       {/* Other Sunday assignments (no service_type match) */}
                       {otherAssignments.length > 0 && (
-                        <div className="flex flex-wrap gap-2 border-t border-[rgba(212,168,67,0.07)] pt-2">
+                        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1.5 sm:gap-2 border-t border-[rgba(212,168,67,0.07)] pt-2">
                           {otherAssignments.map(renderAssignment)}
                         </div>
                       )}
@@ -339,7 +339,7 @@ export default function Assignments() {
                           )}
                         </div>
                       )}
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1.5 sm:gap-2">
                         {dayAssignments.length === 0 && dayEvents.length === 0 && (
                           <span className="text-xs text-slate-600 self-center">No assignments</span>
                         )}
