@@ -33,15 +33,16 @@ export default function Assignments() {
     return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
   }, []);
 
-  // Scroll today's date to top on mount
+  // Scroll today's date to top once the calendar has rendered
   useEffect(() => {
-    if (todayRef.current) {
-      setTimeout(() => {
-        todayRef.current.scrollIntoView({ behavior: "instant", block: "start" });
-        window.scrollBy(0, -60); // Adjust for header height
-      }, 50);
-    }
-  }, []);
+    if (loading || !todayRef.current) return;
+    const el = todayRef.current;
+    const t = setTimeout(() => {
+      el.scrollIntoView({ behavior: "instant", block: "start" });
+      window.scrollBy(0, -60); // Adjust for header height
+    }, 50);
+    return () => clearTimeout(t);
+  }, [loading]);
 
   const isAdmin = (authUser?.role === "admin") || (currentUser?.role === "admin");
 
