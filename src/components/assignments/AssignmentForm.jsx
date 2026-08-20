@@ -167,6 +167,19 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
     }
   };
 
+  const handleDeletePosition = async () => {
+    if (!selectedPosition) return;
+    if (!confirm(`Delete position "${selectedPosition.name}"? Existing assignments keep their saved position name.`)) return;
+    try {
+      await base44.entities.Position.delete(selectedPosition.id);
+      const updated = await base44.entities.Position.filter({ is_active: true });
+      setPositions(updated);
+      if (form.position_name === selectedPosition.name) setForm(f => ({ ...f, position_name: "" }));
+    } catch (e) {
+      console.log("Failed to delete position:", e.message);
+    }
+  };
+
   return (
     <>
     <Dialog open={open} onOpenChange={onClose}>
@@ -189,6 +202,16 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
                   title={selectedPosition ? "Edit this position" : "Select a saved position to edit"}
                 >
                   <Pencil className="w-3 h-3" /> Edit
+                </Button>
+                <Button
+                  onClick={handleDeletePosition}
+                  disabled={!selectedPosition}
+                  size="sm"
+                  variant="ghost"
+                  className="text-red-400/70 hover:text-red-400 disabled:opacity-40 h-6 px-1.5"
+                  title={selectedPosition ? "Delete this position" : "Select a saved position to delete"}
+                >
+                  <Trash2 className="w-3 h-3" />
                 </Button>
                 <Button
                   onClick={() => { setEditingPosition(null); setPositionDialogOpen(true); }}
