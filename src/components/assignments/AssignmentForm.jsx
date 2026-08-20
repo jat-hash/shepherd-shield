@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Check, Trash2 } from "lucide-react";
+import { Plus, Trash2, Pencil } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import ReminderSettings from "@/components/calendar/ReminderSettings";
+import PositionFormDialog from "@/components/assignments/PositionFormDialog";
 
 export default function AssignmentForm({ open, onClose, onSaved, editData }) {
   const [form, setForm] = useState({
@@ -29,9 +30,8 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
   const [users, setUsers] = useState([]);
   const [positions, setPositions] = useState([]);
   const [selectedResponsibilities, setSelectedResponsibilities] = useState([]);
-  const [showNewPosition, setShowNewPosition] = useState(false);
-  const [newPosition, setNewPosition] = useState({ name: "", description: "", area_responsibilities: [], default_radio_channel: "" });
-  const [newResponsibility, setNewResponsibility] = useState("");
+  const [positionDialogOpen, setPositionDialogOpen] = useState(false);
+  const [editingPosition, setEditingPosition] = useState(null);
   const [reminders, setReminders] = useState([]);
 
   useEffect(() => {
@@ -146,21 +146,24 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
     );
   };
 
-  const handleSaveNewPosition = async () => {
-    await base44.entities.Position.create(newPosition);
+  const selectedPosition = positions.find(p => p.name === form.position_name);
+
+  const handlePositionSaved = async (saved, original) => {
     const updated = await base44.entities.Position.filter({ is_active: true });
     setPositions(updated);
-    setShowNewPosition(false);
-    setNewPosition({ name: "", description: "", area_responsibilities: [], default_radio_channel: "" });
-  };
-
-  const addNewResponsibilityToPosition = () => {
-    if (newResponsibility.trim()) {
-      setNewPosition({
-        ...newPosition,
-        area_responsibilities: [...newPosition.area_responsibilities, newResponsibility.trim()]
-      });
-      setNewResponsibility("");
+    // Deleted: clear the name if it was the selected position.
+    if (!saved) {
+      if (original && form.position_name === original.name) setForm(f => ({ ...f, position_name: "" }));
+      return;
+    }
+    // Edited the currently-selected position: reflect name / radio / responsibilities in the form.
+    if (original && form.position_name === original.name) {
+      setForm(f => ({
+        ...f,
+        position_name: saved.name || f.position_name,
+        radio_channel: saved.default_radio_channel || f.radio_channel,
+      }));
+      setSelectedResponsibilities(saved.area_responsibilities || []);
     }
   };
 
@@ -176,24 +179,41 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
           <div>
             <div className="flex items-center justify-between mb-1">
               <Label className="text-slate-300 text-xs">Position Name</Label>
-              <Button onClick={() => setShowNewPosition(true)} size="sm" variant="ghost" className="text-[#d4a843] hover:text-[#e0bb5e] h-6 text-xs gap-1">
-                <Plus className="w-3 h-3" /> New Position
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  onClick={() => { setEditingPosition(selectedPosition || null); setPositionDialogOpen(true); }}
+                  disabled={!selectedPosition}
+                  size="sm"
+                  variant="ghost"
+                  className="text-slate-400 hover:text-[#d4a843] disabled:opacity-40 h-6 text-xs gap-1"
+                  title={selectedPosition ? "Edit this position" : "Select a saved position to edit"}
+                >
+                  <Pencil className="w-3 h-3" /> Edit
+                </Button>
+                <Button
+                  onClick={() => { setEditingPosition(null); setPositionDialogOpen(true); }}
+                  size="sm"
+                  variant="ghost"
+                  className="text-[#d4a843] hover:text-[#e0bb5e] h-6 text-xs gap-1"
+                >
+                  <Plus className="w-3 h-3" /> New Position
+                </Button>
+              </div>
             </div>
-            {positions.length > 0 ? (
-              <Select value={form.position_name} onValueChange={handlePositionSelect}>
-                <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white mt-1"><SelectValue placeholder="Select or enter position" /></SelectTrigger>
+            {positions.length > 0 && (
+              <Select value={selectedPosition?.name || ""} onValueChange={handlePositionSelect}>
+                <SelectTrigger className="bg-[#0a1128] border-slate-700 text-white mt-1"><SelectValue placeholder="Pick a saved position (optional)" /></SelectTrigger>
                 <SelectContent className="bg-[#1a2744] border-slate-700">
                   {positions.map(p => <SelectItem key={p.id} value={p.name} className="text-white">{p.name}</SelectItem>)}
-                  <SelectItem value="__custom__" className="text-[#d4a843]">+ Custom Position</SelectItem>
                 </SelectContent>
               </Select>
-            ) : (
-              <Input value={form.position_name} onChange={e => setForm({ ...form, position_name: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" placeholder="e.g. Main Entrance 1" />
             )}
-            {form.position_name === "__custom__" && (
-              <Input value={form.position_name} onChange={e => setForm({ ...form, position_name: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-2" placeholder="Enter custom position name" />
-            )}
+            <Input
+              value={form.position_name}
+              onChange={e => setForm({ ...form, position_name: e.target.value })}
+              className="bg-[#0a1128] border-slate-700 text-white mt-1"
+              placeholder="Type or edit position name"
+            />
           </div>
 
           <div>
@@ -322,58 +342,13 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
       </DialogContent>
     </Dialog>
 
-      {/* New Position Dialog - outside main dialog to avoid nesting issues */}
-      <Dialog open={showNewPosition} onOpenChange={setShowNewPosition}>
-        <DialogContent className="bg-[#1a2744] border-slate-700 text-white w-[calc(100vw-2rem)] max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-[#d4a843]">Create New Position</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-3">
-            <div>
-              <Label className="text-slate-300 text-xs">Position Name</Label>
-              <Input value={newPosition.name} onChange={e => setNewPosition({ ...newPosition, name: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" placeholder="e.g. Main Entrance 1" />
-            </div>
-            
-            <div>
-              <Label className="text-slate-300 text-xs">Description</Label>
-              <Textarea value={newPosition.description} onChange={e => setNewPosition({ ...newPosition, description: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" rows={2} />
-            </div>
-            
-            <div>
-              <Label className="text-slate-300 text-xs">Default Radio Channel</Label>
-              <Input value={newPosition.default_radio_channel} onChange={e => setNewPosition({ ...newPosition, default_radio_channel: e.target.value })} className="bg-[#0a1128] border-slate-700 text-white mt-1" placeholder="e.g. CH 2" />
-            </div>
-            
-            <div>
-              <Label className="text-slate-300 text-xs">Area Responsibilities</Label>
-              <div className="flex gap-2 mt-1">
-                <Input value={newResponsibility} onChange={e => setNewResponsibility(e.target.value)} onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addNewResponsibilityToPosition())} className="bg-[#0a1128] border-slate-700 text-white" placeholder="Add responsibility..." />
-                <Button onClick={addNewResponsibilityToPosition} size="icon" className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128]">
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-              {newPosition.area_responsibilities.length > 0 && (
-                <div className="mt-2 space-y-1">
-                  {newPosition.area_responsibilities.map((resp, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs text-slate-300 bg-[#0a1128] rounded px-2 py-1">
-                      <Check className="w-3 h-3 text-emerald-400" />
-                      {resp}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewPosition(false)} className="border-[#d4a843] text-[#0a1128] hover:bg-[#e0bb5e]">Cancel</Button>
-            <Button onClick={handleSaveNewPosition} disabled={!newPosition.name} className="bg-[#d4a843] hover:bg-[#e0bb5e] text-[#0a1128] font-bold">
-              Create Position
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PositionFormDialog
+        open={positionDialogOpen}
+        position={editingPosition}
+        users={users}
+        onClose={() => { setPositionDialogOpen(false); setEditingPosition(null); }}
+        onSaved={handlePositionSaved}
+      />
     </>
   );
 }
