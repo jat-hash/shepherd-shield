@@ -336,7 +336,7 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
           </div>
         </div>
 
-        <DialogFooter className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:justify-between w-full">
+        <DialogFooter className="sticky bottom-0 -mx-6 -mb-6 mt-4 px-6 py-3 bg-[#1a2744] border-t border-slate-700 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:justify-between w-full z-10">
           {editData?.id && (
             <Button
               variant="ghost"
