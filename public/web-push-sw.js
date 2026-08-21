@@ -68,14 +68,23 @@ self.addEventListener('push', (event) => {
   try {
     const p = parsePayload(event);
     const opts = buildOptions(p);
-    event.waitUntil(Promise.all([
-      self.registration.showNotification(p.title, opts).catch(() => {}),
-      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    event.waitUntil((async () => {
+      const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true }).catch(() => []);
+      const hasFocused = list.some(c => c.focused);
+      const tasks = [];
+      // Foreground: the in-app BrowserNotificationDispatcher already shows the
+      // notification from the Notification entity — skip the SW system
+      // notification to avoid a double alert.
+      if (!hasFocused) {
+        tasks.push(self.registration.showNotification(p.title, opts).catch(() => {}));
+      }
+      tasks.push((async () => {
         for (const c of list) {
           c.postMessage({ type: 'shepherd-push', notification_type: p.type, title: p.title, body: p.body, dm_channel: p.dmChannel });
         }
-      }).catch(() => {})
-    ]));
+      })().catch(() => {}));
+      return Promise.all(tasks);
+    })());
   } catch (_) {
     event.waitUntil(self.registration.showNotification('Shepherd Shield', { icon: '/icon-192.png' }));
   }

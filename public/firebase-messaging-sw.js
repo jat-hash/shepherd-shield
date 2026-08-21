@@ -166,16 +166,26 @@ self.addEventListener('push', (event) => {
     actions,
   };
 
-  event.waitUntil(Promise.all([
-    self.registration.showNotification(title, options),
-    forwardToBackgroundedClients({
+  event.waitUntil((async () => {
+    // When the app tab is focused (foreground), the in-app
+    // BrowserNotificationDispatcher already shows a native notification from
+    // the Notification entity record. Showing one here too produces a double
+    // alert, so only show the SW system notification when no client is focused.
+    const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true }).catch(() => []);
+    const hasFocused = clientList.some(c => c.focused);
+    const tasks = [];
+    if (!hasFocused) {
+      tasks.push(self.registration.showNotification(title, options));
+    }
+    tasks.push(forwardToBackgroundedClients({
       title,
       body,
       notification_type: notifType,
       dm_channel: dmChannel,
       alert_id: alertId,
-    }),
-  ]));
+    }));
+    return Promise.all(tasks);
+  })());
 });
 
 self.addEventListener('notificationclick', (event) => {
