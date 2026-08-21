@@ -71,6 +71,25 @@ Deno.serve(async (req) => {
 
       await sendMarathonAlert(base44, assignment.assigned_to_email, REMINDER_TITLE, body, assignment.id);
       results.push({ assignment_id: assignment.id, position: assignment.position_name });
+
+      // Also alert the Marathon assignee about the Bonco checklist, so the
+      // Marathon post is aware of (and can back up) the Bonco property check.
+      const isBonco = /bonco/i.test(positionName) && !/marathon/i.test(positionName);
+      if (isBonco) {
+        const marathonAsgn = assignments.find(
+          (a: any) =>
+            a.id !== assignment.id &&
+            /marathon/i.test(a.position_name || '') &&
+            !/bonco/i.test(a.position_name || '') &&
+            a.assigned_to_email &&
+            a.status !== 'Declined'
+        );
+        if (marathonAsgn && marathonAsgn.assigned_to_email !== assignment.assigned_to_email) {
+          const crossBody = `The Bonco post shift starts at ${startTimeStr}. Please complete the Marathon Property Checklist (secure all property posts).`;
+          await sendMarathonAlert(base44, marathonAsgn.assigned_to_email, REMINDER_TITLE, crossBody, assignment.id);
+          results.push({ assignment_id: assignment.id, position: assignment.position_name, also_to: marathonAsgn.assigned_to_email });
+        }
+      }
     }
 
     console.log(`Marathon checklist reminders: ${results.length} sent for ${todayStr}`, results);
