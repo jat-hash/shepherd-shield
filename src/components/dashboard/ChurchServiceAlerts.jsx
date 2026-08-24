@@ -23,17 +23,11 @@ export default function ChurchServiceAlerts({ user }) {
       : "Service has ended. Church is out. Begin dismissal procedures.";
 
     try {
-      // Send team notification
+      // Send team notification (creates an in-app Notification + push for every
+      // user). We intentionally do NOT also post a TeamMessage here — posting one
+      // triggers the notifyNewMessage automation, which creates a SECOND
+      // notification per recipient (a double alert).
       await base44.functions.invoke("sendTeamNotification", { title, message });
-
-      // Also create a Notification record for all users
-      await base44.entities.TeamMessage.create({
-        channel: "general",
-        content: `📢 ${title}: ${message}`,
-        sender_name: user?.display_name || user?.full_name || "Admin",
-        sender_email: user?.email || "",
-        message_type: "alert",
-      });
 
       if (isAltar) {
         setAltarSent(true);

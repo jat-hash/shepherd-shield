@@ -39,18 +39,28 @@ Deno.serve(async (req) => {
       click_url: click_url || '/Communications',
     };
 
-    // Fire both channels concurrently — total latency = max(FCM, WebPush), not sum
-    // Use sendWebPushService (no auth gate) instead of sendWebPush (requires auth).
-    // sendWebPush fails in service-role contexts, silently dropping iOS/Safari pushes.
-    const [fcmRes, wpRes] = await Promise.allSettled([
-      base44.asServiceRole.functions.invoke('sendFCMNotification', fcmParams),
-      base44.asServiceRole.functions.invoke('sendWebPushService', webPushParams),
-    ]);
-
-    const fcm = fcmRes.status === 'fulfilled' ? fcmRes.value?.data : { error: fcmRes.reason?.message };
-    const wp = wpRes.status === 'fulfilled' ? wpRes.value?.data : { error: wpRes.reason?.message };
-
+    // Single-channel fallback: prefer FCM (Android/Chrome/Desktop); only fall
+    // back to Web Push (iOS/Safari installed PWA) when FCM delivered nothing for
+    // this user (no FCM token on file). Firing both channels at a user who is
+    // registered on both produces duplicate push notifications.
+    let fcm: any = null;
+    try {
+      const fcmRes = await base44.asServiceRole.functions.invoke('sendFCMNotification', fcmParams);
+      fcm = fcmRes?.data ?? fcmRes;
+    } catch (e) {
+      fcm = { error: (e as Error)?.message };
+    }
     const fcmSuccess = fcm?.successCount > 0;
+
+    let wp: any = { sent: 0, skipped: true, reason: 'FCM delivered — Web Push skipped' };
+    if (!fcmSuccess) {
+      try {
+        const wpRes = await base44.asServiceRole.functions.invoke('sendWebPushService', webPushParams);
+        wp = wpRes?.data ?? wpRes;
+      } catch (e) {
+        wp = { error: (e as Error)?.message };
+      }
+    }
     const wpSuccess = wp?.sent > 0;
     const anySuccess = fcmSuccess || wpSuccess;
 
