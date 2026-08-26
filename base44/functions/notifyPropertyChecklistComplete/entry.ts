@@ -85,22 +85,13 @@ export default async function (req) {
     ));
 
     await Promise.all(dedupedRecipients.map((u: any) =>
-      Promise.all([
-        base44.asServiceRole.functions.invoke('sendFCMNotification', {
-          recipient_email: u.email,
-          title,
-          body,
-          notification_type: 'general',
-          click_url: '/PropertySecurity',
-        }).catch((err: Error) => console.log(`FCM skipped for ${u.email}:`, err.message)),
-        base44.asServiceRole.functions.invoke('sendWebPushService', {
-          recipient_email: u.email,
-          title,
-          body,
-          notification_type: 'general',
-          click_url: '/PropertySecurity',
-        }).catch((err: Error) => console.log(`WebPush skipped for ${u.email}:`, err.message)),
-      ])
+      base44.asServiceRole.functions.invoke('sendDualPush', {
+        recipient_email: u.email,
+        title,
+        body,
+        notification_type: 'general',
+        click_url: '/PropertySecurity',
+      }).catch((err: Error) => console.log(`Push skipped for ${u.email}:`, err.message))
     ));
 
     console.log(`Property checklist complete — alerted ${dedupedRecipients.length} recipients`);

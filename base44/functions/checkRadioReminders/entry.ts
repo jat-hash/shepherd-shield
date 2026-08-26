@@ -116,21 +116,13 @@ async function sendRadioAlert(base44: any, email: string, title: string, body: s
     read: false,
   }).catch(() => {});
 
-  // FCM (Android/Chrome/Desktop)
-  await base44.asServiceRole.functions.invoke('sendFCMNotification', {
+  // Single push via sendDualPush (FCM if available, else Web Push) so members
+  // registered on both channels don't receive duplicate push notifications.
+  await base44.asServiceRole.functions.invoke('sendDualPush', {
     recipient_email: email,
     title,
     body,
     notification_type: 'assignment',
     click_url: '/Dashboard',
-  }).catch((err: Error) => console.log(`FCM skipped for ${email}:`, err.message));
-
-  // Web Push (iOS/Safari installed PWA)
-  await base44.asServiceRole.functions.invoke('sendWebPushService', {
-    recipient_email: email,
-    title,
-    body,
-    notification_type: 'assignment',
-    click_url: '/Dashboard',
-  }).catch((err: Error) => console.log(`WebPush skipped for ${email}:`, err.message));
+  }).catch((err: Error) => console.log(`Push skipped for ${email}:`, err.message));
 }
