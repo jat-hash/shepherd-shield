@@ -175,39 +175,12 @@ Deno.serve(async (req) => {
     for (const assignment of todayAssignments) {
       if (!assignment.service_date || !assignment.start_time || !assignment.end_time) continue;
 
-      const startDateTime = parseServiceTime(assignment.service_date, assignment.start_time);
       const endDateTime = parseServiceTime(assignment.service_date, assignment.end_time);
-      const fiveMinBeforeStart = new Date(startDateTime.getTime() - 5 * 60 * 1000);
 
-      // 5-min pre-service alert
-      if (!assignment.checked_in && now >= fiveMinBeforeStart && now < startDateTime) {
-        const alerted = await alreadyNotified(base44, assignment.assigned_to_email, "Check In Now", 30 * 60 * 1000);
-        if (!alerted) {
-          const radioMsg = assignment.radio_channel ? ` Pick up your radio on Channel ${assignment.radio_channel}.` : "";
-          await notify(base44, {
-            user_email: assignment.assigned_to_email,
-            title: "Check In Now",
-            message: `Your ${assignment.service_type || 'service'} assignment (${assignment.position_name}) starts in 5 minutes. Please check in via the app.${radioMsg}`,
-            type: "assignment_reminder",
-            assignment_id: assignment.id
-          });
-        }
-      }
-
-      // Service started but not checked in
-      if (!assignment.checked_in && now >= startDateTime && now < endDateTime) {
-        const alerted = await alreadyNotified(base44, assignment.assigned_to_email, "You Haven't Checked In", 30 * 60 * 1000);
-        if (!alerted) {
-          const radioMsg = assignment.radio_channel ? ` Make sure to pick up your radio on Channel ${assignment.radio_channel}.` : "";
-          await notify(base44, {
-            user_email: assignment.assigned_to_email,
-            title: "You Haven't Checked In",
-            message: `Your ${assignment.service_type || 'service'} assignment (${assignment.position_name}) has started. Please check in now.${radioMsg}`,
-            type: "assignment_reminder",
-            assignment_id: assignment.id
-          });
-        }
-      }
+      // The pre-service "Check In Now" (5 min before start) and "You Haven't
+      // Checked In" (at start) reminders were removed — the radio, Marathon
+      // checklist, and late-check-in monitors already cover service-start
+      // awareness, and these duplicated the "church is about to start" alerts.
 
       // Auto check-out if user has left the 3-mile vicinity (GPS) OR 45 min after service end (time fallback)
       if (assignment.checked_in && !assignment.checked_out) {
