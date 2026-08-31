@@ -121,66 +121,19 @@ Deno.serve(async (req) => {
     const allUsers = await base44.asServiceRole.entities.User.list();
     const todayAssignments = await base44.asServiceRole.entities.Assignment.filter({ service_date: today });
 
-    // ── 1a. Supervisor alert: member not on campus 15 min after shift start ───
-    for (const assignment of todayAssignments) {
-      if (!assignment.service_date || !assignment.start_time || !assignment.supervisor) continue;
-      const startDT = parseServiceTime(assignment.service_date, assignment.start_time);
-      const fifteenAfterStart = new Date(startDT.getTime() + 15 * 60 * 1000);
-
-      // Only fire in the window: 15–45 min after start (avoid repeat spam)
-      if (now < fifteenAfterStart || now > new Date(startDT.getTime() + 45 * 60 * 1000)) continue;
-
-      // Check if the member has a live location within the 3-mile boundary
-      const memberLocs = await base44.asServiceRole.entities.LiveLocation.filter({
-        user_email: assignment.assigned_to_email,
-        is_active: true
-      });
-      const memberLoc = memberLocs?.[0];
-      const isOnCampus = memberLoc?.latitude && memberLoc?.longitude &&
-        distanceMiles(memberLoc.latitude, memberLoc.longitude, CAMPUS_LAT, CAMPUS_LON) <= CAMPUS_RADIUS_MILES;
-
-      if (isOnCampus) continue; // They're here, all good
-
-      // Find supervisor user by name or email match
-      const supervisorEmail = assignment.supervisor.includes('@')
-        ? assignment.supervisor
-        : allUsers.find(u =>
-            (u.full_name || '').toLowerCase().includes(assignment.supervisor.toLowerCase()) ||
-            (u.display_name || '').toLowerCase().includes(assignment.supervisor.toLowerCase())
-          )?.email;
-
-      if (!supervisorEmail) {
-        console.log(`No supervisor email found for: ${assignment.supervisor}`);
-        continue;
-      }
-
-      const noShowTitle = `⚠️ No-Show Alert: ${assignment.assigned_to_name}`;
-      const alreadySent = await alreadyNotified(base44, supervisorEmail, noShowTitle, 60 * 60 * 1000);
-      if (alreadySent) continue;
-
-      const noShowMsg = `${assignment.assigned_to_name} has not arrived on campus within 15 minutes of their shift start (${assignment.start_time}) for position "${assignment.position_name}" on ${assignment.service_date}. Please follow up.`;
-
-      await base44.asServiceRole.entities.Notification.create({
-        user_email: supervisorEmail,
-        title: noShowTitle,
-        message: noShowMsg,
-        type: 'general',
-        assignment_id: assignment.id,
-        read: false
-      });
-      await sendPush(base44, supervisorEmail, noShowTitle, noShowMsg);
-      console.log(`No-show alert sent to supervisor (${supervisorEmail}) for: ${assignment.assigned_to_name}`);
-    }
+    // All automated service-start/end notifications (radio pickup/return,
+    // nursery "service begins", Marathon property checklist, late/no-show
+    // alerts, equipment-return) have been disabled. Only the manual Altar Call
+    // and Church Out buttons send service-start/end notifications now. This
+    // loop only performs the silent auto-checkout fallback.
 
     for (const assignment of todayAssignments) {
       if (!assignment.service_date || !assignment.start_time || !assignment.end_time) continue;
 
       const endDateTime = parseServiceTime(assignment.service_date, assignment.end_time);
 
-      // The pre-service "Check In Now" (5 min before start) and "You Haven't
-      // Checked In" (at start) reminders were removed — the radio, Marathon
-      // checklist, and late-check-in monitors already cover service-start
-      // awareness, and these duplicated the "church is about to start" alerts.
+      // Pre-service "Check In Now" / "You Haven't Checked In" reminders removed
+      // — all automated service-start/end notifications are now off.
 
       // Auto check-out if user has left the 3-mile vicinity (GPS) OR 45 min after service end (time fallback)
       if (assignment.checked_in && !assignment.checked_out) {
@@ -245,34 +198,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── 3. Alert for unreturned equipment ─────────────────────────────────────
-    const equipment = await base44.asServiceRole.entities.Equipment.filter({ checked_out: true });
-    let latestServiceEnd = null;
-    for (const a of todayAssignments) {
-      if (!a.end_time) continue;
-      const endDT = parseServiceTime(today, a.end_time);
-      if (!latestServiceEnd || endDT > latestServiceEnd) latestServiceEnd = endDT;
-    }
-    if (latestServiceEnd) {
-      const oneHourAfterService = new Date(latestServiceEnd.getTime() + 60 * 60 * 1000);
-      if (now > oneHourAfterService) {
-        for (const item of equipment) {
-          if (!item.checked_out_by) continue;
-          const users = await base44.asServiceRole.entities.User.filter({ full_name: item.checked_out_by });
-          const userEmail = users?.[0]?.email;
-          if (!userEmail) continue;
-          const alerted = await alreadyNotified(base44, userEmail, "Return Equipment", 2 * 60 * 60 * 1000);
-          if (!alerted) {
-            await notify(base44, {
-              user_email: userEmail,
-              title: "Return Equipment",
-              message: `Please return "${item.name}" — service has ended and equipment should be checked back in.`,
-              type: "general"
-            });
-          }
-        }
-      }
-    }
+    // Equipment-return service-end alert removed — automated service-end
+    // notifications are off; only manual Altar Call / Church Out send them.
 
     return Response.json({ success: true, auto_checked_in: autoCheckedIn, auto_checked_out: autoCheckedOut });
   } catch (error) {
