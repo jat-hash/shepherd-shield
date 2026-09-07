@@ -3,9 +3,13 @@ import { base44 } from "@/api/base44Client";
 import { Send } from "lucide-react";
 import { toast } from "sonner";
 
-const NURSERY_CHANNEL = "Nursery";
+const CHANNELS = [
+  { id: "All Team", label: "All Team" },
+  { id: "Nursery", label: "Nursery" },
+];
 
 export default function NurseryChat({ user }) {
+  const [channel, setChannel] = useState("All Team");
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -14,14 +18,13 @@ export default function NurseryChat({ user }) {
   useEffect(() => {
     loadMessages();
     const unsub = base44.entities.TeamMessage.subscribe((event) => {
-      if (event.data?.channel === NURSERY_CHANNEL) {
-        if (event.type === "create") setMessages(prev => [...prev, event.data]);
-        else if (event.type === "update") setMessages(prev => prev.map(m => m.id === event.id ? event.data : m));
-        else if (event.type === "delete") setMessages(prev => prev.filter(m => m.id !== event.id));
-      }
+      if (event.data?.channel !== channel) return;
+      if (event.type === "create") setMessages(prev => [...prev, event.data]);
+      else if (event.type === "update") setMessages(prev => prev.map(m => m.id === event.id ? event.data : m));
+      else if (event.type === "delete") setMessages(prev => prev.filter(m => m.id !== event.id));
     });
     return unsub;
-  }, []);
+  }, [channel]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -29,7 +32,7 @@ export default function NurseryChat({ user }) {
 
   const loadMessages = async () => {
     try {
-      const msgs = await base44.entities.TeamMessage.filter({ channel: NURSERY_CHANNEL }, "created_date", 50);
+      const msgs = await base44.entities.TeamMessage.filter({ channel }, "created_date", 50);
       setMessages(msgs);
     } catch { }
   };
@@ -40,7 +43,7 @@ export default function NurseryChat({ user }) {
     setSending(true);
     try {
       await base44.entities.TeamMessage.create({
-        channel: NURSERY_CHANNEL,
+        channel,
         content: text,
         sender_name: user?.display_name || user?.full_name || user?.email || "Nursery Staff",
         sender_email: user?.email || "",
@@ -58,9 +61,26 @@ export default function NurseryChat({ user }) {
   const myEmail = user?.email;
 
   return (
-    <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] flex flex-col" style={{ height: 340 }}>
-      <div className="px-4 py-2.5 border-b border-[rgba(212,168,67,0.1)] text-[#d4a843] text-xs font-bold tracking-wider uppercase">
-        💬 Nursery Team Chat
+    <div className="bg-[#1a2744] rounded-xl border border-[rgba(212,168,67,0.1)] flex flex-col" style={{ height: 380 }}>
+      <div className="px-4 py-2.5 border-b border-[rgba(212,168,67,0.1)]">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[#d4a843] text-xs font-bold tracking-wider uppercase">💬 Team Chat</span>
+        </div>
+        <div className="flex gap-1.5">
+          {CHANNELS.map(c => (
+            <button
+              key={c.id}
+              onClick={() => setChannel(c.id)}
+              className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all ${
+                channel === c.id
+                  ? "bg-[#d4a843] text-[#0a1128]"
+                  : "bg-[#0a1128]/60 text-slate-400 hover:text-white"
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
         {messages.length === 0 && (
@@ -72,7 +92,7 @@ export default function NurseryChat({ user }) {
             <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${isMe ? "bg-[#d4a843] text-[#0a1128]" : "bg-[#0a1128]/60 text-white"}`}>
                 {!isMe && <p className="text-[10px] font-bold mb-0.5 opacity-70">{msg.sender_name}</p>}
-                <p>{msg.content}</p>
+                <p className="whitespace-pre-wrap break-words">{msg.content}</p>
               </div>
             </div>
           );
@@ -85,7 +105,7 @@ export default function NurseryChat({ user }) {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-          placeholder="Message nursery team..."
+          placeholder={`Message ${channel}...`}
         />
         <button
           onClick={sendMessage}
