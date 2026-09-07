@@ -63,21 +63,21 @@ Deno.serve(async (req) => {
       : `💬 ${data.sender_name} in ${data.channel}`;
     const pushBody = data.content.substring(0, 120) + (data.content.length > 120 ? '...' : '');
 
-    // Fire dual push (FCM + Web Push) — skip for Nursery channel to avoid
-    // duplicate notifications (the in-app Notification already triggers a
-    // browser notification via BrowserNotificationDispatcher).
-    if (data.channel !== 'Nursery') {
-      await Promise.all(notifications.map(notif =>
-        base44.asServiceRole.functions.invoke('sendDualPush', {
-          recipient_email: notif.user_email,
-          title: pushTitle,
-          body: pushBody,
-          dm_channel: isDM ? data.channel : undefined,
-          notification_type: isDM ? 'dm' : 'group_message',
-          allow_quick_reply: true,
-        }).catch(err => console.log('Push failed for', notif.user_email, err.message))
-      ));
-    }
+    // Fire dual push (FCM + Web Push) for ALL chat channels (team, DM, nursery)
+    // so messages reach the recipient's phone even when the app is fully closed.
+    // The service worker's raw 'push' handler displays the notification in the
+    // background; no in-app dispatcher runs while the app is closed, so this is
+    // the single push source (no duplicate risk).
+    await Promise.all(notifications.map(notif =>
+      base44.asServiceRole.functions.invoke('sendDualPush', {
+        recipient_email: notif.user_email,
+        title: pushTitle,
+        body: pushBody,
+        dm_channel: isDM ? data.channel : undefined,
+        notification_type: isDM ? 'dm' : 'group_message',
+        allow_quick_reply: true,
+      }).catch(err => console.log('Push failed for', notif.user_email, err.message))
+    ));
 
     return Response.json({ success: true, notified: notifications.length });
   } catch (error) {
