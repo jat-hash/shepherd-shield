@@ -202,6 +202,7 @@ export default function Assignments() {
             const otherAssignments = isSunday ? dayAssignments.filter(a => a.service_type !== "Sunday AM" && a.service_type !== "Sunday PM") : dayAssignments;
             const confAmAssignments = isConference ? dayAssignments.filter(a => a.service_type === "Conference AM") : [];
             const confPmAssignments = isConference ? dayAssignments.filter(a => a.service_type === "Conference PM") : [];
+            const normalAssignments = isConference ? dayAssignments.filter(a => a.service_type !== "Conference AM" && a.service_type !== "Conference PM") : dayAssignments;
 
             const renderAssignment = (a) => (
               <div
@@ -279,7 +280,7 @@ export default function Assignments() {
                   )}
 
                   {/* Conference AM / PM sections */}
-                  {isConference ? (
+                  {isConference && (
                     <>
                       {/* Conference AM */}
                       <div className="space-y-1">
@@ -321,14 +322,11 @@ export default function Assignments() {
                         </div>
                       </div>
 
-                      {/* Other conference-day assignments */}
-                      {dayAssignments.filter(a => a.service_type !== "Conference AM" && a.service_type !== "Conference PM").length > 0 && (
-                        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1.5 sm:gap-2 border-t border-[rgba(212,168,67,0.07)] pt-2">
-                          {dayAssignments.filter(a => a.service_type !== "Conference AM" && a.service_type !== "Conference PM").map(renderAssignment)}
-                        </div>
-                      )}
                     </>
-                  ) : isSunday ? (
+                  )}
+
+                  {/* Normal service sections */}
+                  {isSunday ? (
                     <>
                       {/* Sunday AM */}
                       <div className="space-y-1">
@@ -396,10 +394,10 @@ export default function Assignments() {
                         </div>
                       )}
                       <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1.5 sm:gap-2">
-                        {dayAssignments.length === 0 && dayEvents.length === 0 && (
+                        {normalAssignments.length === 0 && dayEvents.length === 0 && (
                           <span className="text-xs text-slate-600 self-center">No assignments</span>
                         )}
-                        {dayAssignments.map(renderAssignment)}
+                        {normalAssignments.map(renderAssignment)}
                       </div>
                     </div>
                   )}
