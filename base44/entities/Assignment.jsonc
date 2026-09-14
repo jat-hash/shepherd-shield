@@ -18,7 +18,9 @@
         "Sunday AM",
         "Sunday PM",
         "Tuesday Bible Study",
-        "Thursday Services"
+        "Thursday Services",
+        "Conference AM",
+        "Conference PM"
       ]
     },
     "start_time": {

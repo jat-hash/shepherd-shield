@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import AssignmentForm from "@/components/assignments/AssignmentForm";
 
-const SERVICE_TYPES = ["Sunday AM", "Sunday PM", "Tuesday Bible Study", "Thursday Services"];
+const SERVICE_TYPES = ["Sunday AM", "Sunday PM", "Tuesday Bible Study", "Thursday Services", "Conference AM", "Conference PM"];
+
+// Special conference schedule: each day has a morning (AM) and evening (PM) session.
+const CONFERENCE_DATES = ["2026-09-21", "2026-09-22", "2026-09-23", "2026-09-24"];
 
 function toDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -22,10 +25,20 @@ function getServiceDatesForMonth(year, month) {
     }
     d.setDate(d.getDate() + 1);
   }
+  // Include any conference dates that fall in this month, then sort chronologically.
+  CONFERENCE_DATES.forEach(ds => {
+    const [y, m, dd] = ds.split("-").map(Number);
+    if (y === year && m - 1 === month) {
+      dates.push(new Date(y, m - 1, dd));
+    }
+  });
+  dates.sort((a, b) => a - b);
   return dates;
 }
 
 function getServiceTypesForDate(date) {
+  const ds = toDateStr(date);
+  if (CONFERENCE_DATES.includes(ds)) return ["Conference AM", "Conference PM"];
   const day = date.getDay();
   if (day === 0) return ["Sunday AM", "Sunday PM"];
   if (day === 2) return ["Tuesday Bible Study"];

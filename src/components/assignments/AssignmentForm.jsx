@@ -114,6 +114,8 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
     "Sunday PM":           { start_time: "18:15", end_time: "19:45" },
     "Tuesday Bible Study": { start_time: "19:45", end_time: "20:15" },
     "Thursday Services":   { start_time: "19:15", end_time: "20:45" },
+    "Conference AM":       { start_time: "09:00", end_time: "12:00" },
+    "Conference PM":       { start_time: "18:00", end_time: "21:00" },
   };
 
   const handleServiceTypeSelect = (v) => {
@@ -248,6 +250,8 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
                 <SelectItem value="Sunday PM" className="text-white">Sunday PM</SelectItem>
                 <SelectItem value="Tuesday Bible Study" className="text-white">Tuesday Bible Study</SelectItem>
                 <SelectItem value="Thursday Services" className="text-white">Thursday Services</SelectItem>
+                <SelectItem value="Conference AM" className="text-white">Conference AM</SelectItem>
+                <SelectItem value="Conference PM" className="text-white">Conference PM</SelectItem>
               </SelectContent>
             </Select>
           </div>
