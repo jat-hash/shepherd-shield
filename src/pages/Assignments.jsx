@@ -9,6 +9,9 @@ import AssignmentForm from "@/components/assignments/AssignmentForm";
 import ShiftSwapModal from "@/components/assignments/ShiftSwapModal";
 import useOfflineData from "@/hooks/useOfflineData";
 
+// Special conference schedule: each day has a morning (AM) and evening (PM) session.
+const CONFERENCE_DATES = ["2026-09-21", "2026-09-22", "2026-09-23", "2026-09-24"];
+
 export default function Assignments() {
   const { user: authUser } = useAuth();
   const [formOpen, setFormOpen] = useState(false);
@@ -193,9 +196,12 @@ export default function Assignments() {
             const hasItems = dayAssignments.length > 0 || dayEvents.length > 0;
 
             const isSunday = date.getDay() === 0;
+            const isConference = CONFERENCE_DATES.includes(dateStr);
             const amAssignments = isSunday ? dayAssignments.filter(a => a.service_type === "Sunday AM") : [];
             const pmAssignments = isSunday ? dayAssignments.filter(a => a.service_type === "Sunday PM") : [];
             const otherAssignments = isSunday ? dayAssignments.filter(a => a.service_type !== "Sunday AM" && a.service_type !== "Sunday PM") : dayAssignments;
+            const confAmAssignments = isConference ? dayAssignments.filter(a => a.service_type === "Conference AM") : [];
+            const confPmAssignments = isConference ? dayAssignments.filter(a => a.service_type === "Conference PM") : [];
 
             const renderAssignment = (a) => (
               <div
@@ -272,8 +278,57 @@ export default function Assignments() {
                     </div>
                   )}
 
-                  {/* Sunday AM / PM sections */}
-                  {isSunday ? (
+                  {/* Conference AM / PM sections */}
+                  {isConference ? (
+                    <>
+                      {/* Conference AM */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400">Conference AM</span>
+                          {isAdmin && (
+                            <button
+                              onClick={() => { setEditData({ service_date: dateStr, service_type: "Conference AM" }); setFormOpen(true); }}
+                              className="text-[10px] text-[#d4a843] hover:text-[#e0bb5e] flex items-center gap-0.5"
+                            >
+                              <Plus className="w-3 h-3" /> Add
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1.5 sm:gap-2">
+                          {confAmAssignments.length === 0 ? (
+                            <span className="text-[10px] text-slate-600">No assignments</span>
+                          ) : confAmAssignments.map(renderAssignment)}
+                        </div>
+                      </div>
+
+                      {/* Conference PM */}
+                      <div className="space-y-1 border-t border-[rgba(212,168,67,0.07)] pt-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-sky-400">Conference PM</span>
+                          {isAdmin && (
+                            <button
+                              onClick={() => { setEditData({ service_date: dateStr, service_type: "Conference PM" }); setFormOpen(true); }}
+                              className="text-[10px] text-[#d4a843] hover:text-[#e0bb5e] flex items-center gap-0.5"
+                            >
+                              <Plus className="w-3 h-3" /> Add
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1.5 sm:gap-2">
+                          {confPmAssignments.length === 0 ? (
+                            <span className="text-[10px] text-slate-600">No assignments</span>
+                          ) : confPmAssignments.map(renderAssignment)}
+                        </div>
+                      </div>
+
+                      {/* Other conference-day assignments */}
+                      {dayAssignments.filter(a => a.service_type !== "Conference AM" && a.service_type !== "Conference PM").length > 0 && (
+                        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1.5 sm:gap-2 border-t border-[rgba(212,168,67,0.07)] pt-2">
+                          {dayAssignments.filter(a => a.service_type !== "Conference AM" && a.service_type !== "Conference PM").map(renderAssignment)}
+                        </div>
+                      )}
+                    </>
+                  ) : isSunday ? (
                     <>
                       {/* Sunday AM */}
                       <div className="space-y-1">
