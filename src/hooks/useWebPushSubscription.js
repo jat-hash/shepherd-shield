@@ -15,6 +15,12 @@ const isWebPushSupported = () => {
   return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 };
 
+// The builder preview is a cross-origin iframe where service workers can't
+// register — attempting it throws a "Push setup failed" popup. Skip in preview.
+const isInPreview = () => {
+  try { return window.self !== window.top; } catch (_) { return true; }
+};
+
 function urlBase64ToUint8Array(base64Url) {
   const base64 = String(base64Url).replace(/-/g, "+").replace(/_/g, "/");
   const pad = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -50,6 +56,7 @@ export function useWebPushSubscription(user) {
     if (!user?.email) return;
     if (isFCMSupported()) return;
     if (!isWebPushSupported()) return;
+    if (isInPreview()) return;
 
     let cancelled = false;
 

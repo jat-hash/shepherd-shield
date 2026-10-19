@@ -22,6 +22,14 @@ const isFCMSupported = () => {
   } catch (e) { return { ok: false, reason: 'check threw: ' + e.message }; }
 };
 
+// The builder preview runs inside a cross-origin iframe where service workers
+// cannot register — the attempt throws and surfaces a confusing "Push setup
+// error" popup. Push can only be enabled in the published app, so skip silently
+// here (the Dashboard shows its own "open the published app" notice).
+const isInPreview = () => {
+  try { return window.self !== window.top; } catch (_) { return true; }
+};
+
 // Detect in-app browsers (Facebook, Instagram, TikTok, email clients) which
 // disable the service worker API — push notifications can't work there.
 const isInAppBrowser = () => {
@@ -61,6 +69,7 @@ export default function ServiceWorkerRegister() {
         if (runningRef.current) { addLog('Registration already in progress — skipping'); return; }
         runningRef.current = true;
         if (!user) { addLog('No user logged in'); return; }
+        if (isInPreview()) { addLog('Builder preview detected — push registration skipped'); return; }
         addLog('UA: ' + navigator.userAgent.slice(0, 80));
         addLog('APIs → SW:' + ('serviceWorker' in navigator) + ' Notif:' + ('Notification' in window) + ' Push:' + ('PushManager' in window));
         if (isInAppBrowser()) {
