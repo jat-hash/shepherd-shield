@@ -4,7 +4,6 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../../utils";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import AssignmentForm from "@/components/assignments/AssignmentForm";
 import { toast } from "sonner";
@@ -193,21 +192,15 @@ export default function AssignmentCard({ assignment, onUpdate }) {
       </div>
 
       {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-[#1a2744] border-[rgba(212,168,67,0.2)]">
-          <DialogHeader>
-            <DialogTitle className="text-white">Edit Assignment</DialogTitle>
-          </DialogHeader>
-          <AssignmentForm
-            editData={assignment}
-            onSuccess={() => {
-              setEditDialogOpen(false);
-              onUpdate?.();
-            }}
-            onCancel={() => setEditDialogOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
+      <AssignmentForm
+        open={editDialogOpen}
+        editData={assignment}
+        onClose={() => setEditDialogOpen(false)}
+        onSaved={() => {
+          setEditDialogOpen(false);
+          onUpdate?.();
+        }}
+      />
 
       {/* Delete Confirmation */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

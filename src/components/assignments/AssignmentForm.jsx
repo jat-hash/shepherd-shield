@@ -67,7 +67,10 @@ export default function AssignmentForm({ open, onClose, onSaved, editData }) {
       setSelectedResponsibilities([]);
       setReminders([]);
     }
-  }, [editData, open]);
+    // Depend on the assignment id (not the object) so a background data refresh
+    // that hands us a new object with the same id doesn't reset the form and
+    // wipe notes the user is still typing.
+  }, [editData?.id, open]);
 
   const handleSave = async () => {
     setSaving(true);
