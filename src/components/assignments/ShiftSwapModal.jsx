@@ -85,6 +85,9 @@ export default function ShiftSwapModal({ open, onClose, assignment, currentUser 
             <p className="font-semibold text-white">{assignment.position_name}</p>
             <p className="text-slate-400 text-xs">{assignment.service_date} · {assignment.service_type || `${assignment.start_time}–${assignment.end_time}`}</p>
             <p className="text-slate-400 text-xs mt-0.5">Currently: <span className="text-white">{assignment.assigned_to_name}</span></p>
+            {assignment.notes && (
+              <p className="text-slate-400 text-xs mt-1 whitespace-pre-wrap">📝 {assignment.notes}</p>
+            )}
           </div>
 
           <p className="text-xs text-slate-400">Select who to swap with:</p>

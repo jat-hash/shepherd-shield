@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { ChevronLeft, ChevronRight, User, GripVertical, X, CheckCircle, Clock, XCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, User, GripVertical, X, CheckCircle, Clock, XCircle, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import AssignmentForm from "@/components/assignments/AssignmentForm";
@@ -215,15 +215,23 @@ export default function ShiftScheduler({ onSaved, initialMonth, onMonthChange })
                                     {cellAssignments.map(a => (
                                       <div
                                         key={a.id}
-                                        className="flex items-center gap-1 bg-[#1a2744] border border-[rgba(212,168,67,0.15)] rounded px-1.5 py-0.5 text-[10px] text-white group"
+                                        className="flex flex-col gap-0.5 bg-[#1a2744] border border-[rgba(212,168,67,0.15)] rounded px-1.5 py-0.5 text-[10px] text-white group"
                                       >
-                                        {statusIcon(a.status)}
-                                        <button onClick={() => { setEditData(a); setFormOpen(true); }} className="hover:text-[#d4a843] truncate max-w-[80px]">
-                                          {a.assigned_to_name}
-                                        </button>
-                                        <button onClick={() => handleRemove(a.id)} className="opacity-0 group-hover:opacity-100 active:opacity-100 text-red-400 hover:text-red-300 transition-opacity ml-0.5">
-                                          <X className="w-2.5 h-2.5" />
-                                        </button>
+                                        <div className="flex items-center gap-1">
+                                          {statusIcon(a.status)}
+                                          <button onClick={() => { setEditData(a); setFormOpen(true); }} className="hover:text-[#d4a843] truncate max-w-[80px]">
+                                            {a.assigned_to_name}
+                                          </button>
+                                          <button onClick={() => handleRemove(a.id)} className="opacity-0 group-hover:opacity-100 active:opacity-100 text-red-400 hover:text-red-300 transition-opacity ml-0.5">
+                                            <X className="w-2.5 h-2.5" />
+                                          </button>
+                                        </div>
+                                        {a.notes && (
+                                          <p className="flex items-start gap-0.5 text-[9px] leading-tight text-slate-400 max-w-[110px]">
+                                            <FileText className="w-2.5 h-2.5 shrink-0 mt-px text-slate-500" />
+                                            <span className="whitespace-pre-wrap break-words">{a.notes}</span>
+                                          </p>
+                                        )}
                                       </div>
                                     ))}
                                     {cellAssignments.length === 0 && (

@@ -162,6 +162,7 @@ export default function AdminDashboardPanel({ allUsers = [] }) {
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-xs font-medium truncate">{a.assigned_to_name}</p>
                   <p className="text-slate-500 text-[10px] truncate">{a.position_name}</p>
+                  {a.notes && <p className="text-slate-400 text-[10px] truncate">📝 {a.notes}</p>}
                 </div>
                 <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
               </div>
@@ -182,6 +183,7 @@ export default function AdminDashboardPanel({ allUsers = [] }) {
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-xs font-medium truncate">{a.assigned_to_name}</p>
                   <p className="text-slate-500 text-[10px] truncate">{a.position_name}</p>
+                  {a.notes && <p className="text-slate-400 text-[10px] truncate">📝 {a.notes}</p>}
                 </div>
                 <XCircle className="w-4 h-4 text-slate-500 flex-shrink-0" />
               </div>

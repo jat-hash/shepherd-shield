@@ -379,6 +379,7 @@ export default function TeamMap() {
                 <div style={{ background: "#1a2744", color: "white", padding: "10px", borderRadius: "8px", minWidth: "160px", border: "1px solid rgba(212,168,67,0.2)" }}>
                   <p style={{ fontWeight: "bold", fontSize: "13px", margin: "0 0 4px" }}>{a.assigned_to_name}</p>
                   <p style={{ color: "#d4a843", fontSize: "11px", margin: "0 0 2px" }}>{a.position_name}</p>
+                  {a.notes && <p style={{ color: "#cbd5e1", fontSize: "10px", margin: "0 0 2px", whiteSpace: "pre-wrap" }}>📝 {a.notes}</p>}
                   <p style={{ color: "#10b981", fontSize: "11px", margin: "0 0 2px" }}>✓ Checked in at {formatTime(a.check_in_time)}</p>
                   {a.check_in_latitude && <p style={{ color: "#94a3b8", fontSize: "10px", margin: "0" }}>📍 {a.check_in_latitude.toFixed(5)}, {a.check_in_longitude.toFixed(5)}</p>}
                   {user?.role === "admin" && (
@@ -473,6 +474,7 @@ export default function TeamMap() {
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-xs font-medium truncate">{a.assigned_to_name}</p>
                       <p className="text-[#d4a843] text-[10px] truncate">{a.position_name}</p>
+                      {a.notes && <p className="text-slate-400 text-[10px] truncate">📝 {a.notes}</p>}
                       <p className="text-slate-500 text-[10px]">
                         {a.check_in_latitude ? '📍 GPS' : '⚠️ No GPS'} · {formatTime(a.check_in_time)}
                       </p>

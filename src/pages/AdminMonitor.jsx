@@ -746,6 +746,12 @@ export default function AdminMonitor() {
                       <span className="text-slate-500">Channel: </span>
                       <span className="text-white">{assignment.radio_channel || "N/A"}</span>
                     </div>
+                    {assignment.notes && (
+                      <div className="sm:col-span-2">
+                        <span className="text-slate-500">Notes: </span>
+                        <span className="text-white whitespace-pre-wrap">{assignment.notes}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Check-in Status */}
