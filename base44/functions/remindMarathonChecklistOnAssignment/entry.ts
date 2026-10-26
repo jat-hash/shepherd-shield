@@ -6,7 +6,11 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 // create/update. Reminders go out on creation, and on updates only when the
 // post is newly assigned to someone — never on check-in, status or note edits.
 
-const REMINDER_TITLE = '📋 Complete the Marathon Property Checklist';
+// Deliberately different from the before-shift monitor's title
+// ('📋 Complete the Marathon Property Checklist') — that monitor dedupes on
+// title + assignment_id, so reusing its title would suppress the before-shift
+// reminder for anyone who already got this assignment-time notice.
+const REMINDER_TITLE = '📋 New Marathon Post Assignment';
 const CHECKLIST_POST = /marathon|bonco/i;
 
 export default async function (req: Request): Promise<Response> {
