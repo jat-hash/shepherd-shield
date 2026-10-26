@@ -1,0 +1,43 @@
+{
+  "name": "Remind Marathon Assignee to Complete Checklist",
+  "description": "When a member is assigned to the Marathon or Bonco post, reminds them to complete the Marathon Property Checklist. Also fires when an existing assignment is moved onto that post.",
+  "trigger": {
+    "condition": "${ (.trigger.data.position_name // \"\") | test(\"marathon|bonco\"; \"i\") }",
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create",
+        "update"
+      ],
+      "entity_name": "Assignment"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "remind_marathon_assignee_checklist",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "remind_assignee": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "remindMarathonChecklistOnAssignment",
+            "args": {
+              "entity_id": "${ .trigger.entity_id }",
+              "event_type": "${ .trigger.event_type }",
+              "changed_fields": "${ .trigger.changed_fields }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Send checklist reminder",
+            "description": "To the new assignee"
+          }
+        }
+      }
+    ]
+  }
+}
