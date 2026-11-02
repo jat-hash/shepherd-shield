@@ -4,6 +4,7 @@ import { Plus, Wrench, CheckCircle, Upload, QrCode, Camera, FileText, LogIn, Log
 import useOfflineData from "@/hooks/useOfflineData";
 import { cacheData, savePendingEquipmentAction, syncPendingEquipmentActions } from "@/lib/offlineStorage";
 import QRScanner from "@/components/equipment/QRScanner";
+import MonthlyMaintenanceChecklist from "@/components/equipment/MonthlyMaintenanceChecklist";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 
-const CATEGORIES = ["Radio", "First Aid", "Safety Gear", "Camera", "Signage", "Other"];
+const CATEGORIES = ["Radio", "First Aid", "Medical", "Safety Gear", "Camera", "Signage", "Other"];
 const CONDITIONS = ["Good", "Fair", "Needs Repair", "Out of Service"];
 
 const conditionColors = {
@@ -27,6 +28,7 @@ export default function EquipmentInventory() {
   const [formOpen, setFormOpen] = useState(false);
   const [detailItem, setDetailItem] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [view, setView] = useState("inventory");
   const [form, setForm] = useState({ name: "", category: "Radio", serial_number: "", qr_code: "", assigned_to: "", condition: "Good", maintenance_frequency_days: 30, equipment_manual: "", maintenance_notes: "" });
   const [saving, setSaving] = useState(false);
   const [scanMode, setScanMode] = useState(false);
@@ -235,6 +237,27 @@ export default function EquipmentInventory() {
         </div>
       </div>
 
+      <div className="flex gap-1 p-1 bg-[#1a2744] rounded-lg border border-[rgba(212,168,67,0.1)]">
+        {[
+          { key: "inventory", label: "Inventory" },
+          { key: "maintenance", label: "Monthly Maintenance" },
+        ].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setView(tab.key)}
+            className={`flex-1 px-3 py-2 rounded-md text-xs font-semibold transition-all ${
+              view === tab.key ? "bg-[#d4a843] text-[#0a1128]" : "text-slate-400 hover:text-white"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {view === "maintenance" ? (
+        <MonthlyMaintenanceChecklist items={items || []} loading={loading} onChanged={load} />
+      ) : (
+      <>
       <div className="flex gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar">
         {["all", ...CATEGORIES].map(c => (
           <button key={c} onClick={() => setCategoryFilter(c)} className={`px-2.5 sm:px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-medium whitespace-nowrap transition-all ${categoryFilter === c ? "bg-[#d4a843] text-[#0a1128]" : "bg-[#1a2744] text-slate-400"}`}>
@@ -284,6 +307,8 @@ export default function EquipmentInventory() {
             </button>
           ))}
         </div>
+      )}
+      </>
       )}
 
       {/* Add Form */}
