@@ -50,6 +50,14 @@
     "maintenance_frequency_days": {
       "type": "integer"
     },
+    "inspection_checklist": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Per-item inspection checklist, generated from the category template when the equipment is added"
+    },
     "inspection_photo": {
       "type": "string"
     },

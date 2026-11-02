@@ -5,57 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2, Circle, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-
-const CHECK_TASKS = {
-  Radio: [
-    "Batteries charged or replaced",
-    "Powers on and receives transmissions",
-    "Can transmit on the assigned channel",
-    "Antenna and belt clip intact",
-    "Charging cradle and cables working",
-  ],
-  "First Aid": [
-    "Kit fully stocked",
-    "No expired supplies or medications",
-    "Bandages and gauze still sealed",
-    "Gloves and CPR mask present",
-    "Case clean, latched, and labeled",
-  ],
-  Medical: [
-    "AED battery and pads within date",
-    "Oxygen tank level and valve checked",
-    "Bag valve mask present",
-    "Medications and supplies in date",
-    "Device clean and functioning",
-  ],
-  "Safety Gear": [
-    "Batteries in lights and devices",
-    "Straps, buckles, and hooks intact",
-    "No cracks or excessive wear",
-    "Clean and ready for use",
-  ],
-  Camera: [
-    "Batteries charged",
-    "Records and plays back correctly",
-    "Lens and housing clean",
-    "Storage space available",
-  ],
-  Signage: [
-    "Sign clean and legible",
-    "Properly mounted and visible",
-    "No damage or fading",
-  ],
-  Other: [
-    "Batteries or power source checked",
-    "Powers on and works as intended",
-    "Clean and free of damage",
-    "Manual or instructions on hand",
-  ],
-};
-
-export function tasksForCategory(category) {
-  return CHECK_TASKS[category] || CHECK_TASKS.Other;
-}
+import { checklistForCategory } from "@/lib/equipmentChecklists";
 
 function dateKey(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -67,12 +17,19 @@ export default function EquipmentCheckDialog({ item, open, onClose, onChecked })
   const [checkType, setCheckType] = useState("Checked");
   const [saving, setSaving] = useState(false);
 
-  const tasks = tasksForCategory(item?.category);
+  const tasks =
+    item?.inspection_checklist?.length > 0
+      ? item.inspection_checklist
+      : checklistForCategory(item?.category);
 
   useEffect(() => {
     if (!open || !item) return;
     const done = item.last_check_tasks || [];
-    setChecked(tasksForCategory(item.category).map(t => done.includes(t)));
+    const list =
+      item.inspection_checklist?.length > 0
+        ? item.inspection_checklist
+        : checklistForCategory(item.category);
+    setChecked(list.map(t => done.includes(t)));
     setNotes(item.last_check_notes || "");
     setCheckType("Checked");
   }, [open, item?.id]);

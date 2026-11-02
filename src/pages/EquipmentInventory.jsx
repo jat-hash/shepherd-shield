@@ -5,7 +5,9 @@ import useOfflineData from "@/hooks/useOfflineData";
 import { cacheData, savePendingEquipmentAction, syncPendingEquipmentActions } from "@/lib/offlineStorage";
 import QRScanner from "@/components/equipment/QRScanner";
 import MonthlyMaintenanceChecklist from "@/components/equipment/MonthlyMaintenanceChecklist";
-import EquipmentServiceLog from "@/components/equipment/EquipmentServiceLog";
+import EquipmentMaintenanceLog from "@/components/equipment/EquipmentMaintenanceLog";
+import { checklistForCategory } from "@/lib/equipmentChecklists";
+import ChecklistEditor from "@/components/equipment/ChecklistEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,7 +76,8 @@ export default function EquipmentInventory() {
     await base44.entities.Equipment.create({
       ...form,
       next_maintenance_date: nextMaintenance,
-      last_inspection_date: new Date().toISOString().split("T")[0]
+      last_inspection_date: new Date().toISOString().split("T")[0],
+      inspection_checklist: checklistForCategory(form.category)
     });
     setSaving(false);
     setFormOpen(false);
@@ -166,10 +169,14 @@ export default function EquipmentInventory() {
 
   const handleEditSave = async () => {
     setSaving(true);
-    await base44.entities.Equipment.update(detailItem.id, editForm);
+    const payload =
+      editForm.category !== detailItem.category
+        ? { ...editForm, inspection_checklist: checklistForCategory(editForm.category) }
+        : editForm;
+    await base44.entities.Equipment.update(detailItem.id, payload);
     setSaving(false);
     setEditMode(false);
-    setDetailItem({ ...detailItem, ...editForm });
+    setDetailItem({ ...detailItem, ...payload });
     load();
     toast.success("Equipment updated");
   };
@@ -259,7 +266,7 @@ export default function EquipmentInventory() {
       {view === "maintenance" ? (
         <MonthlyMaintenanceChecklist items={items || []} loading={loading} onChanged={load} />
       ) : view === "log" ? (
-        <EquipmentServiceLog />
+        <EquipmentMaintenanceLog items={items || []} loading={loading} onChanged={load} />
       ) : (
       <>
       <div className="flex gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar">
@@ -463,6 +470,15 @@ export default function EquipmentInventory() {
                   <div>
                     <Label className="text-slate-300 text-xs">Maintenance Notes</Label>
                     <Textarea value={editForm.maintenance_notes || ""} onChange={e => setEditForm({...editForm, maintenance_notes: e.target.value})} className="bg-[#0a1128] border-slate-700 text-white mt-1" rows={2} />
+                  </div>
+                  <div>
+                    <Label className="text-slate-300 text-xs">Inspection Checklist</Label>
+                    <div className="mt-1">
+                      <ChecklistEditor
+                        items={editForm.inspection_checklist || []}
+                        onChange={list => setEditForm({ ...editForm, inspection_checklist: list })}
+                      />
+                    </div>
                   </div>
                   <div className="flex gap-2 pt-1">
                     <Button variant="ghost" onClick={() => setEditMode(false)} className="text-slate-400 flex-1">Cancel</Button>
