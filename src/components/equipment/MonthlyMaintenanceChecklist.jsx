@@ -3,8 +3,6 @@ import { base44 } from "@/api/base44Client";
 import { CheckCircle2, Circle, Wrench, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-const MAINTENANCE_CATEGORIES = ["First Aid", "Medical"];
-
 const conditionColors = {
   Good: "bg-emerald-500/20 text-emerald-400",
   Fair: "bg-amber-500/20 text-amber-400",
@@ -24,9 +22,11 @@ export default function MonthlyMaintenanceChecklist({ items, loading, onChanged 
   const monthKey = dateKey(now).slice(0, 7);
   const monthLabel = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
-  const equipment = items
-    .filter(i => MAINTENANCE_CATEGORIES.includes(i.category))
-    .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  const equipment = [...items].sort(
+    (a, b) =>
+      (a.category || "").localeCompare(b.category || "") ||
+      (a.name || "").localeCompare(b.name || "")
+  );
 
   const isDone = (item) =>
     !!item.last_inspection_date && String(item.last_inspection_date).slice(0, 7) === monthKey;
@@ -98,7 +98,7 @@ export default function MonthlyMaintenanceChecklist({ items, loading, onChanged 
           <Wrench className="w-10 h-10 text-slate-600 mx-auto mb-3" />
           <p className="text-slate-500 text-sm">
             {equipment.length === 0
-              ? "No first aid or medical equipment added yet"
+              ? "No equipment added yet"
               : "All equipment checked this month"}
           </p>
         </div>
