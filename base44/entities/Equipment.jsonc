@@ -75,6 +75,30 @@
     },
     "checked_out_at": {
       "type": "string"
+    },
+    "last_check_tasks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Checklist tasks marked done during the most recent monthly check"
+    },
+    "last_check_missed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Checklist tasks left unchecked during the most recent monthly check (needs attention)"
+    },
+    "last_check_notes": {
+      "type": "string",
+      "description": "Notes recorded during the most recent monthly check"
+    },
+    "last_check_by": {
+      "type": "string",
+      "description": "Name of the team member who performed the most recent monthly check"
     }
   },
   "required": [

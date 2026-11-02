@@ -1,0 +1,45 @@
+{
+  "name": "Monthly Equipment Check Reminder",
+  "description": "Sends Ryan a reminder on the 1st of each month to run the monthly equipment maintenance checklist.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 9 1 * *",
+      "one_time_date": null,
+      "timezone": "America/Los_Angeles",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "monthly_equipment_check_reminder",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "remind_ryan": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "remindMonthlyEquipmentCheck",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Remind Ryan",
+            "description": "Monthly equipment checklist"
+          }
+        }
+      }
+    ]
+  }
+}

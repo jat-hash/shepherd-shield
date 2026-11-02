@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { base44 } from "@/api/base44Client";
-import { CheckCircle2, Circle, Wrench, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { CheckCircle2, Circle, Wrench, AlertTriangle } from "lucide-react";
+import EquipmentCheckDialog from "@/components/equipment/EquipmentCheckDialog";
 
 const conditionColors = {
   Good: "bg-emerald-500/20 text-emerald-400",
@@ -15,8 +14,8 @@ function dateKey(d = new Date()) {
 }
 
 export default function MonthlyMaintenanceChecklist({ items, loading, onChanged }) {
-  const [savingId, setSavingId] = useState(null);
   const [onlyDue, setOnlyDue] = useState(false);
+  const [activeItem, setActiveItem] = useState(null);
 
   const now = new Date();
   const monthKey = dateKey(now).slice(0, 7);
@@ -33,31 +32,8 @@ export default function MonthlyMaintenanceChecklist({ items, loading, onChanged 
 
   const doneCount = equipment.filter(isDone).length;
   const percent = equipment.length ? Math.round((doneCount / equipment.length) * 100) : 0;
+  const issueCount = equipment.filter(i => isDone(i) && (i.last_check_missed?.length || 0) > 0).length;
   const shown = onlyDue ? equipment.filter(i => !isDone(i)) : equipment;
-
-  const toggle = async (item) => {
-    setSavingId(item.id);
-    try {
-      if (isDone(item)) {
-        await base44.entities.Equipment.update(item.id, {
-          last_inspection_date: null,
-          next_maintenance_date: null,
-        });
-        toast.info(`${item.name} marked as not done`);
-      } else {
-        const next = new Date();
-        next.setDate(next.getDate() + (item.maintenance_frequency_days || 30));
-        await base44.entities.Equipment.update(item.id, {
-          last_inspection_date: dateKey(),
-          next_maintenance_date: dateKey(next),
-        });
-        toast.success(`${item.name} maintenance checked`);
-      }
-      onChanged();
-    } finally {
-      setSavingId(null);
-    }
-  };
 
   return (
     <div className="space-y-4">
@@ -68,6 +44,12 @@ export default function MonthlyMaintenanceChecklist({ items, loading, onChanged 
             <p className="text-lg font-bold text-white mt-0.5">
               {doneCount} of {equipment.length} checked
             </p>
+            {issueCount > 0 && (
+              <p className="flex items-center gap-1 text-[11px] text-amber-400 mt-1">
+                <AlertTriangle className="w-3 h-3" />
+                {issueCount} item{issueCount > 1 ? "s" : ""} need attention
+              </p>
+            )}
           </div>
           <div className="text-right">
             <p className="text-2xl font-bold text-[#d4a843]">{percent}%</p>
@@ -106,21 +88,19 @@ export default function MonthlyMaintenanceChecklist({ items, loading, onChanged 
         <div className="space-y-2">
           {shown.map(item => {
             const done = isDone(item);
+            const issues = done ? item.last_check_missed?.length || 0 : 0;
             return (
               <button
                 key={item.id}
-                onClick={() => toggle(item)}
-                disabled={savingId === item.id}
-                className={`w-full text-left flex items-start gap-3 rounded-xl border p-3.5 transition-all disabled:opacity-60 ${
+                onClick={() => setActiveItem(item)}
+                className={`w-full text-left flex items-start gap-3 rounded-xl border p-3.5 transition-all ${
                   done
                     ? "bg-emerald-500/5 border-emerald-500/30"
                     : "bg-[#1a2744] border-[rgba(212,168,67,0.1)] hover:border-[#d4a843]/30"
                 }`}
               >
                 <span className="mt-0.5 shrink-0">
-                  {savingId === item.id ? (
-                    <Loader2 className="w-5 h-5 text-[#d4a843] animate-spin" />
-                  ) : done ? (
+                  {done ? (
                     <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                   ) : (
                     <Circle className="w-5 h-5 text-slate-500" />
@@ -139,9 +119,15 @@ export default function MonthlyMaintenanceChecklist({ items, loading, onChanged 
                         {item.condition}
                       </span>
                     )}
+                    {issues > 0 && (
+                      <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-400">
+                        <AlertTriangle className="w-2.5 h-2.5" />
+                        {issues} issue{issues > 1 ? "s" : ""}
+                      </span>
+                    )}
                   </div>
                   <p className="text-[11px] text-slate-500 mt-1">
-                    {done ? `Checked ${item.last_inspection_date}` : "Not checked this month"}
+                    {done ? `Checked ${item.last_inspection_date}` : "Not checked this month — tap to run the checklist"}
                     {item.assigned_to && ` • ${item.assigned_to}`}
                   </p>
                 </div>
@@ -150,6 +136,13 @@ export default function MonthlyMaintenanceChecklist({ items, loading, onChanged 
           })}
         </div>
       )}
+
+      <EquipmentCheckDialog
+        item={activeItem}
+        open={!!activeItem}
+        onClose={() => setActiveItem(null)}
+        onChecked={onChanged}
+      />
     </div>
   );
 }
