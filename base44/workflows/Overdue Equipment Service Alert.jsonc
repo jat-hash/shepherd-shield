@@ -1,0 +1,45 @@
+{
+  "name": "Overdue Equipment Service Alert",
+  "description": "Every morning, alerts the security team when radio or medical equipment has passed its service due date.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 7 * * *",
+      "one_time_date": null,
+      "timezone": "America/Los_Angeles",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "overdue_equipment_service_alert",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "check_overdue_equipment": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "checkOverdueEquipmentAlerts",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Check overdue equipment",
+            "description": "Radio and medical items past due"
+          }
+        }
+      }
+    ]
+  }
+}
