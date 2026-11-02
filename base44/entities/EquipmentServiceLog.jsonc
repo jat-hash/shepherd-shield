@@ -1,0 +1,111 @@
+{
+  "name": "EquipmentServiceLog",
+  "type": "object",
+  "title": "Equipment Service Log",
+  "description": "Log of every equipment check or service performed",
+  "properties": {
+    "equipment_id": {
+      "type": "string"
+    },
+    "equipment_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "category": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "Checked",
+        "Serviced"
+      ],
+      "default": "Checked"
+    },
+    "performed_by": {
+      "type": "string"
+    },
+    "performed_by_email": {
+      "type": "string"
+    },
+    "performed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tasks_completed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "tasks_missed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "equipment_name",
+    "action"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

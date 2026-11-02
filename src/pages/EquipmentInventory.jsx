@@ -5,6 +5,7 @@ import useOfflineData from "@/hooks/useOfflineData";
 import { cacheData, savePendingEquipmentAction, syncPendingEquipmentActions } from "@/lib/offlineStorage";
 import QRScanner from "@/components/equipment/QRScanner";
 import MonthlyMaintenanceChecklist from "@/components/equipment/MonthlyMaintenanceChecklist";
+import EquipmentServiceLog from "@/components/equipment/EquipmentServiceLog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -240,7 +241,8 @@ export default function EquipmentInventory() {
       <div className="flex gap-1 p-1 bg-[#1a2744] rounded-lg border border-[rgba(212,168,67,0.1)]">
         {[
           { key: "inventory", label: "Inventory" },
-          { key: "maintenance", label: "Monthly Maintenance" },
+          { key: "maintenance", label: "Monthly Check" },
+          { key: "log", label: "Service Log" },
         ].map(tab => (
           <button
             key={tab.key}
@@ -256,6 +258,8 @@ export default function EquipmentInventory() {
 
       {view === "maintenance" ? (
         <MonthlyMaintenanceChecklist items={items || []} loading={loading} onChanged={load} />
+      ) : view === "log" ? (
+        <EquipmentServiceLog />
       ) : (
       <>
       <div className="flex gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar">

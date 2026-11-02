@@ -64,6 +64,7 @@ function dateKey(d = new Date()) {
 export default function EquipmentCheckDialog({ item, open, onClose, onChecked }) {
   const [checked, setChecked] = useState([]);
   const [notes, setNotes] = useState("");
+  const [checkType, setCheckType] = useState("Checked");
   const [saving, setSaving] = useState(false);
 
   const tasks = tasksForCategory(item?.category);
@@ -73,6 +74,7 @@ export default function EquipmentCheckDialog({ item, open, onClose, onChecked })
     const done = item.last_check_tasks || [];
     setChecked(tasksForCategory(item.category).map(t => done.includes(t)));
     setNotes(item.last_check_notes || "");
+    setCheckType("Checked");
   }, [open, item?.id]);
 
   if (!item) return null;
@@ -101,6 +103,19 @@ export default function EquipmentCheckDialog({ item, open, onClose, onChecked })
         last_check_by: me?.full_name || me?.email || null,
       });
 
+      await base44.entities.EquipmentServiceLog.create({
+        equipment_id: item.id,
+        equipment_name: item.name,
+        category: item.category || null,
+        action: checkType,
+        performed_by: me?.full_name || me?.email || "Unknown",
+        performed_by_email: me?.email || null,
+        performed_at: new Date().toISOString(),
+        tasks_completed: completed,
+        tasks_missed: missed,
+        notes: notes.trim() || null,
+      });
+
       toast.success(
         missed.length
           ? `${item.name} checked — ${missed.length} item(s) need attention`
@@ -124,6 +139,18 @@ export default function EquipmentCheckDialog({ item, open, onClose, onChecked })
         last_check_notes: null,
         last_check_by: null,
       });
+
+      const me = await base44.auth.me().catch(() => null);
+      const logs = await base44.entities.EquipmentServiceLog
+        .filter({ equipment_id: item.id })
+        .catch(() => []);
+      const mineToday = (logs || []).filter(
+        l => l.performed_by_email === me?.email && String(l.performed_at || "").slice(0, 10) === dateKey()
+      );
+      for (const entry of mineToday) {
+        await base44.entities.EquipmentServiceLog.delete(entry.id).catch(() => {});
+      }
+
       toast.info("Check cleared");
       onChecked();
       onClose();
@@ -155,6 +182,20 @@ export default function EquipmentCheckDialog({ item, open, onClose, onChecked })
               </div>
             </div>
           )}
+
+          <div className="flex gap-1 p-1 bg-[#0a1128] rounded-lg border border-slate-700">
+            {["Checked", "Serviced"].map(type => (
+              <button
+                key={type}
+                onClick={() => setCheckType(type)}
+                className={`flex-1 px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
+                  checkType === type ? "bg-[#d4a843] text-[#0a1128]" : "text-slate-400"
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
 
           <div className="space-y-1.5">
             {tasks.map((task, i) => (
