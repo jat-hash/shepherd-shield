@@ -33,12 +33,14 @@ export default function useTalkSession(channelId) {
   const [transmitting, setTransmitting] = useState(false);
   const [nearbyPeers, setNearbyPeers] = useState([]);
   const [setupRequired, setSetupRequired] = useState(false);
+  const [audioBlocked, setAudioBlocked] = useState(false);
   const [error, setError] = useState(null);
 
   const roomRef = useRef(null);
   const volumeRef = useRef(1);
   const localRef = useRef(false);
   const transmittingRef = useRef(false);
+  const audioContainerRef = useRef(null);
 
   const applyVolume = (room, value) => {
     room?.remoteParticipants?.forEach((participant) => {
@@ -66,9 +68,17 @@ export default function useTalkSession(channelId) {
     roomRef.current = room;
     setStatus(TALK_STATUS.SEARCHING);
     setSetupRequired(false);
+    setAudioBlocked(false);
     setError(null);
     setParticipants([]);
     setActiveSpeakerIds([]);
+
+    // Remote audio only reaches the speakers once its track is attached to a
+    // media element, so this hidden holder keeps every incoming voice stream.
+    const audioContainer = document.createElement('div');
+    audioContainer.style.display = 'none';
+    document.body.appendChild(audioContainer);
+    audioContainerRef.current = audioContainer;
 
     const syncParticipants = () => {
       const list = [];
@@ -87,6 +97,24 @@ export default function useTalkSession(channelId) {
       .on(RoomEvent.ParticipantDisconnected, syncParticipants)
       .on(RoomEvent.TrackMuted, syncParticipants)
       .on(RoomEvent.TrackUnmuted, syncParticipants)
+      .on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
+        if (track.kind !== 'audio') return;
+        const element = track.attach();
+        element.autoplay = true;
+        element.setAttribute('playsinline', 'true');
+        audioContainer.appendChild(element);
+        try {
+          participant.setVolume(volumeRef.current);
+        } catch (_) {
+          /* participant may already be gone */
+        }
+      })
+      .on(RoomEvent.TrackUnsubscribed, (track) => {
+        track.detach().forEach((element) => element.remove());
+      })
+      .on(RoomEvent.AudioPlaybackStatusChanged, () => {
+        setAudioBlocked(!room.canPlaybackAudio);
+      })
       .on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
         setActiveSpeakerIds((speakers || []).map((speaker) => speaker.identity));
         syncParticipants();
@@ -139,6 +167,7 @@ export default function useTalkSession(channelId) {
 
         await room.startAudio().catch(() => {});
         applyVolume(room, volumeRef.current);
+        setAudioBlocked(!room.canPlaybackAudio);
         setStatus(TALK_STATUS.ONLINE);
         syncParticipants();
       } catch (connectError) {
@@ -166,6 +195,8 @@ export default function useTalkSession(channelId) {
       setTransmitting(false);
       if (localRef.current) localLink.stop();
       room.disconnect();
+      audioContainer.remove();
+      if (audioContainerRef.current === audioContainer) audioContainerRef.current = null;
       if (roomRef.current === room) roomRef.current = null;
     };
   }, [channelId]);
@@ -209,6 +240,7 @@ export default function useTalkSession(channelId) {
     setTransmitting(true);
     try {
       await room.startAudio();
+      setAudioBlocked(!room.canPlaybackAudio);
       await room.localParticipant.setMicrophoneEnabled(true);
     } catch (micError) {
       console.error('Could not open the microphone:', micError);
@@ -250,6 +282,18 @@ export default function useTalkSession(channelId) {
     };
   }, [transmitting, stopTransmitting]);
 
+  // Browsers hold audio back until a tap; this releases it on the user's gesture.
+  const resumeAudio = useCallback(async () => {
+    const room = roomRef.current;
+    if (!room) return;
+    try {
+      await room.startAudio();
+    } catch (_) {
+      /* the browser refused; the prompt stays visible */
+    }
+    setAudioBlocked(!room.canPlaybackAudio);
+  }, []);
+
   const setVolume = useCallback((value) => {
     volumeRef.current = value;
     applyVolume(roomRef.current, value);
@@ -266,5 +310,7 @@ export default function useTalkSession(channelId) {
     startTransmitting,
     stopTransmitting,
     setVolume,
+    audioBlocked,
+    resumeAudio,
   };
 }

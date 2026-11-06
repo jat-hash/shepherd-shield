@@ -177,7 +177,24 @@ export default function WalkieTalkie() {
           </div>
         )}
 
-        <ChannelChips channels={channels} activeId={channelId} onSelect={setChannelId} />
+        {session.audioBlocked && (
+          <button
+            type="button"
+            onClick={session.resumeAudio}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#d4a843]/50 bg-[#d4a843]/15 p-3 text-[11px] font-bold uppercase tracking-wider text-[#d4a843]"
+          >
+            <Volume2 className="h-4 w-4" /> Tap to turn on radio sound
+          </button>
+        )}
+
+        <ChannelChips
+          channels={channels}
+          activeId={channelId}
+          onSelect={(id) => {
+            setChannelId(id);
+            session.resumeAudio();
+          }}
+        />
 
         <TalkerPanel
           participants={session.participants}
