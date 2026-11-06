@@ -99,6 +99,28 @@ export default async function (req: Request): Promise<Response> {
       apiSecret
     );
 
+    // Ask the LiveKit server whether it accepts this token. A rejected key/secret
+    // pair is an app configuration problem, not a network problem, and the user
+    // needs to see that distinction instead of "no connection".
+    const httpOrigin = url.replace(/^ws/, 'http').replace(/\/$/, '');
+    const check = new URL(`${httpOrigin}/rtc/v1/validate`);
+    check.searchParams.set('access_token', token);
+    check.searchParams.set('auto_subscribe', '1');
+    const verification = await fetch(check, { signal: AbortSignal.timeout(8000) }).catch(
+      () => null
+    );
+    if (verification && (verification.status === 401 || verification.status === 403)) {
+      console.error('LiveKit rejected the app key pair:', verification.status);
+      return Response.json(
+        {
+          error:
+            'The radio server rejected this app\u2019s LiveKit key and secret. Open your LiveKit project settings and copy the URL, API key and API secret from that same project.',
+          code: 'credentials_rejected',
+        },
+        { status: 503 }
+      );
+    }
+
     return Response.json({
       url,
       token,

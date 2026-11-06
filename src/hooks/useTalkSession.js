@@ -123,6 +123,11 @@ export default function useTalkSession(channelId) {
           setStatus(TALK_STATUS.DISCONNECTED);
           return;
         }
+        if (data.code === 'credentials_rejected') {
+          setError(data.error);
+          setStatus(TALK_STATUS.DISCONNECTED);
+          return;
+        }
         if (data.error) {
           setError(data.error);
           setStatus(TALK_STATUS.DISCONNECTED);
@@ -138,10 +143,20 @@ export default function useTalkSession(channelId) {
         syncParticipants();
       } catch (connectError) {
         console.error('Talk session connect failed:', connectError);
-        if (!cancelled) {
-          setError('Could not reach the radio channel. Retrying when the network returns.');
-          setStatus(TALK_STATUS.DISCONNECTED);
+        if (cancelled) return;
+
+        // The token service answers 503 with a specific reason when the app's
+        // LiveKit credentials are refused — show that, not a network message.
+        const payload = connectError?.response?.data || {};
+        if (payload.code === 'credentials_rejected' || payload.code === 'not_configured') {
+          if (payload.code === 'not_configured') setSetupRequired(true);
+          setError(payload.error || null);
+        } else if (connectError?.status === 401 || connectError?.response?.status === 401) {
+          setError('Please sign in again to use the radio.');
+        } else {
+          setError('Could not reach the radio channel. Check your connection and try again.');
         }
+        setStatus(TALK_STATUS.DISCONNECTED);
       }
     })();
 
