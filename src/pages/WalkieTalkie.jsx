@@ -184,6 +184,7 @@ export default function WalkieTalkie() {
           activeSpeakerIds={session.activeSpeakerIds}
           nearbyCount={session.nearbyPeers.length}
           selfName={user?.full_name || user?.email}
+          connected={session.status === TALK_STATUS.ONLINE || session.status === TALK_STATUS.OFFLINE}
         />
 
         <div className="flex justify-center py-2">

@@ -1,12 +1,12 @@
 import React from 'react';
 import { Mic, Users } from 'lucide-react';
 
-export default function TalkerPanel({ participants, activeSpeakerIds, nearbyCount, selfName }) {
+export default function TalkerPanel({ participants, activeSpeakerIds, nearbyCount, selfName, connected }) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 p-3">
       <div className="mb-2 flex items-center justify-between">
         <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
-          <Users className="h-3.5 w-3.5" /> On channel ({participants.length + 1})
+          <Users className="h-3.5 w-3.5" /> {connected ? `On channel (${participants.length + 1})` : 'Not on channel'}
         </p>
         {nearbyCount > 0 && (
           <span className="text-[10px] font-semibold text-[#d4a843]">{nearbyCount} nearby</span>
@@ -15,13 +15,19 @@ export default function TalkerPanel({ participants, activeSpeakerIds, nearbyCoun
 
       <div className="space-y-1.5">
         <div className="flex items-center justify-between rounded-lg bg-[#0a1128]/60 px-2.5 py-1.5">
-          <span className="text-xs text-slate-300">{selfName || 'You'}</span>
-          <span className="text-[10px] uppercase tracking-wider text-slate-500">You</span>
+          <span className={`text-xs ${connected ? 'text-slate-300' : 'text-slate-500'}`}>
+            {selfName || 'You'}
+          </span>
+          <span className="text-[10px] uppercase tracking-wider text-slate-500">
+            {connected ? 'You' : 'Not joined'}
+          </span>
         </div>
 
         {participants.length === 0 && (
           <p className="px-1 py-1 text-[11px] text-slate-500">
-            Waiting for teammates to join this channel.
+            {connected
+              ? 'Waiting for teammates to open the Radio tab and join this channel.'
+              : 'You are not connected, so nobody else can appear here yet.'}
           </p>
         )}
 
