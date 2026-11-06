@@ -10,6 +10,7 @@ import ChannelChips from '@/components/walkie/ChannelChips';
 import ChannelManager from '@/components/walkie/ChannelManager';
 import PTTButton from '@/components/walkie/PTTButton';
 import TalkerPanel from '@/components/walkie/TalkerPanel';
+import AudienceSelector from '@/components/walkie/AudienceSelector';
 import EmergencyBroadcast from '@/components/walkie/EmergencyBroadcast';
 
 export default function WalkieTalkie() {
@@ -123,6 +124,12 @@ export default function WalkieTalkie() {
   };
 
   const canTalk = !!channelId && (session.status === TALK_STATUS.ONLINE || session.status === TALK_STATUS.OFFLINE);
+  const isDirectLink = session.transport === TALK_TRANSPORT.DIRECT;
+  const audienceName =
+    session.audience === 'everyone'
+      ? 'Everyone on this channel'
+      : session.participants.find((participant) => participant.id === session.audience)?.name ||
+        'That member';
 
   return (
     <div className="min-h-screen bg-[#0a1128] px-4 pb-8 pt-4 text-white">
@@ -226,6 +233,22 @@ export default function WalkieTalkie() {
           selfName={user?.full_name || user?.email}
           connected={session.status === TALK_STATUS.ONLINE || session.status === TALK_STATUS.OFFLINE}
         />
+
+        <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-3">
+          <AudienceSelector
+            participants={session.participants}
+            value={session.audience}
+            onChange={session.setAudience}
+            disabled={isDirectLink}
+          />
+          <p className="text-[10px] leading-relaxed text-slate-500">
+            {isDirectLink
+              ? 'On a direct device link every nearby radio hears you.'
+              : session.audience === 'everyone'
+              ? 'Everyone on this channel will hear you.'
+              : `Only ${audienceName} will hear you. Everyone else on the channel is silenced.`}
+          </p>
+        </div>
 
         <div className="flex justify-center py-2">
           <PTTButton

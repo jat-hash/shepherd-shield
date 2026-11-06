@@ -46,6 +46,7 @@ export default function useTalkSession(channelId) {
   const [setupRequired, setSetupRequired] = useState(false);
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [error, setError] = useState(null);
+  const [audience, setAudienceState] = useState('everyone');
 
   const roomRef = useRef(null);
   const volumeRef = useRef(1);
@@ -54,11 +55,18 @@ export default function useTalkSession(channelId) {
   const transmittingRef = useRef(false);
   const audioContainerRef = useRef(null);
   const upgradeToDirectRef = useRef(null);
+  const audienceRef = useRef('everyone');
+  const selfEmailRef = useRef(null);
+  const mutedRef = useRef(new Set());
+  const announceRef = useRef(null);
 
+  // Anyone the current speaker is not addressing stays silenced, even though
+  // the channel itself carries their voice to every joined device.
   const applyVolume = (room, value) => {
     room?.remoteParticipants?.forEach((participant) => {
+      const silenced = mutedRef.current.has(participant.identity);
       try {
-        participant.setVolume(value);
+        participant.setVolume(silenced ? 0 : value);
       } catch (_) {
         /* participant may already be gone */
       }
@@ -87,6 +95,9 @@ export default function useTalkSession(channelId) {
     setParticipants([]);
     setActiveSpeakerIds([]);
     setTransport(TALK_TRANSPORT.NONE);
+    mutedRef.current = new Set();
+    audienceRef.current = 'everyone';
+    setAudienceState('everyone');
 
     // Remote audio only reaches the speakers once its track is attached to a
     // media element, so this hidden holder keeps every incoming voice stream.
@@ -94,6 +105,21 @@ export default function useTalkSession(channelId) {
     audioContainer.style.display = 'none';
     document.body.appendChild(audioContainer);
     audioContainerRef.current = audioContainer;
+
+    // Tells everyone on the channel who this transmission is for, so devices
+    // that are not addressed keep the speaker silenced.
+    const announceAudience = async (value) => {
+      if (localRef.current) return;
+      try {
+        await room.localParticipant.publishData(
+          new TextEncoder().encode(JSON.stringify({ audience: value })),
+          { reliable: true, topic: 'radio-audience' }
+        );
+      } catch (_) {
+        /* the room may already be gone */
+      }
+    };
+    announceRef.current = announceAudience;
 
     const syncParticipants = () => {
       if (localRef.current) return;
@@ -109,9 +135,20 @@ export default function useTalkSession(channelId) {
     };
 
     room
-      .on(RoomEvent.ParticipantConnected, syncParticipants)
+      .on(RoomEvent.ParticipantConnected, () => {
+        syncParticipants();
+        // Someone who joined mid-transmission still needs to know who it is for.
+        if (transmittingRef.current) announceAudience(audienceRef.current);
+      })
       .on(RoomEvent.ParticipantDisconnected, syncParticipants)
-      .on(RoomEvent.TrackMuted, syncParticipants)
+      .on(RoomEvent.TrackMuted, (publication, participant) => {
+        // A speaker who stopped transmitting releases any silence we held.
+        if (publication?.kind === 'audio' && participant) {
+          mutedRef.current.delete(participant.identity);
+          applyVolume(room, volumeRef.current);
+        }
+        syncParticipants();
+      })
       .on(RoomEvent.TrackUnmuted, syncParticipants)
       .on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
         if (track.kind !== 'audio') return;
@@ -119,11 +156,7 @@ export default function useTalkSession(channelId) {
         element.autoplay = true;
         element.setAttribute('playsinline', 'true');
         audioContainer.appendChild(element);
-        try {
-          participant.setVolume(volumeRef.current);
-        } catch (_) {
-          /* participant may already be gone */
-        }
+        applyVolume(room, volumeRef.current);
       })
       .on(RoomEvent.TrackUnsubscribed, (track) => {
         track.detach().forEach((element) => element.remove());
@@ -135,6 +168,21 @@ export default function useTalkSession(channelId) {
         if (localRef.current) return;
         setActiveSpeakerIds((speakers || []).map((speaker) => speaker.identity));
         syncParticipants();
+      })
+      .on(RoomEvent.DataReceived, (payload, participant, _kind, topic) => {
+        if (topic !== 'radio-audience' || !participant || localRef.current) return;
+        let message = null;
+        try {
+          message = JSON.parse(new TextDecoder().decode(payload));
+        } catch (_) {
+          return;
+        }
+        const target = message?.audience;
+        const meantForMe =
+          !target || target === 'none' || target === 'everyone' || target === selfEmailRef.current;
+        if (meantForMe) mutedRef.current.delete(participant.identity);
+        else mutedRef.current.add(participant.identity);
+        applyVolume(room, volumeRef.current);
       })
       .on(RoomEvent.Reconnecting, () => setStatus(TALK_STATUS.SEARCHING))
       .on(RoomEvent.Reconnected, () => {
@@ -194,6 +242,7 @@ export default function useTalkSession(channelId) {
           return false;
         }
 
+        selfEmailRef.current = data.identity || selfEmailRef.current;
         await room.connect(data.url, data.token);
         if (cancelled) return false;
 
@@ -268,6 +317,7 @@ export default function useTalkSession(channelId) {
       transmittingRef.current = false;
       setTransmitting(false);
       upgradeToDirectRef.current = null;
+      announceRef.current = null;
       window.removeEventListener('offline', onOffline);
       window.removeEventListener('online', onOnline);
       if (localRef.current) localLink.stop();
@@ -320,6 +370,8 @@ export default function useTalkSession(channelId) {
     try {
       await room.startAudio();
       setAudioBlocked(!room.canPlaybackAudio);
+      // Announced before the microphone opens so nobody hears the first word.
+      await announceRef.current?.(audienceRef.current);
       await room.localParticipant.setMicrophoneEnabled(true);
     } catch (micError) {
       console.error('Could not open the microphone:', micError);
@@ -344,6 +396,8 @@ export default function useTalkSession(channelId) {
     } catch (_) {
       /* already muted or disconnected */
     }
+    // Release everyone the transmission was holding silent.
+    await announceRef.current?.('none');
   }, []);
 
   // Safety net: the microphone never stays open if the finger lifts outside the
@@ -378,8 +432,24 @@ export default function useTalkSession(channelId) {
     applyVolume(roomRef.current, value);
   }, []);
 
+  // 'everyone' or the identity of one team member on the channel.
+  const setAudience = useCallback((value) => {
+    const next = value || 'everyone';
+    audienceRef.current = next;
+    setAudienceState(next);
+    if (transmittingRef.current) announceRef.current?.(next);
+  }, []);
+
+  // If the chosen person leaves the channel, fall back to the whole channel.
+  useEffect(() => {
+    if (audience === 'everyone') return;
+    if (participants.some((participant) => participant.id === audience)) return;
+    setAudience('everyone');
+  }, [participants, audience, setAudience]);
+
   return {
     status,
+    audience,
     transport,
     networkOffline,
     participants,
@@ -390,6 +460,7 @@ export default function useTalkSession(channelId) {
     error,
     startTransmitting,
     stopTransmitting,
+    setAudience,
     setVolume,
     audioBlocked,
     resumeAudio,

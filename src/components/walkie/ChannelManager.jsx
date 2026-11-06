@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import ChannelAccessEditor from './ChannelAccessEditor';
 
@@ -27,41 +28,65 @@ export default function ChannelManager({ open, channels, onOpenChange, onSaved }
   const [channelId, setChannelId] = useState(null);
   const [form, setForm] = useState(formForChannel(null));
   const [saving, setSaving] = useState(false);
+  const [creating, setCreating] = useState(false);
 
-  const channel = channels.find((item) => item.id === channelId) || null;
+  const channel = creating ? null : channels.find((item) => item.id === channelId) || null;
 
   useEffect(() => {
     if (!open) return;
     base44.entities.User.list()
       .then((rows) => setUsers(Array.isArray(rows) ? rows : rows?.items || []))
       .catch(() => setUsers([]));
+    setCreating(false);
     const starting = channels.find((item) => item.id === channelId) || channels[0] || null;
     setChannelId(starting?.id || null);
     setForm(formForChannel(starting));
   }, [open]);
 
   const selectChannel = (next) => {
+    setCreating(false);
     setChannelId(next.id);
     setForm(formForChannel(next));
   };
 
+  const startNewChannel = () => {
+    setCreating(true);
+    setChannelId(null);
+    setForm(formForChannel(null));
+  };
+
   const save = async () => {
-    if (!channel) return;
+    const name = form.name.trim();
+    if (!name) {
+      toast.error('Give the channel a name');
+      return;
+    }
     const withMembers = form.mode === 'selected' || form.mode === 'admins_plus';
     const withAdmins = form.mode === 'admins' || form.mode === 'admins_plus';
+    const payload = {
+      name,
+      description: form.description,
+      allowed_roles: withAdmins ? ['admin'] : [],
+      allowed_emails: withMembers ? form.emails : [],
+    };
+
     setSaving(true);
     try {
-      await base44.entities.TalkChannel.update(channel.id, {
-        name: form.name.trim() || channel.name,
-        description: form.description,
-        allowed_roles: withAdmins ? ['admin'] : [],
-        allowed_emails: withMembers ? form.emails : [],
-      });
-      toast.success(`${form.name.trim() || channel.name} updated`);
+      if (creating) {
+        await base44.entities.TalkChannel.create({
+          ...payload,
+          order: channels.length,
+          is_active: true,
+        });
+        toast.success(`${name} created`);
+      } else if (channel) {
+        await base44.entities.TalkChannel.update(channel.id, payload);
+        toast.success(`${name} updated`);
+      }
       await onSaved?.();
       onOpenChange(false);
     } catch (_) {
-      toast.error('Could not save that channel');
+      toast.error(creating ? 'Could not create that channel' : 'Could not save that channel');
     } finally {
       setSaving(false);
     }
@@ -77,6 +102,17 @@ export default function ChannelManager({ open, channels, onOpenChange, onSaved }
         </DialogHeader>
 
         <div className="flex gap-2 overflow-x-auto pb-1">
+          <button
+            type="button"
+            onClick={startNewChannel}
+            className={`flex items-center gap-1 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px] font-semibold ${
+              creating
+                ? 'border-[#d4a843] bg-[#d4a843] text-[#0a1128]'
+                : 'border-dashed border-white/25 bg-transparent text-slate-300'
+            }`}
+          >
+            <Plus className="h-3 w-3" /> New
+          </button>
           {channels.map((item) => (
             <button
               key={item.id}
@@ -93,7 +129,7 @@ export default function ChannelManager({ open, channels, onOpenChange, onSaved }
           ))}
         </div>
 
-        {channel && (
+        {(creating || channel) && (
           <div className="space-y-3">
             <div>
               <Label className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Name</Label>
@@ -129,7 +165,7 @@ export default function ChannelManager({ open, channels, onOpenChange, onSaved }
               disabled={saving}
               className="w-full bg-[#d4a843] font-bold text-[#0a1128] hover:bg-[#e0bb5e]"
             >
-              {saving ? 'Saving…' : 'Save channel'}
+              {saving ? 'Saving…' : creating ? 'Create channel' : 'Save channel'}
             </Button>
           </div>
         )}
