@@ -1,0 +1,85 @@
+{
+  "name": "TalkChannel",
+  "type": "object",
+  "title": "Talk Channel",
+  "description": "Radio channels for the walkie-talkie system, with per-channel access control",
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Channel name, e.g. Main Team, Crew 1, Emergency"
+    },
+    "description": {
+      "type": "string"
+    },
+    "channel_type": {
+      "type": "string",
+      "enum": [
+        "Standard",
+        "Supervisors",
+        "Management",
+        "Emergency"
+      ],
+      "default": "Standard",
+      "description": "Emergency channels override ordinary channel priority"
+    },
+    "order": {
+      "type": "integer",
+      "default": 0
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "allowed_roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Roles allowed to join. Empty means all signed-in team members"
+    },
+    "allowed_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Specific members allowed to join. Empty means no per-person restriction"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, RotateCw, Baby, MonitorCheck, ChevronLeft, Lock } from "lucide-react";
+import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, Radio, RotateCw, Baby, MonitorCheck, ChevronLeft, Lock } from "lucide-react";
 
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { cacheUserVibrationPrefs, primeAudioContext } from "@/lib/notificationEffects";
@@ -18,6 +18,7 @@ import BottomTabs from "@/components/BottomTabs";
 const NAV_ITEMS = [
   { name: "Dashboard", icon: Home, page: "Dashboard" },
   { name: "Comm", icon: MessageSquare, page: "Communications" },
+  { name: "Radio", icon: Radio, page: "WalkieTalkie" },
   { name: "Assign", icon: CalendarDays, page: "Assignments" },
   { name: "Reports", icon: FileText, page: "Incidents" },
   { name: "Members", icon: User, page: "Members" },
@@ -28,6 +29,7 @@ const ROOT_PAGES = ["Dashboard", "Communications", "Assignments", "Incidents", "
 
 const PAGE_TITLES = {
   Members: "Team Members",
+  WalkieTalkie: "Team Radio",
   TeamMap: "Live Map",
   WatchList: "Watch List",
   PropertySecurity: "Property Security",
