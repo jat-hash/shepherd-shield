@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Mic, Settings2, Siren, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
-import useTalkSession, { TALK_STATUS } from '@/hooks/useTalkSession';
+import useTalkSession, { TALK_STATUS, TALK_TRANSPORT } from '@/hooks/useTalkSession';
 import ConnectionStatusPill from '@/components/walkie/ConnectionStatusPill';
 import ChannelChips from '@/components/walkie/ChannelChips';
 import ChannelManager from '@/components/walkie/ChannelManager';
@@ -134,6 +134,22 @@ export default function WalkieTalkie() {
           </div>
           <div className="flex items-center gap-2">
             <ConnectionStatusPill status={session.status} />
+            {session.transport !== TALK_TRANSPORT.NONE && (
+              <span
+                className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                  session.transport === TALK_TRANSPORT.DIRECT
+                    ? 'border-emerald-400/50 bg-emerald-400/10 text-emerald-300'
+                    : 'border-sky-400/50 bg-sky-400/10 text-sky-300'
+                }`}
+                title={
+                  session.transport === TALK_TRANSPORT.DIRECT
+                    ? 'Voice is going directly between devices'
+                    : 'Voice is going over the internet'
+                }
+              >
+                {session.transport === TALK_TRANSPORT.DIRECT ? 'Direct' : 'Internet'}
+              </span>
+            )}
             {user?.role === 'admin' && (
               <button
                 type="button"
@@ -168,6 +184,13 @@ export default function WalkieTalkie() {
           <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-3 text-[11px] text-amber-100">
             Internet radio needs a LiveKit server URL, API key and secret in the app's secrets. Until those
             are added only the direct device-to-device link can carry voice.
+          </div>
+        )}
+
+        {session.networkOffline && session.transport !== TALK_TRANSPORT.DIRECT && (
+          <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-3 text-[11px] text-amber-100">
+            No data connection. The radio switches to a direct device link when one is nearby, and rejoins the
+            internet channel automatically when data returns.
           </div>
         )}
 
