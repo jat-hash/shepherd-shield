@@ -35,7 +35,7 @@ const mapPeer = (peer) => ({
   speaking: !!peer?.speaking,
 });
 
-export default function useTalkSession(channelId) {
+export default function useTalkSession(channelId, options = {}) {
   const [status, setStatus] = useState(TALK_STATUS.DISCONNECTED);
   const [transport, setTransport] = useState(TALK_TRANSPORT.NONE);
   const [networkOffline, setNetworkOffline] = useState(isBrowserOffline());
@@ -469,11 +469,13 @@ export default function useTalkSession(channelId) {
   }, []);
 
   // If the chosen person leaves the channel, fall back to the whole channel.
+  // A caller that picks a member up front keeps that choice regardless.
   useEffect(() => {
+    if (options.audiencePersistent) return;
     if (audience === 'everyone') return;
     if (participants.some((participant) => participant.id === audience)) return;
     setAudience('everyone');
-  }, [participants, audience, setAudience]);
+  }, [participants, audience, setAudience, options.audiencePersistent]);
 
   return {
     status,

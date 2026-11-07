@@ -5,6 +5,7 @@ import { Radio, Volume2 } from 'lucide-react';
 import useTalkSession, { TALK_STATUS } from '@/hooks/useTalkSession';
 import ChannelChips from '@/components/walkie/ChannelChips';
 import PTTButton from '@/components/walkie/PTTButton';
+import ChannelMembers from '@/components/dashboard/ChannelMembers';
 
 /**
  * Push-to-talk straight from the home screen: joins the chosen team channel and
@@ -13,7 +14,8 @@ import PTTButton from '@/components/walkie/PTTButton';
 export default function RadioPTT() {
   const [channels, setChannels] = useState([]);
   const [channelId, setChannelId] = useState(null);
-  const session = useTalkSession(channelId);
+  const [targetLabel, setTargetLabel] = useState(null);
+  const session = useTalkSession(channelId, { audiencePersistent: true });
 
   useEffect(() => {
     let cancelled = false;
@@ -37,13 +39,24 @@ export default function RadioPTT() {
     session.resumeAudio();
   };
 
-  const channelName = channels.find((channel) => channel.id === channelId)?.name || '';
+  const channel = channels.find((item) => item.id === channelId) || null;
+  const channelName = channel?.name || '';
   const ready =
     !!channelId && (session.status === TALK_STATUS.ONLINE || session.status === TALK_STATUS.OFFLINE);
 
+  const targetName =
+    session.audience === 'everyone'
+      ? null
+      : session.participants.find((participant) => participant.id === session.audience)?.name ||
+        targetLabel ||
+        session.audience;
+
+  const pickMember = (value, name) => {
+    setTargetLabel(name || null);
+    session.setAudience(value);
+  };
+
   const start = () => {
-    // The home button always talks to the whole channel.
-    session.setAudience('everyone');
     session.startTransmitting();
   };
 
@@ -52,11 +65,15 @@ export default function RadioPTT() {
     : session.error
     ? session.error
     : session.transmitting
-    ? `Live — everyone on ${channelName} hears you`
+    ? targetName
+      ? `Live — only ${targetName} hears you`
+      : `Live — everyone on ${channelName} hears you`
     : session.status === TALK_STATUS.SEARCHING
     ? `Connecting to ${channelName}…`
     : ready
-    ? `Hold to talk to everyone on ${channelName}`
+    ? targetName
+      ? `Hold to talk to ${targetName}`
+      : `Hold to talk to everyone on ${channelName}`
     : 'Radio offline — reconnecting…';
 
   return (
@@ -78,6 +95,15 @@ export default function RadioPTT() {
           <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Channel</p>
           <ChannelChips channels={channels} activeId={channelId} onSelect={selectChannel} />
         </div>
+      )}
+
+      {channel && (
+        <ChannelMembers
+          channel={channel}
+          audience={session.audience}
+          onSelect={pickMember}
+          liveEmails={session.participants.map((participant) => participant.id)}
+        />
       )}
 
       {session.audioBlocked && (
