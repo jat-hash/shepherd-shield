@@ -1,6 +1,5 @@
 import React from 'react';
-import { X } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Check, RefreshCw } from 'lucide-react';
 
 const MODES = [
   { key: 'everyone', label: 'Everyone' },
@@ -11,12 +10,11 @@ const MODES = [
 
 export default function ChannelAccessEditor({ mode, onModeChange, emails, onEmailsChange, users }) {
   const showMembers = mode === 'selected' || mode === 'admins_plus';
-  const nameFor = (email) => users.find((u) => u.email === email)?.full_name || email;
-  const available = users.filter((u) => u.email && !emails.includes(u.email));
+  const members = users.filter((user) => user?.email);
 
-  const addMember = (email) => {
-    if (!email || emails.includes(email)) return;
-    onEmailsChange([...emails, email]);
+  const toggleMember = (email) => {
+    if (emails.includes(email)) onEmailsChange(emails.filter((item) => item !== email));
+    else onEmailsChange([...emails, email]);
   };
 
   return (
@@ -51,49 +49,41 @@ export default function ChannelAccessEditor({ mode, onModeChange, emails, onEmai
 
       {showMembers && (
         <div className="space-y-2">
-          <Select value="" onValueChange={addMember}>
-            <SelectTrigger className="border-white/15 bg-[#0a1128] text-xs text-slate-200">
-              <SelectValue placeholder="Add a team member…" />
-            </SelectTrigger>
-            <SelectContent>
-              {available.length === 0 ? (
-                <SelectItem value="none" disabled>
-                  Everyone is already added
-                </SelectItem>
-              ) : (
-                available.map((member) => (
-                  <SelectItem key={member.email} value={member.email}>
-                    {member.full_name || member.email}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-
-          {emails.length === 0 ? (
-            <p className="text-[11px] text-amber-300">
-              No members yet — nobody except admins can join until you add someone.
-            </p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {emails.map((email) => (
-                <span
-                  key={email}
-                  className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] text-slate-200"
-                >
-                  {nameFor(email)}
+          <div className="max-h-56 space-y-1 overflow-y-auto rounded-lg border border-white/10 bg-[#0a1128] p-1.5">
+            {members.length === 0 ? (
+              <p className="flex items-center gap-2 px-2 py-3 text-[11px] text-slate-500">
+                <RefreshCw className="h-3 w-3 animate-spin" /> Loading team members…
+              </p>
+            ) : (
+              members.map((member) => {
+                const selected = emails.includes(member.email);
+                return (
                   <button
+                    key={member.email}
                     type="button"
-                    onClick={() => onEmailsChange(emails.filter((item) => item !== email))}
-                    className="text-slate-400 hover:text-red-400"
-                    aria-label={`Remove ${nameFor(email)}`}
+                    onClick={() => toggleMember(member.email)}
+                    className={`flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left text-xs transition-colors ${
+                      selected ? 'bg-[#d4a843]/15 text-white' : 'text-slate-300 hover:bg-white/5'
+                    }`}
                   >
-                    <X className="h-3 w-3" />
+                    <span className="truncate">{member.full_name || member.email}</span>
+                    <span
+                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                        selected ? 'border-[#d4a843] bg-[#d4a843] text-[#0a1128]' : 'border-white/25'
+                      }`}
+                    >
+                      {selected && <Check className="h-3 w-3" />}
+                    </span>
                   </button>
-                </span>
-              ))}
-            </div>
-          )}
+                );
+              })
+            )}
+          </div>
+          <p className={`text-[11px] ${emails.length ? 'text-slate-400' : 'text-amber-300'}`}>
+            {emails.length
+              ? `${emails.length} member${emails.length === 1 ? '' : 's'} allowed on this channel`
+              : 'No members selected yet — nobody except admins can join.'}
+          </p>
         </div>
       )}
     </div>

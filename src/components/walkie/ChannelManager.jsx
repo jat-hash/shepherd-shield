@@ -70,6 +70,8 @@ export default function ChannelManager({ open, channels, onOpenChange, onSaved }
       allowed_emails: withMembers ? form.emails : [],
     };
 
+    const memberNote = withMembers ? ` — ${payload.allowed_emails.length} members allowed` : '';
+
     setSaving(true);
     try {
       if (creating) {
@@ -78,10 +80,15 @@ export default function ChannelManager({ open, channels, onOpenChange, onSaved }
           order: channels.length,
           is_active: true,
         });
-        toast.success(`${name} created`);
+        toast.success(`${name} created${memberNote}`);
       } else if (channel) {
-        await base44.entities.TalkChannel.update(channel.id, payload);
-        toast.success(`${name} updated`);
+        const saved = await base44.entities.TalkChannel.update(channel.id, payload);
+        const stored = saved?.allowed_emails || [];
+        if (withMembers && stored.length !== payload.allowed_emails.length) {
+          toast.error('Those members did not save — try again');
+          return;
+        }
+        toast.success(`${name} updated${memberNote}`);
       }
       await onSaved?.();
       onOpenChange(false);
