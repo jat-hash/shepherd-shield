@@ -6,8 +6,6 @@ import useTalkSession, { TALK_STATUS } from '@/hooks/useTalkSession';
 import ChannelChips from '@/components/walkie/ChannelChips';
 import PTTButton from '@/components/walkie/PTTButton';
 
-const STORAGE_KEY = 'homeRadioChannelId';
-
 /**
  * Push-to-talk straight from the home screen: joins the chosen team channel and
  * transmits to everyone on it while the button is held.
@@ -23,11 +21,8 @@ export default function RadioPTT() {
       .then((result) => {
         const items = result?.items || (Array.isArray(result) ? result : []);
         if (cancelled || !items.length) return;
-        const saved = localStorage.getItem(STORAGE_KEY);
-        const chosen =
-          items.find((channel) => channel.id === saved) ||
-          items.find((channel) => channel.channel_type !== 'Emergency') ||
-          items[0];
+        // Every app open starts on the main channel; members can switch after.
+        const chosen = items.find((channel) => channel.channel_type !== 'Emergency') || items[0];
         setChannels(items);
         setChannelId(chosen.id);
       })
@@ -39,7 +34,6 @@ export default function RadioPTT() {
 
   const selectChannel = (id) => {
     setChannelId(id);
-    localStorage.setItem(STORAGE_KEY, id);
     session.resumeAudio();
   };
 
