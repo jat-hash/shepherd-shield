@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Users, ChevronDown, Check } from 'lucide-react';
+import useRadioPresence from '@/hooks/useRadioPresence';
 
 const canJoin = (member, channel) => {
   const roles = (channel?.allowed_roles || []).map((role) => String(role).toLowerCase());
@@ -17,6 +18,7 @@ const canJoin = (member, channel) => {
 export default function ChannelMembers({ channel, audience, onSelect, liveEmails = [] }) {
   const [members, setMembers] = useState([]);
   const [open, setOpen] = useState(false);
+  const { presence } = useRadioPresence();
 
   useEffect(() => {
     if (!channel) return;
@@ -45,8 +47,28 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
 
   if (!channel) return null;
 
-  const live = new Set(liveEmails.map((email) => String(email).toLowerCase()));
-  const activeCount = members.filter((member) => live.has(member.email.toLowerCase())).length;
+  // Presence comes from the radio server, so it covers everyone on the channel
+  // (including this device) and knows who is on a different channel instead.
+  const onThisChannel = new Set(
+    presence
+      .filter(
+        (entry) =>
+          entry.channel_id === channel.id ||
+          (!!entry.channel_name && entry.channel_name === channel.name)
+      )
+      .map((entry) => entry.email)
+  );
+  const onOtherChannel = new Map(
+    presence
+      .filter((entry) => !onThisChannel.has(entry.email) && entry.channel_name)
+      .map((entry) => [entry.email, entry.channel_name])
+  );
+  // Fallback for when the radio server cannot be queried.
+  const sessionLive = new Set(liveEmails.map((email) => String(email).toLowerCase()));
+  const isActive = (email) =>
+    onThisChannel.has(email.toLowerCase()) || sessionLive.has(email.toLowerCase());
+
+  const activeCount = members.filter((member) => isActive(member.email)).length;
   const selectedName =
     audience === 'everyone'
       ? 'Everyone'
@@ -78,7 +100,7 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
             className={`h-2 w-2 shrink-0 rounded-full ${
               audience === 'everyone'
                 ? 'bg-[#d4a843]'
-                : live.has(String(audience).toLowerCase())
+                : isActive(audience)
                 ? 'bg-emerald-400'
                 : 'bg-slate-600'
             }`}
@@ -102,7 +124,8 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
           </button>
 
           {members.map((member) => {
-            const onChannel = live.has(member.email.toLowerCase());
+            const onChannel = isActive(member.email);
+            const elsewhere = onOtherChannel.get(member.email.toLowerCase()) || null;
             const selected = audience === member.email;
             return (
               <button
@@ -116,7 +139,7 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
                 <span className="flex min-w-0 items-center gap-2">
                   <span
                     className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                      onChannel ? 'bg-emerald-400' : 'bg-slate-600'
+                      onChannel ? 'bg-emerald-400' : elsewhere ? 'bg-amber-400' : 'bg-slate-600'
                     }`}
                   />
                   <span className="truncate">{member.name}</span>
@@ -124,10 +147,10 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
                 <span className="flex shrink-0 items-center gap-1.5">
                   <span
                     className={`text-[9px] font-bold uppercase tracking-wide ${
-                      onChannel ? 'text-emerald-400' : 'text-slate-600'
+                      onChannel ? 'text-emerald-400' : elsewhere ? 'text-amber-400' : 'text-slate-600'
                     }`}
                   >
-                    {onChannel ? 'Active' : 'Offline'}
+                    {onChannel ? 'Active' : elsewhere ? elsewhere : 'Offline'}
                   </span>
                   {selected && <Check className="h-3.5 w-3.5 text-[#d4a843]" />}
                 </span>

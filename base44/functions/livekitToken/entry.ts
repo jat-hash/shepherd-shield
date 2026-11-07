@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import { isAuthorizedForChannel } from '../../shared/talkAccess.ts';
+import { mintLivekitToken, livekitHttpOrigin } from '../../shared/livekitAuth.ts';
 
 /**
  * Mints a short-lived LiveKit join token for one talk channel.
@@ -8,31 +9,6 @@ import { isAuthorizedForChannel } from '../../shared/talkAccess.ts';
  */
 
 const TOKEN_TTL_SECONDS = 60 * 60 * 4;
-
-function b64urlFromBytes(bytes: Uint8Array): string {
-  let bin = '';
-  for (let i = 0; i < bytes.length; i += 1) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-function b64urlJson(value: unknown): string {
-  return b64urlFromBytes(new TextEncoder().encode(JSON.stringify(value)));
-}
-
-async function mintToken(payload: Record<string, unknown>, secret: string): Promise<string> {
-  const unsigned = `${b64urlJson({ alg: 'HS256', typ: 'JWT' })}.${b64urlJson(payload)}`;
-  const key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  const signature = new Uint8Array(
-    await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(unsigned))
-  );
-  return `${unsigned}.${b64urlFromBytes(signature)}`;
-}
 
 export default async function (req: Request): Promise<Response> {
   try {
@@ -76,7 +52,7 @@ export default async function (req: Request): Promise<Response> {
     const room = isEmergency ? 'shepherd-emergency' : `shepherd-${channel.id}`;
     const now = Math.floor(Date.now() / 1000);
 
-    const token = await mintToken(
+    const token = await mintLivekitToken(
       {
         exp: now + TOKEN_TTL_SECONDS,
         iss: apiKey,
@@ -102,7 +78,7 @@ export default async function (req: Request): Promise<Response> {
     // Ask the LiveKit server whether it accepts this token. A rejected key/secret
     // pair is an app configuration problem, not a network problem, and the user
     // needs to see that distinction instead of "no connection".
-    const httpOrigin = url.replace(/^ws/, 'http').replace(/\/$/, '');
+    const httpOrigin = livekitHttpOrigin(url);
     const check = new URL(`${httpOrigin}/rtc/v1/validate`);
     check.searchParams.set('access_token', token);
     check.searchParams.set('auto_subscribe', '1');
