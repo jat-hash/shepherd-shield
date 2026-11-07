@@ -3,15 +3,18 @@ import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Radio, Volume2 } from 'lucide-react';
 import useTalkSession, { TALK_STATUS } from '@/hooks/useTalkSession';
+import ChannelChips from '@/components/walkie/ChannelChips';
 import PTTButton from '@/components/walkie/PTTButton';
 
+const STORAGE_KEY = 'homeRadioChannelId';
+
 /**
- * Push-to-talk straight from the home screen: joins the main team channel and
+ * Push-to-talk straight from the home screen: joins the chosen team channel and
  * transmits to everyone on it while the button is held.
  */
 export default function RadioPTT() {
+  const [channels, setChannels] = useState([]);
   const [channelId, setChannelId] = useState(null);
-  const [channelName, setChannelName] = useState('');
   const session = useTalkSession(channelId);
 
   useEffect(() => {
@@ -20,9 +23,13 @@ export default function RadioPTT() {
       .then((result) => {
         const items = result?.items || (Array.isArray(result) ? result : []);
         if (cancelled || !items.length) return;
-        const preferred = items.find((channel) => channel.channel_type !== 'Emergency') || items[0];
-        setChannelId(preferred.id);
-        setChannelName(preferred.name);
+        const saved = localStorage.getItem(STORAGE_KEY);
+        const chosen =
+          items.find((channel) => channel.id === saved) ||
+          items.find((channel) => channel.channel_type !== 'Emergency') ||
+          items[0];
+        setChannels(items);
+        setChannelId(chosen.id);
       })
       .catch(() => {});
     return () => {
@@ -30,6 +37,13 @@ export default function RadioPTT() {
     };
   }, []);
 
+  const selectChannel = (id) => {
+    setChannelId(id);
+    localStorage.setItem(STORAGE_KEY, id);
+    session.resumeAudio();
+  };
+
+  const channelName = channels.find((channel) => channel.id === channelId)?.name || '';
   const ready =
     !!channelId && (session.status === TALK_STATUS.ONLINE || session.status === TALK_STATUS.OFFLINE);
 
@@ -44,7 +58,7 @@ export default function RadioPTT() {
     : session.error
     ? session.error
     : session.transmitting
-    ? 'Live — everyone on the channel hears you'
+    ? `Live — everyone on ${channelName} hears you`
     : session.status === TALK_STATUS.SEARCHING
     ? `Connecting to ${channelName}…`
     : ready
@@ -64,6 +78,13 @@ export default function RadioPTT() {
           </span>
         )}
       </div>
+
+      {channels.length > 1 && (
+        <div className="mt-3">
+          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Channel</p>
+          <ChannelChips channels={channels} activeId={channelId} onSelect={selectChannel} />
+        </div>
+      )}
 
       {session.audioBlocked && (
         <button
@@ -96,7 +117,7 @@ export default function RadioPTT() {
         to="/WalkieTalkie"
         className="mt-2 block text-center text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-[#d4a843]"
       >
-        Channels &amp; volume
+        Full radio &amp; volume
       </Link>
     </div>
   );
