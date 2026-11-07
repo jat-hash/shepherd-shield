@@ -39,20 +39,36 @@ export default function ChannelManager({ open, channels, onOpenChange, onSaved }
       .then((rows) => setUsers(Array.isArray(rows) ? rows : rows?.items || []))
       .catch(() => setUsers([]));
 
-    // Who is on assignment today, so the member list can flag them.
+    // Flag members who are on assignment today (or their next upcoming one),
+    // so the member list shows who is serving.
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
       now.getDate()
     ).padStart(2, '0')}`;
-    base44.entities.Assignment.filter({ service_date: today }, { limit: 200 })
+    base44.entities.Assignment.filter(
+      { service_date: { $gte: today } },
+      { sort: 'service_date', limit: 200 }
+    )
       .then((result) => {
         const items = result?.items || (Array.isArray(result) ? result : []);
         const map = {};
         items.forEach((item) => {
-          if (!item.assigned_to_email) return;
-          map[item.assigned_to_email.toLowerCase()] = {
+          if (!item.assigned_to_email || !item.service_date) return;
+          const key = item.assigned_to_email.toLowerCase();
+          const existing = map[key];
+          // Keep the soonest assignment per member.
+          if (existing && existing.date <= item.service_date) return;
+          map[key] = {
+            date: item.service_date,
             position: item.position_name,
             time: item.start_time,
+            when:
+              item.service_date === today
+                ? 'Today'
+                : new Date(`${item.service_date}T12:00:00`).toLocaleDateString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                  }),
           };
         });
         setOnDuty(map);

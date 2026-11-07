@@ -78,8 +78,8 @@ export default function ChannelAccessEditor({
                       <span className="block truncate">{member.full_name || member.email}</span>
                       {duty && (
                         <span className="mt-0.5 inline-flex max-w-full items-center gap-1 truncate rounded-full border border-[#d4a843]/40 bg-[#d4a843]/10 px-1.5 py-[1px] text-[9px] font-bold uppercase tracking-wide text-[#d4a843]">
-                          On assignment · {duty.position}
-                          {duty.time ? ` · ${duty.time}` : ''}
+                          On assignment · {duty.when}
+                          {duty.position ? ` · ${duty.position}` : ''}
                         </span>
                       )}
                     </span>
