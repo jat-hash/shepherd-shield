@@ -59,6 +59,7 @@ export default function useTalkSession(channelId) {
   const selfEmailRef = useRef(null);
   const mutedRef = useRef(new Set());
   const announceRef = useRef(null);
+  const lastAlertRef = useRef(0);
 
   // Anyone the current speaker is not addressing stays silenced, even though
   // the channel itself carries their voice to every joined device.
@@ -247,6 +248,20 @@ export default function useTalkSession(channelId) {
         if (cancelled) return false;
 
         await room.startAudio().catch(() => {});
+        // Register the channel as a media session so the device keeps the radio
+        // audio running when the screen locks or the app moves to the background.
+        if ('mediaSession' in navigator) {
+          try {
+            navigator.mediaSession.metadata = new MediaMetadata({
+              title: 'Team Radio',
+              artist: 'Shepherd Shield',
+              album: 'Live channel',
+            });
+            navigator.mediaSession.playbackState = 'playing';
+          } catch (_) {
+            /* unsupported metadata format */
+          }
+        }
         applyVolume(room, volumeRef.current);
         setAudioBlocked(!room.canPlaybackAudio);
         setTransport(TALK_TRANSPORT.INTERNET);
@@ -373,6 +388,19 @@ export default function useTalkSession(channelId) {
       // Announced before the microphone opens so nobody hears the first word.
       await announceRef.current?.(audienceRef.current);
       await room.localParticipant.setMicrophoneEnabled(true);
+
+      // Everyone who is not in the channel right now gets an alert, so members
+      // whose app is closed still learn that a transmission is happening.
+      const now = Date.now();
+      if (now - lastAlertRef.current > 90000) {
+        lastAlertRef.current = now;
+        const listening = Array.from(room.remoteParticipants.values()).map(
+          (participant) => participant.identity
+        );
+        base44.functions
+          .invoke('notifyRadioTransmission', { channel_id: channelId, exclude_emails: listening })
+          .catch(() => {});
+      }
     } catch (micError) {
       console.error('Could not open the microphone:', micError);
       transmittingRef.current = false;
