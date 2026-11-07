@@ -25,6 +25,7 @@ const formForChannel = (channel) => {
 
 export default function ChannelManager({ open, channels, onOpenChange, onSaved }) {
   const [users, setUsers] = useState([]);
+  const [onDuty, setOnDuty] = useState({});
   const [channelId, setChannelId] = useState(null);
   const [form, setForm] = useState(formForChannel(null));
   const [saving, setSaving] = useState(false);
@@ -37,6 +38,27 @@ export default function ChannelManager({ open, channels, onOpenChange, onSaved }
     base44.entities.User.list()
       .then((rows) => setUsers(Array.isArray(rows) ? rows : rows?.items || []))
       .catch(() => setUsers([]));
+
+    // Who is on assignment today, so the member list can flag them.
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+      now.getDate()
+    ).padStart(2, '0')}`;
+    base44.entities.Assignment.filter({ service_date: today }, { limit: 200 })
+      .then((result) => {
+        const items = result?.items || (Array.isArray(result) ? result : []);
+        const map = {};
+        items.forEach((item) => {
+          if (!item.assigned_to_email) return;
+          map[item.assigned_to_email.toLowerCase()] = {
+            position: item.position_name,
+            time: item.start_time,
+          };
+        });
+        setOnDuty(map);
+      })
+      .catch(() => setOnDuty({}));
+
     setCreating(false);
     const starting = channels.find((item) => item.id === channelId) || channels[0] || null;
     setChannelId(starting?.id || null);
@@ -164,6 +186,7 @@ export default function ChannelManager({ open, channels, onOpenChange, onSaved }
               emails={form.emails}
               onEmailsChange={(emails) => setForm((prev) => ({ ...prev, emails }))}
               users={users}
+              onDuty={onDuty}
             />
 
             <Button

@@ -8,7 +8,14 @@ const MODES = [
   { key: 'admins_plus', label: 'Admins + selected' },
 ];
 
-export default function ChannelAccessEditor({ mode, onModeChange, emails, onEmailsChange, users }) {
+export default function ChannelAccessEditor({
+  mode,
+  onModeChange,
+  emails,
+  onEmailsChange,
+  users,
+  onDuty = {},
+}) {
   const showMembers = mode === 'selected' || mode === 'admins_plus';
   const members = users.filter((user) => user?.email);
 
@@ -57,6 +64,7 @@ export default function ChannelAccessEditor({ mode, onModeChange, emails, onEmai
             ) : (
               members.map((member) => {
                 const selected = emails.includes(member.email);
+                const duty = onDuty[member.email.toLowerCase()];
                 return (
                   <button
                     key={member.email}
@@ -66,7 +74,15 @@ export default function ChannelAccessEditor({ mode, onModeChange, emails, onEmai
                       selected ? 'bg-[#d4a843]/15 text-white' : 'text-slate-300 hover:bg-white/5'
                     }`}
                   >
-                    <span className="truncate">{member.full_name || member.email}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{member.full_name || member.email}</span>
+                      {duty && (
+                        <span className="mt-0.5 inline-flex max-w-full items-center gap-1 truncate rounded-full border border-[#d4a843]/40 bg-[#d4a843]/10 px-1.5 py-[1px] text-[9px] font-bold uppercase tracking-wide text-[#d4a843]">
+                          On assignment · {duty.position}
+                          {duty.time ? ` · ${duty.time}` : ''}
+                        </span>
+                      )}
+                    </span>
                     <span
                       className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
                         selected ? 'border-[#d4a843] bg-[#d4a843] text-[#0a1128]' : 'border-white/25'
