@@ -9,6 +9,7 @@ import SOPQuickAccess from "@/components/dashboard/SOPQuickAccess";
 import SpecialEventsDropdown from "@/components/dashboard/SpecialEventsDropdown";
 import NotifyTeamButton from "@/components/dashboard/NotifyTeamButton";
 import HotMicButton from "@/components/dashboard/HotMicButton";
+import RadioPTT from "@/components/dashboard/RadioPTT";
 import SafetyCheckInPanel from "@/components/dashboard/SafetyCheckInPanel";
 import { WifiOff, MapPin, X, Bell, AlertTriangle } from "lucide-react";
 import RadioCheckInScanner from "@/components/dashboard/RadioCheckInScanner";
@@ -423,6 +424,9 @@ export default function Dashboard() {
           <HotMicButton user={user} />
         </div>
       </div>
+
+      {/* Push-to-talk radio */}
+      <RadioPTT />
 
       {/* Church Service Alert Buttons */}
       <ChurchServiceAlerts user={user} />
