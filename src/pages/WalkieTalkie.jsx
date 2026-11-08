@@ -10,6 +10,7 @@ import ConnectionStatusPill from '@/components/walkie/ConnectionStatusPill';
 import ChannelChips from '@/components/walkie/ChannelChips';
 import ChannelManager from '@/components/walkie/ChannelManager';
 import PTTButton from '@/components/walkie/PTTButton';
+import BluetoothPttCard from '@/components/walkie/BluetoothPttCard';
 import TalkerPanel from '@/components/walkie/TalkerPanel';
 import AudienceSelector from '@/components/walkie/AudienceSelector';
 import EmergencyBroadcast from '@/components/walkie/EmergencyBroadcast';
@@ -232,6 +233,8 @@ export default function WalkieTalkie() {
             onEnd={session.stopTransmitting}
           />
         </div>
+
+        <BluetoothPttCard ready={canTalk} />
 
         <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-3">
           <div className="flex items-center gap-3">

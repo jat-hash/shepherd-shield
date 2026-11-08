@@ -5,6 +5,7 @@ import { TALK_STATUS } from '@/hooks/useTalkSession';
 import { useRadioSession } from '@/context/RadioSessionContext';
 import ChannelChips from '@/components/walkie/ChannelChips';
 import PTTButton from '@/components/walkie/PTTButton';
+import BluetoothPttCard from '@/components/walkie/BluetoothPttCard';
 import ChannelMembers from '@/components/dashboard/ChannelMembers';
 
 /**
@@ -110,6 +111,10 @@ export default function RadioPTT() {
       >
         {statusText}
       </p>
+
+      <div className="mt-3">
+        <BluetoothPttCard ready={ready} />
+      </div>
 
       <Link
         to="/WalkieTalkie"
