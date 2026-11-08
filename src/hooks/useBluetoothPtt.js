@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createSilentCarrier } from '@/lib/silentCarrier';
 
-// Bluetooth buttons reach a web app in one of two ways: as a keyboard key
-// (most clip-on remotes and "shutter" buttons) or as the play/pause button of
-// a paired headset. Both are picked up here so one switch arms either kind.
+// Hardware buttons reach a web app as a keyboard key (clip-on remotes and
+// "shutter" buttons), as a media key, or as the play/pause command of a paired
+// Bluetooth headset. All three are picked up here so one switch arms any of them.
 const STORAGE_KEY = 'shepherd-bluetooth-ptt';
 
 const HOLD_KEYS = new Set(['Enter', ' ', 'Spacebar']);
+const MEDIA_KEYS = new Set(['MediaPlayPause', 'MediaPlay', 'MediaPause', 'MediaStop', 'HeadsetHook']);
+const MEDIA_KEY_CODES = new Set([179, 178, 79]);
+
+// One headset press can arrive twice — as a media key and as a media session
+// command — so a repeat inside this window is treated as the same press.
+const PRESS_GAP = 400;
 
 const readArmed = () => {
   try {
@@ -30,12 +37,18 @@ const isTypingTarget = (target) =>
 const dialogOpen = () => !!document.querySelector('[role="dialog"], [role="alertdialog"]');
 
 /**
- * Hardware push-to-talk. A keyboard-style button works as hold-to-talk;
- * a headset button toggles transmission on each press.
+ * Hardware push-to-talk. A key-style button works as hold-to-talk; a headset's
+ * call button toggles transmission on each press.
  */
 export default function useBluetoothPtt({ enabled, transmitting, onStart, onEnd }) {
   const [armed, setArmed] = useState(readArmed);
   const heldRef = useRef(false);
+  const pressAtRef = useRef(0);
+  const liveRef = useRef({ transmitting, onStart, onEnd });
+
+  useEffect(() => {
+    liveRef.current = { transmitting, onStart, onEnd };
+  }, [transmitting, onStart, onEnd]);
 
   const toggleArmed = useCallback(() => {
     setArmed((current) => {
@@ -45,6 +58,16 @@ export default function useBluetoothPtt({ enabled, transmitting, onStart, onEnd 
     });
   }, []);
 
+  const press = useCallback(() => {
+    const now = Date.now();
+    if (now - pressAtRef.current < PRESS_GAP) return;
+    pressAtRef.current = now;
+    const live = liveRef.current;
+    if (live.transmitting) live.onEnd();
+    else live.onStart();
+  }, []);
+
+  // Key-style remotes: hold to talk.
   useEffect(() => {
     if (!armed || !enabled) return undefined;
 
@@ -54,13 +77,13 @@ export default function useBluetoothPtt({ enabled, transmitting, onStart, onEnd 
       event.preventDefault();
       if (heldRef.current) return;
       heldRef.current = true;
-      onStart();
+      liveRef.current.onStart();
     };
 
     const up = (event) => {
       if (!HOLD_KEYS.has(event.key) || !heldRef.current) return;
       heldRef.current = false;
-      onEnd();
+      liveRef.current.onEnd();
     };
 
     window.addEventListener('keydown', down);
@@ -70,38 +93,82 @@ export default function useBluetoothPtt({ enabled, transmitting, onStart, onEnd 
       window.removeEventListener('keyup', up);
       if (heldRef.current) {
         heldRef.current = false;
-        onEnd();
+        liveRef.current.onEnd();
       }
     };
-  }, [armed, enabled, onStart, onEnd]);
+  }, [armed, enabled]);
 
-  // A headset's multifunction button arrives as a play/pause command on the
-  // media session the radio already publishes, so each press toggles the mic.
+  // Desktops and Android deliver a headset button as a media key.
   useEffect(() => {
-    if (!armed || !enabled || !('mediaSession' in navigator)) return undefined;
+    if (!armed || !enabled) return undefined;
 
-    const press = () => {
-      if (transmitting) onEnd();
-      else onStart();
+    const onMediaKey = (event) => {
+      if (!MEDIA_KEYS.has(event.key) && !MEDIA_KEY_CODES.has(event.keyCode)) return;
+      if (isTypingTarget(event.target) || dialogOpen()) return;
+      event.preventDefault();
+      press();
     };
 
-    const media = navigator.mediaSession;
-    try {
-      media.setActionHandler('play', press);
-      media.setActionHandler('pause', press);
-    } catch (_) {
-      return undefined;
+    window.addEventListener('keydown', onMediaKey);
+    return () => window.removeEventListener('keydown', onMediaKey);
+  }, [armed, enabled, press]);
+
+  // Phones hand the headset button to the browser through the media session,
+  // which only exists while something is playing. The silent carrier holds that
+  // session open, and the play/pause commands become talk start and stop.
+  useEffect(() => {
+    if (!armed || !enabled) return undefined;
+
+    const carrier = createSilentCarrier();
+    const media = 'mediaSession' in navigator ? navigator.mediaSession : null;
+
+    const claimSession = () => {
+      if (!media) return;
+      try {
+        if (!media.metadata) {
+          media.metadata = new MediaMetadata({
+            title: 'Team Radio',
+            artist: 'Shepherd Shield',
+            album: 'Push to talk',
+          });
+        }
+        media.playbackState = 'playing';
+      } catch (_) {
+        /* browser without media metadata */
+      }
+    };
+
+    const onHeadsetPress = () => {
+      press();
+      claimSession();
+      carrier.keepAlive();
+    };
+
+    claimSession();
+
+    if (media) {
+      try {
+        media.setActionHandler('play', onHeadsetPress);
+        media.setActionHandler('pause', onHeadsetPress);
+        media.setActionHandler('stop', onHeadsetPress);
+      } catch (_) {
+        /* no media button support */
+      }
     }
 
     return () => {
-      try {
-        media.setActionHandler('play', null);
-        media.setActionHandler('pause', null);
-      } catch (_) {
-        /* handler already gone */
+      carrier.dispose();
+      if (media) {
+        try {
+          media.setActionHandler('play', null);
+          media.setActionHandler('pause', null);
+          media.setActionHandler('stop', null);
+        } catch (_) {
+          /* handler already gone */
+        }
       }
     };
-  }, [armed, enabled, transmitting, onStart, onEnd]);
+  }, [armed, enabled, press]);
 
   return { armed, toggleArmed };
 }

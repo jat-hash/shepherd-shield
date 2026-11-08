@@ -34,9 +34,9 @@ export default function BluetoothPttCard({ ready }) {
                 ? 'Waiting for the radio to come online'
                 : armed
                 ? session.transmitting
-                  ? 'Live — press the button again to stop'
-                  : 'Armed — hold a key-style button, tap a headset button'
-                : 'Pair the button in your phone settings, then switch on'}
+                  ? 'Live — tap the headset button again to stop'
+                  : 'Armed — tap the headset call button to talk'
+                : 'Pair the headset in your phone settings, then switch on'}
             </p>
           </div>
         </div>
@@ -48,6 +48,10 @@ export default function BluetoothPttCard({ ready }) {
           className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-white/20"
         />
       </div>
+      <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
+        Works with a Bluetooth headset call button and with clip-on remote buttons. Sound and
+        microphone follow the headset your phone is paired to.
+      </p>
     </div>
   );
 }
