@@ -51,36 +51,45 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
 
   // Presence comes from the radio server, so it covers everyone on the channel
   // (including this device) and knows who is on a different channel instead.
+  const peopleOnChannel = presence.filter(
+    (entry) =>
+      entry.channel_id === channel.id ||
+      (!!entry.channel_name && entry.channel_name === channel.name)
+  );
   const onThisChannel = new Set(
-    presence
-      .filter(
-        (entry) =>
-          entry.channel_id === channel.id ||
-          (!!entry.channel_name && entry.channel_name === channel.name)
-      )
-      .map((entry) => entry.email)
+    peopleOnChannel.map((entry) => String(entry.email || '').toLowerCase()).filter(Boolean)
   );
   const onOtherChannel = new Map(
     presence
-      .filter((entry) => !onThisChannel.has(entry.email) && entry.channel_name)
-      .map((entry) => [entry.email, entry.channel_name])
+      .filter((entry) => !onThisChannel.has(String(entry.email || '').toLowerCase()) && entry.channel_name)
+      .map((entry) => [String(entry.email || '').toLowerCase(), entry.channel_name])
   );
   // Fallback for when the radio server cannot be queried.
   const sessionLive = new Set(liveEmails.map((email) => String(email).toLowerCase()));
   const isActive = (email) =>
-    onThisChannel.has(email.toLowerCase()) || sessionLive.has(email.toLowerCase());
+    onThisChannel.has(String(email).toLowerCase()) || sessionLive.has(String(email).toLowerCase());
+
+  // Anyone actually on the channel is listed even when the team directory is not
+  // readable for this member, so the panel never claims the channel is empty.
+  const roster = [...members];
+  Array.from(new Set([...onThisChannel, ...sessionLive])).forEach((email) => {
+    if (roster.some((member) => String(member.email).toLowerCase() === email)) return;
+    const live = peopleOnChannel.find((entry) => String(entry.email).toLowerCase() === email);
+    roster.push({ email: live?.email || email, name: live?.name || email });
+  });
+  roster.sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
   // Live push-to-talk state, so the exact person holding the microphone open is
   // marked the instant they press their headset button.
   const speakingSet = new Set((speakingEmails || []).map((email) => String(email).toLowerCase()));
   const isSpeaking = (email) => !!email && speakingSet.has(String(email).toLowerCase());
-  const speakerNames = members.filter((member) => isSpeaking(member.email)).map((member) => member.name);
+  const speakerNames = roster.filter((member) => isSpeaking(member.email)).map((member) => member.name);
 
-  const activeCount = members.filter((member) => isActive(member.email)).length;
+  const activeCount = roster.filter((member) => isActive(member.email)).length;
   const selectedName =
     audience === 'everyone'
       ? 'Everyone'
-      : members.find((member) => member.email === audience)?.name || audience;
+      : roster.find((member) => member.email === audience)?.name || audience;
 
   const pick = (value, name) => {
     onSelect(value, name);
@@ -142,10 +151,10 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
             {audience === 'everyone' && <Check className="h-3.5 w-3.5 text-[#d4a843]" />}
           </button>
 
-          {members.map((member) => {
+          {roster.map((member) => {
             const talking = isSpeaking(member.email);
             const onChannel = isActive(member.email) || talking;
-            const elsewhere = onOtherChannel.get(member.email.toLowerCase()) || null;
+            const elsewhere = onOtherChannel.get(String(member.email).toLowerCase()) || null;
             const selected = audience === member.email;
             return (
               <button
@@ -196,7 +205,7 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
             );
           })}
 
-          {members.length === 0 && (
+          {roster.length === 0 && (
             <p className="px-2.5 py-3 text-[11px] text-slate-500">No members can join this channel yet.</p>
           )}
         </div>
