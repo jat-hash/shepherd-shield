@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import useTalkSession, { TALK_STATUS } from '@/hooks/useTalkSession';
@@ -91,6 +91,13 @@ export function RadioSessionProvider({ children }) {
     onEnd: session.stopTransmitting,
   });
 
+  // Emails of everyone talking right now, this device included.
+  const speakingEmails = useMemo(() => {
+    const list = new Set((session.talkerIds || []).map((id) => String(id).toLowerCase()));
+    if (session.transmitting && user?.email) list.add(String(user.email).toLowerCase());
+    return Array.from(list);
+  }, [session.talkerIds, session.transmitting, user?.email]);
+
   const selectChannel = useCallback(
     (id) => {
       saveChannel(id);
@@ -109,6 +116,7 @@ export function RadioSessionProvider({ children }) {
     session,
     radioReady,
     headset,
+    speakingEmails,
   };
 
   return <RadioSessionContext.Provider value={value}>{children}</RadioSessionContext.Provider>;

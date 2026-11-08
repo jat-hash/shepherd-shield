@@ -41,6 +41,9 @@ export default function useTalkSession(channelId, options = {}) {
   const [networkOffline, setNetworkOffline] = useState(isBrowserOffline());
   const [participants, setParticipants] = useState([]);
   const [activeSpeakerIds, setActiveSpeakerIds] = useState([]);
+  // Who is holding the microphone open right now — the exact push-to-talk
+  // state, which is instant on a headset button press unlike audio detection.
+  const [talkerIds, setTalkerIds] = useState([]);
   const [transmitting, setTransmitting] = useState(false);
   const [nearbyPeers, setNearbyPeers] = useState([]);
   const [setupRequired, setSetupRequired] = useState(false);
@@ -98,6 +101,7 @@ export default function useTalkSession(channelId, options = {}) {
     setError(null);
     setParticipants([]);
     setActiveSpeakerIds([]);
+    setTalkerIds([]);
     setTransport(TALK_TRANSPORT.NONE);
     mutedRef.current = new Set();
     audienceRef.current = 'everyone';
@@ -125,17 +129,34 @@ export default function useTalkSession(channelId, options = {}) {
     };
     announceRef.current = announceAudience;
 
+    // A member pressing push-to-talk (headset button or on-screen) opens their
+    // microphone, so the open microphone is the reliable "talking" signal.
+    const micOpen = (participant) => {
+      try {
+        if (typeof participant.isMicrophoneEnabled === 'boolean') {
+          return participant.isMicrophoneEnabled || !!participant.isSpeaking;
+        }
+      } catch (_) {
+        /* the participant may already be gone */
+      }
+      return !!participant.isSpeaking;
+    };
+
     const syncParticipants = () => {
       if (localRef.current) return;
       const list = [];
+      const talkers = [];
       room.remoteParticipants.forEach((participant) => {
+        const talking = micOpen(participant);
         list.push({
           id: participant.identity,
           name: participant.name || participant.identity,
-          speaking: !!participant.isSpeaking,
+          speaking: talking,
         });
+        if (talking) talkers.push(participant.identity);
       });
       setParticipants(list);
+      setTalkerIds(talkers);
     };
 
     room
@@ -154,6 +175,7 @@ export default function useTalkSession(channelId, options = {}) {
         syncParticipants();
       })
       .on(RoomEvent.TrackUnmuted, syncParticipants)
+      .on(RoomEvent.TrackPublished, syncParticipants)
       .on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
         if (track.kind !== 'audio') return;
         const element = track.attach();
@@ -554,6 +576,7 @@ export default function useTalkSession(channelId, options = {}) {
     networkOffline,
     participants,
     activeSpeakerIds,
+    talkerIds,
     transmitting,
     nearbyPeers,
     setupRequired,

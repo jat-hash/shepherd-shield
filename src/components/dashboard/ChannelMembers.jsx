@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Users, ChevronDown, Check } from 'lucide-react';
+import { Users, ChevronDown, Check, Mic } from 'lucide-react';
 import useRadioPresence from '@/hooks/useRadioPresence';
+import { useRadioSession } from '@/context/RadioSessionContext';
 
 const canJoin = (member, channel) => {
   const roles = (channel?.allowed_roles || []).map((role) => String(role).toLowerCase());
@@ -19,6 +20,7 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
   const [members, setMembers] = useState([]);
   const [open, setOpen] = useState(false);
   const { presence } = useRadioPresence();
+  const { speakingEmails } = useRadioSession();
 
   useEffect(() => {
     if (!channel) return;
@@ -68,6 +70,12 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
   const isActive = (email) =>
     onThisChannel.has(email.toLowerCase()) || sessionLive.has(email.toLowerCase());
 
+  // Live push-to-talk state, so the exact person holding the microphone open is
+  // marked the instant they press their headset button.
+  const speakingSet = new Set((speakingEmails || []).map((email) => String(email).toLowerCase()));
+  const isSpeaking = (email) => !!email && speakingSet.has(String(email).toLowerCase());
+  const speakerNames = members.filter((member) => isSpeaking(member.email)).map((member) => member.name);
+
   const activeCount = members.filter((member) => isActive(member.email)).length;
   const selectedName =
     audience === 'everyone'
@@ -85,9 +93,20 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
         <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
           <Users className="h-3 w-3" /> Who to call
         </p>
-        <span className="text-[10px] font-semibold text-emerald-400">
-          {activeCount} active on channel
-        </span>
+        {speakerNames.length > 0 ? (
+          <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-emerald-400">
+            <Mic className="h-3 w-3 animate-pulse" />
+            <span className="max-w-[10rem] truncate">
+              {speakerNames[0]}
+              {speakerNames.length > 1 ? ` +${speakerNames.length - 1}` : ''}
+            </span>
+            talking
+          </span>
+        ) : (
+          <span className="text-[10px] font-semibold text-emerald-400">
+            {activeCount} active on channel
+          </span>
+        )}
       </div>
 
       <button
@@ -124,7 +143,8 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
           </button>
 
           {members.map((member) => {
-            const onChannel = isActive(member.email);
+            const talking = isSpeaking(member.email);
+            const onChannel = isActive(member.email) || talking;
             const elsewhere = onOtherChannel.get(member.email.toLowerCase()) || null;
             const selected = audience === member.email;
             return (
@@ -132,26 +152,44 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
                 key={member.email}
                 type="button"
                 onClick={() => pick(member.email, member.name)}
-                className={`flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left text-xs ${
-                  selected ? 'bg-[#d4a843]/15 text-white' : 'text-slate-300 hover:bg-white/5'
+                className={`flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left text-xs transition-colors ${
+                  talking
+                    ? 'bg-emerald-500/15 text-white ring-1 ring-inset ring-emerald-400/50'
+                    : selected
+                    ? 'bg-[#d4a843]/15 text-white'
+                    : 'text-slate-300 hover:bg-white/5'
                 }`}
               >
                 <span className="flex min-w-0 items-center gap-2">
                   <span
                     className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                      onChannel ? 'bg-emerald-400' : elsewhere ? 'bg-amber-400' : 'bg-slate-600'
+                      talking
+                        ? 'animate-pulse bg-emerald-400'
+                        : onChannel
+                        ? 'bg-emerald-400'
+                        : elsewhere
+                        ? 'bg-amber-400'
+                        : 'bg-slate-600'
                     }`}
                   />
-                  <span className="truncate">{member.name}</span>
+                  <span className={`truncate ${talking ? 'font-semibold text-emerald-200' : ''}`}>
+                    {member.name}
+                  </span>
                 </span>
                 <span className="flex shrink-0 items-center gap-1.5">
-                  <span
-                    className={`text-[9px] font-bold uppercase tracking-wide ${
-                      onChannel ? 'text-emerald-400' : elsewhere ? 'text-amber-400' : 'text-slate-600'
-                    }`}
-                  >
-                    {onChannel ? 'Active' : elsewhere ? elsewhere : 'Offline'}
-                  </span>
+                  {talking ? (
+                    <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-emerald-300">
+                      <Mic className="h-3 w-3 animate-pulse" /> Talking
+                    </span>
+                  ) : (
+                    <span
+                      className={`text-[9px] font-bold uppercase tracking-wide ${
+                        onChannel ? 'text-emerald-400' : elsewhere ? 'text-amber-400' : 'text-slate-600'
+                      }`}
+                    >
+                      {onChannel ? 'Active' : elsewhere ? elsewhere : 'Offline'}
+                    </span>
+                  )}
                   {selected && <Check className="h-3.5 w-3.5 text-[#d4a843]" />}
                 </span>
               </button>
