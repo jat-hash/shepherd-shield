@@ -2,7 +2,6 @@ import React from 'react';
 import { Bluetooth } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useRadioSession } from '@/context/RadioSessionContext';
-import useBluetoothPtt from '@/hooks/useBluetoothPtt';
 
 /**
  * Arms a paired Bluetooth button (keyboard-style remote or headset button) as
@@ -10,13 +9,8 @@ import useBluetoothPtt from '@/hooks/useBluetoothPtt';
  * the browser only listens for what the paired button sends.
  */
 export default function BluetoothPttCard({ ready }) {
-  const { session } = useRadioSession();
-  const { armed, toggleArmed } = useBluetoothPtt({
-    enabled: ready,
-    transmitting: session.transmitting,
-    onStart: session.startTransmitting,
-    onEnd: session.stopTransmitting,
-  });
+  const { session, headset } = useRadioSession();
+  const { armed, toggleArmed } = headset;
 
   return (
     <div className="rounded-lg border border-white/10 bg-white/5 p-3">
@@ -49,8 +43,8 @@ export default function BluetoothPttCard({ ready }) {
         />
       </div>
       <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-        Works with a Bluetooth headset call button and with clip-on remote buttons. Sound and
-        microphone follow the headset your phone is paired to.
+        Works with a Bluetooth headset call button and with clip-on remote buttons, on any screen
+        in the app. Sound and microphone follow the headset your phone is paired to.
       </p>
     </div>
   );

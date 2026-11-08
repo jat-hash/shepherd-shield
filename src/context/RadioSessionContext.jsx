@@ -1,7 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
-import useTalkSession from '@/hooks/useTalkSession';
+import useTalkSession, { TALK_STATUS } from '@/hooks/useTalkSession';
+import useBluetoothPtt from '@/hooks/useBluetoothPtt';
 import { canAccessMainApp } from '@/lib/leadership';
 
 const RadioSessionContext = createContext(null);
@@ -78,6 +79,18 @@ export function RadioSessionProvider({ children }) {
 
   const session = useTalkSession(channelId, { audiencePersistent: true });
 
+  // The radio is usable as soon as it holds a channel, online or holding on a
+  // direct link. Patrols move between screens, so the headset button is armed
+  // here for the whole app rather than on the radio pages only.
+  const radioReady =
+    !!channelId && (session.status === TALK_STATUS.ONLINE || session.status === TALK_STATUS.OFFLINE);
+  const headset = useBluetoothPtt({
+    enabled: radioReady,
+    transmitting: session.transmitting,
+    onStart: session.startTransmitting,
+    onEnd: session.stopTransmitting,
+  });
+
   const selectChannel = useCallback(
     (id) => {
       saveChannel(id);
@@ -94,6 +107,8 @@ export function RadioSessionProvider({ children }) {
     selectChannel,
     refreshChannels: loadChannels,
     session,
+    radioReady,
+    headset,
   };
 
   return <RadioSessionContext.Provider value={value}>{children}</RadioSessionContext.Provider>;
