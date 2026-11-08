@@ -93,7 +93,9 @@ export function RadioSessionProvider({ children }) {
 
   // Emails of everyone talking right now, this device included.
   const speakingEmails = useMemo(() => {
-    const list = new Set((session.talkerIds || []).map((id) => String(id).toLowerCase()));
+    const list = new Set(
+      (session.talkerIds || []).map((id) => String(id).split('#')[0].toLowerCase())
+    );
     if (session.transmitting && user?.email) list.add(String(user.email).toLowerCase());
     return Array.from(list);
   }, [session.talkerIds, session.transmitting, user?.email]);

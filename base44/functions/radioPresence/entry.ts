@@ -94,7 +94,9 @@ export default async function (req: Request): Promise<Response> {
           : byId.get(String(room.name).replace(/^shepherd-/, ''));
 
       for (const participant of participants) {
-        const email = String(participant?.identity || '').toLowerCase();
+        // Identities carry a per-device suffix (email#device) so one member can
+        // listen on several devices; presence is reported per member.
+        const email = String(participant?.identity || '').split('#')[0].toLowerCase();
         if (!email) continue;
         presence.push({
           email,

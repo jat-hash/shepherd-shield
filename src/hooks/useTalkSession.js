@@ -26,6 +26,22 @@ export const TALK_TRANSPORT = {
   NONE: 'none',
 };
 
+// This device's own radio identity suffix. Two devices signed in as the same
+// member must both stay connected, so each joins under its own identity.
+const DEVICE_KEY = 'shepherd-radio-device';
+const getDeviceId = () => {
+  try {
+    let id = localStorage.getItem(DEVICE_KEY);
+    if (!id) {
+      id = Math.random().toString(36).slice(2, 10);
+      localStorage.setItem(DEVICE_KEY, id);
+    }
+    return id;
+  } catch (_) {
+    return 'device';
+  }
+};
+
 export const isBrowserOffline = () =>
   typeof navigator !== 'undefined' && navigator.onLine === false;
 
@@ -232,8 +248,15 @@ export default function useTalkSession(channelId, options = {}) {
           return;
         }
         const target = message?.audience;
+        // A target can arrive as this device's identity or as the member's email.
+        const selfIdentity = String(selfEmailRef.current || '');
+        const selfEmail = selfIdentity.split('#')[0];
         const meantForMe =
-          !target || target === 'none' || target === 'everyone' || target === selfEmailRef.current;
+          !target ||
+          target === 'none' ||
+          target === 'everyone' ||
+          target === selfIdentity ||
+          target === selfEmail;
         if (meantForMe) mutedRef.current.delete(participant.identity);
         else mutedRef.current.add(participant.identity);
         applyVolume(room, volumeRef.current);
@@ -295,7 +318,10 @@ export default function useTalkSession(channelId, options = {}) {
       if (connectingRef.current) return false;
       connectingRef.current = true;
       try {
-        const response = await base44.functions.invoke('livekitToken', { channel_id: channelId });
+        const response = await base44.functions.invoke('livekitToken', {
+          channel_id: channelId,
+          device_id: getDeviceId(),
+        });
         const data = response?.data || {};
         if (cancelled) return false;
 
@@ -514,7 +540,7 @@ export default function useTalkSession(channelId, options = {}) {
       if (now - lastAlertRef.current > 90000) {
         lastAlertRef.current = now;
         const listening = Array.from(room.remoteParticipants.values()).map(
-          (participant) => participant.identity
+          (participant) => String(participant.identity || '').split('#')[0]
         );
         base44.functions
           .invoke('notifyRadioTransmission', { channel_id: channelId, exclude_emails: listening })

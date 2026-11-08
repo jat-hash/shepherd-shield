@@ -27,6 +27,15 @@ export default async function (req: Request): Promise<Response> {
       return Response.json({ error: 'channel_id is required' }, { status: 400 });
     }
 
+    // Every device gets its own identity. The same member signed in on a phone
+    // and in a browser must be able to listen at the same time — LiveKit kicks
+    // the older session out when two clients share one identity, which leaves
+    // one of them flip-flopping between online and offline.
+    const deviceId = String(body?.device_id || '')
+      .replace(/[^a-zA-Z0-9_-]/g, '')
+      .slice(0, 24);
+    const identity = deviceId ? `${user.email}#${deviceId}` : user.email;
+
     const url = Deno.env.get('LIVEKIT_URL');
     const apiKey = Deno.env.get('LIVEKIT_API_KEY');
     const apiSecret = Deno.env.get('LIVEKIT_API_SECRET');
@@ -56,7 +65,7 @@ export default async function (req: Request): Promise<Response> {
       {
         exp: now + TOKEN_TTL_SECONDS,
         iss: apiKey,
-        sub: user.email,
+        sub: identity,
         name: user.full_name || user.email,
         nbf: now - 10,
         video: {
@@ -101,7 +110,8 @@ export default async function (req: Request): Promise<Response> {
       url,
       token,
       room,
-      identity: user.email,
+      identity,
+      email: user.email,
       channel: {
         id: channel.id,
         name: channel.name,

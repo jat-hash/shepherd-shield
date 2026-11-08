@@ -78,7 +78,8 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
     liveEntries.push({ email: selfEmail, name: user?.full_name || user?.email });
   }
   liveEmails.forEach((email) => {
-    const key = String(email).toLowerCase();
+    // Participant identities carry a per-device suffix, e.g. email#abcd1234
+    const key = String(email).split('#')[0].toLowerCase();
     if (liveEntries.some((entry) => entry.email === key)) return;
     liveEntries.push({ email: key, name: members.find((m) => String(m.email).toLowerCase() === key)?.name || key });
   });
