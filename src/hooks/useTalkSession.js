@@ -50,6 +50,8 @@ export default function useTalkSession(channelId, options = {}) {
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [error, setError] = useState(null);
   const [audience, setAudienceState] = useState('everyone');
+  // Bumped whenever the channel has to be reopened from scratch.
+  const [sessionKey, setSessionKey] = useState(0);
 
   const roomRef = useRef(null);
   const volumeRef = useRef(1);
@@ -83,6 +85,20 @@ export default function useTalkSession(channelId, options = {}) {
     if (!channelId) return undefined;
 
     let cancelled = false;
+    let rebuildTimer = null;
+    // A previous join attempt belongs to the room being replaced.
+    connectingRef.current = false;
+
+    // A channel that drops is reopened from scratch — a brand-new room with a
+    // fresh token — instead of reviving a stale connection that can stay dead.
+    const scheduleRebuild = (delay = 5000) => {
+      if (rebuildTimer || cancelled) return;
+      rebuildTimer = setTimeout(() => {
+        rebuildTimer = null;
+        if (!cancelled) setSessionKey((key) => key + 1);
+      }, delay);
+    };
+
     const room = new Room({
       adaptiveStream: true,
       dynacast: true,
@@ -228,10 +244,23 @@ export default function useTalkSession(channelId, options = {}) {
         setTransport(TALK_TRANSPORT.INTERNET);
         setStatus(TALK_STATUS.ONLINE);
       })
+      // The room's own state is the truth: whatever else happened, a live
+      // connection reads as online and never as a stale "offline".
+      .on(RoomEvent.ConnectionStateChanged, (state) => {
+        if (localRef.current) return;
+        if (state === ConnectionState.Connected) {
+          setTransport(TALK_TRANSPORT.INTERNET);
+          setStatus(TALK_STATUS.ONLINE);
+          setError(null);
+        } else if (state === ConnectionState.Reconnecting) {
+          setStatus(TALK_STATUS.SEARCHING);
+        }
+      })
       .on(RoomEvent.Disconnected, () => {
         if (roomRef.current === room && !localRef.current) {
           setStatus(TALK_STATUS.DISCONNECTED);
           setTransport(TALK_TRANSPORT.NONE);
+          scheduleRebuild();
         }
       });
 
@@ -282,6 +311,7 @@ export default function useTalkSession(channelId, options = {}) {
           setError(data.error || 'The radio could not prepare this channel.');
           setTransport(TALK_TRANSPORT.NONE);
           setStatus(TALK_STATUS.DISCONNECTED);
+          if (!configBlockedRef.current) scheduleRebuild();
           return false;
         }
 
@@ -307,7 +337,9 @@ export default function useTalkSession(channelId, options = {}) {
         applyVolume(room, volumeRef.current);
         setAudioBlocked(!room.canPlaybackAudio);
         setTransport(TALK_TRANSPORT.INTERNET);
+        setNetworkOffline(false);
         setStatus(TALK_STATUS.ONLINE);
+        setError(null);
         syncParticipants();
         return true;
       } catch (connectError) {
@@ -328,23 +360,20 @@ export default function useTalkSession(channelId, options = {}) {
         }
         setTransport(TALK_TRANSPORT.NONE);
         setStatus(TALK_STATUS.DISCONNECTED);
+        if (!configBlockedRef.current && !isBrowserOffline()) scheduleRebuild();
         return false;
       } finally {
         connectingRef.current = false;
       }
     };
 
-    // Direct first, then internet — and no internet attempt at all while the
-    // device reports no data connection.
+    // Direct first, then internet. A device that only *thinks* it is offline
+    // (a captive portal, a stale network flag) still gets a join attempt, so the
+    // radio never sits on "offline" while the connection is really there.
     const open = async () => {
       setStatus(TALK_STATUS.SEARCHING);
       setError(null);
       if (await startDirect()) return;
-      if (isBrowserOffline()) {
-        setTransport(TALK_TRANSPORT.NONE);
-        setStatus(TALK_STATUS.DISCONNECTED);
-        return;
-      }
       await connectInternet();
     };
     open();
@@ -366,7 +395,7 @@ export default function useTalkSession(channelId, options = {}) {
     const onOnline = () => {
       setNetworkOffline(false);
       if (localRef.current) return;
-      if (room.state === ConnectionState.Disconnected) connectInternet();
+      if (room.state === ConnectionState.Disconnected) scheduleRebuild(0);
     };
 
     window.addEventListener('offline', onOffline);
@@ -379,7 +408,7 @@ export default function useTalkSession(channelId, options = {}) {
       const current = roomRef.current;
       if (!current || current.state !== ConnectionState.Disconnected) return;
       if (isBrowserOffline() || configBlockedRef.current) return;
-      connectInternet();
+      scheduleRebuild(0);
     };
     const retryId = setInterval(rejoined, 12000);
 
@@ -414,6 +443,7 @@ export default function useTalkSession(channelId, options = {}) {
 
     return () => {
       cancelled = true;
+      if (rebuildTimer) clearTimeout(rebuildTimer);
       transmittingRef.current = false;
       setTransmitting(false);
       upgradeToDirectRef.current = null;
@@ -430,7 +460,7 @@ export default function useTalkSession(channelId, options = {}) {
       if (audioContainerRef.current === audioContainer) audioContainerRef.current = null;
       if (roomRef.current === room) roomRef.current = null;
     };
-  }, [channelId]);
+  }, [channelId, sessionKey]);
 
   // Nearby-device awareness, and a chance to move onto a direct link the
   // moment one becomes reachable.
