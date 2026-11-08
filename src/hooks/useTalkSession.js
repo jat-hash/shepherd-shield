@@ -60,6 +60,8 @@ export default function useTalkSession(channelId, options = {}) {
   const mutedRef = useRef(new Set());
   const announceRef = useRef(null);
   const lastAlertRef = useRef(0);
+  const connectingRef = useRef(false);
+  const configBlockedRef = useRef(false);
 
   // Anyone the current speaker is not addressing stays silenced, even though
   // the channel itself carries their voice to every joined device.
@@ -91,6 +93,7 @@ export default function useTalkSession(channelId, options = {}) {
     localRef.current = false;
     setStatus(TALK_STATUS.SEARCHING);
     setSetupRequired(false);
+    configBlockedRef.current = false;
     setAudioBlocked(false);
     setError(null);
     setParticipants([]);
@@ -225,18 +228,23 @@ export default function useTalkSession(channelId, options = {}) {
     };
 
     const connectInternet = async () => {
+      // One attempt at a time — the retry loop and a wake-up can overlap.
+      if (connectingRef.current) return false;
+      connectingRef.current = true;
       try {
         const response = await base44.functions.invoke('livekitToken', { channel_id: channelId });
         const data = response?.data || {};
         if (cancelled) return false;
 
         if (data.code === 'not_configured') {
+          configBlockedRef.current = true;
           setSetupRequired(true);
           setTransport(TALK_TRANSPORT.NONE);
           setStatus(TALK_STATUS.DISCONNECTED);
           return false;
         }
         if (data.code === 'credentials_rejected' || data.error) {
+          if (data.code === 'credentials_rejected') configBlockedRef.current = true;
           setError(data.error || 'The radio could not prepare this channel.');
           setTransport(TALK_TRANSPORT.NONE);
           setStatus(TALK_STATUS.DISCONNECTED);
@@ -276,6 +284,7 @@ export default function useTalkSession(channelId, options = {}) {
         // LiveKit credentials are refused — show that, not a network message.
         const payload = connectError?.response?.data || {};
         if (payload.code === 'credentials_rejected' || payload.code === 'not_configured') {
+          configBlockedRef.current = true;
           if (payload.code === 'not_configured') setSetupRequired(true);
           setError(payload.error || null);
         } else if (connectError?.status === 401 || connectError?.response?.status === 401) {
@@ -286,6 +295,8 @@ export default function useTalkSession(channelId, options = {}) {
         setTransport(TALK_TRANSPORT.NONE);
         setStatus(TALK_STATUS.DISCONNECTED);
         return false;
+      } finally {
+        connectingRef.current = false;
       }
     };
 
@@ -327,12 +338,45 @@ export default function useTalkSession(channelId, options = {}) {
     window.addEventListener('offline', onOffline);
     window.addEventListener('online', onOnline);
 
+    // The radio looks after itself: if the channel drops (signal loss, the phone
+    // sleeping, Wi-Fi without internet) it rejoins on its own, forever, without
+    // anyone tapping anything.
+    const rejoined = () => {
+      const current = roomRef.current;
+      if (!current || current.state !== ConnectionState.Disconnected) return;
+      if (isBrowserOffline() || configBlockedRef.current) return;
+      connectInternet();
+    };
+    const retryId = setInterval(rejoined, 12000);
+
+    // Coming back to the app (or the screen waking) rejoins immediately instead
+    // of waiting for the next retry, and restores sound after a lock screen.
+    const wake = () => {
+      if (cancelled) return;
+      setNetworkOffline(isBrowserOffline());
+      if (localRef.current) return;
+      const current = roomRef.current;
+      if (!current) return;
+      if (current.state === ConnectionState.Connected) {
+        current.startAudio().then(() => setAudioBlocked(!current.canPlaybackAudio)).catch(() => {});
+        return;
+      }
+      rejoined();
+    };
+    document.addEventListener('visibilitychange', wake);
+    window.addEventListener('pageshow', wake);
+    window.addEventListener('focus', wake);
+
     return () => {
       cancelled = true;
       transmittingRef.current = false;
       setTransmitting(false);
       upgradeToDirectRef.current = null;
       announceRef.current = null;
+      clearInterval(retryId);
+      document.removeEventListener('visibilitychange', wake);
+      window.removeEventListener('pageshow', wake);
+      window.removeEventListener('focus', wake);
       window.removeEventListener('offline', onOffline);
       window.removeEventListener('online', onOnline);
       if (localRef.current) localLink.stop();

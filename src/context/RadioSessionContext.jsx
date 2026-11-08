@@ -6,6 +6,26 @@ import { canAccessMainApp } from '@/lib/leadership';
 
 const RadioSessionContext = createContext(null);
 
+// Remembers the channel this member was on, so reopening the app (or coming
+// back after being closed) puts them straight back on it.
+const CHANNEL_KEY = 'shepherd-radio-channel';
+
+const readSavedChannel = () => {
+  try {
+    return localStorage.getItem(CHANNEL_KEY) || null;
+  } catch (_) {
+    return null;
+  }
+};
+
+const saveChannel = (id) => {
+  try {
+    if (id) localStorage.setItem(CHANNEL_KEY, id);
+  } catch (_) {
+    /* private mode */
+  }
+};
+
 // The channel every member lands on when the app opens: Main Team when it
 // exists, otherwise the first ordinary channel in the configured order.
 function pickMainChannel(channels) {
@@ -22,7 +42,7 @@ function pickMainChannel(channels) {
 export function RadioSessionProvider({ children }) {
   const { user } = useAuth();
   const [channels, setChannels] = useState([]);
-  const [channelId, setChannelId] = useState(null);
+  const [channelId, setChannelId] = useState(readSavedChannel);
 
   // Nursery-only members never use the radio.
   const blocked = !!user && !canAccessMainApp(user);
@@ -36,9 +56,12 @@ export function RadioSessionProvider({ children }) {
       const items = result?.items || (Array.isArray(result) ? result : []);
       setChannels(items);
       if (!items.length) return;
-      setChannelId((current) =>
-        current && items.some((channel) => channel.id === current) ? current : pickMainChannel(items).id
-      );
+      setChannelId((current) => {
+        if (current && items.some((channel) => channel.id === current)) return current;
+        const fallback = pickMainChannel(items).id;
+        saveChannel(fallback);
+        return fallback;
+      });
     } catch (_) {
       setChannels([]);
     }
@@ -57,6 +80,7 @@ export function RadioSessionProvider({ children }) {
 
   const selectChannel = useCallback(
     (id) => {
+      saveChannel(id);
       setChannelId(id);
       session.resumeAudio();
     },
