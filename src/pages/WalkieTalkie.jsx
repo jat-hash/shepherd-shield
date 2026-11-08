@@ -173,8 +173,8 @@ export default function WalkieTalkie() {
 
         {session.networkOffline && session.transport !== TALK_TRANSPORT.DIRECT && (
           <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-3 text-[11px] text-amber-100">
-            No data connection. The radio switches to a direct device link when one is nearby, and rejoins the
-            internet channel automatically when data returns.
+            No connection. Voice needs WiFi or mobile data, so the radio is on standby until service returns —
+            it rejoins this channel automatically, no need to reopen the app.
           </div>
         )}
 

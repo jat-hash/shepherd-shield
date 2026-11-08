@@ -11,7 +11,7 @@ const STATES = {
   },
   [TALK_STATUS.OFFLINE]: {
     label: 'OFFLINE',
-    detail: 'Direct device link',
+    detail: 'Waiting for connection',
     dot: 'bg-[#d4a843]',
     text: 'text-[#d4a843]',
     border: 'border-[#d4a843]/40',
@@ -25,7 +25,7 @@ const STATES = {
   },
   [TALK_STATUS.DISCONNECTED]: {
     label: 'DISCONNECTED',
-    detail: 'No connection',
+    detail: 'Reconnects on its own',
     dot: 'bg-red-500',
     text: 'text-red-400',
     border: 'border-red-500/40',

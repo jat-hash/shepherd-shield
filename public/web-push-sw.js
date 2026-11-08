@@ -10,6 +10,9 @@
 // messages, quick-reply, deep-link into the right DM) but without the Firebase
 // dependency, so it installs cleanly on iOS Safari.
 
+// Keeps the app shell available with no internet (shared offline caching).
+importScripts('/sw-offline.js');
+
 self.addEventListener('install', () => { self.skipWaiting(); });
 self.addEventListener('activate', (event) => { event.waitUntil(self.clients.claim()); });
 

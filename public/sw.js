@@ -1,29 +1,15 @@
 // Shepherd Shield Service Worker
-const CACHE_NAME = 'shepherd-shield-v3';
+// Keeps the app loadable offline (caching lives in sw-offline.js) and shows
+// emergency notifications pushed from an open tab.
 
-// Install
-self.addEventListener('install', (event) => {
+importScripts('/sw-offline.js');
+
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
-// Activate
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
-  );
-});
-
-// Fetch (network-first for API, cache for assets)
-self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-  const url = new URL(event.request.url);
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/functions/')) return;
-
-  event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
-  );
+  event.waitUntil(self.clients.claim());
 });
 
 // ── Push Notification Click Handler ──────────────────────────────────────────

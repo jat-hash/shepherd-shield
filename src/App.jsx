@@ -92,6 +92,7 @@ import PWAInstaller from '@/components/PWAInstaller';
 import WakeLock from '@/components/WakeLock';
 import PocketMode from '@/components/PocketMode';
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
+import OfflineShell from '@/components/OfflineShell';
 import WebPushRegistrar from '@/components/notifications/WebPushRegistrar';
 import { Toaster } from 'sonner';
 
@@ -200,6 +201,9 @@ const AuthenticatedApp = () => {
           </ErrorBoundary>
           <ErrorBoundary>
             <ServiceWorkerRegister />
+          </ErrorBoundary>
+          <ErrorBoundary>
+            <OfflineShell />
           </ErrorBoundary>
           <ErrorBoundary>
             <PWAInstaller />

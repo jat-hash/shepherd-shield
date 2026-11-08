@@ -50,6 +50,8 @@ export default function RadioPTT() {
     ? targetName
       ? `Hold to talk to ${targetName}`
       : `Hold to talk to everyone on ${channelName}`
+    : session.networkOffline
+    ? 'No connection — radio returns when service does'
     : 'Radio offline — reconnecting…';
 
   return (

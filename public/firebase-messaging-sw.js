@@ -7,6 +7,9 @@
 // show notifications when the app was closed; a raw push listener fires for
 // every push event regardless of SW lifecycle state, which guarantees display.
 
+// Keeps the app shell available with no internet (shared offline caching).
+importScripts('/sw-offline.js');
+
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
 
