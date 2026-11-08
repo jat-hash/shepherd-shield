@@ -221,7 +221,7 @@ export default function WalkieTalkie() {
               ? 'On a direct device link every nearby radio hears you.'
               : session.audience === 'everyone'
               ? 'Everyone on this channel will hear you.'
-              : `Only ${audienceName} will hear you. Everyone else on the channel is silenced.`}
+              : `Only ${audienceName} will hear you. You still hear everyone else on the channel.`}
           </p>
         </div>
 

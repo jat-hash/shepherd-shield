@@ -170,8 +170,20 @@ export default function useTalkSession(channelId, options = {}) {
       })
       .on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
         if (localRef.current) return;
-        setActiveSpeakerIds((speakers || []).map((speaker) => speaker.identity));
+        const speaking = (speakers || []).map((speaker) => speaker.identity);
+        setActiveSpeakerIds(speaking);
         syncParticipants();
+        // A silence only covers the transmission it was announced for. The
+        // moment that member stops talking the channel plays again, so a
+        // targeted call never leaves anyone deaf to the rest of the team.
+        let released = false;
+        Array.from(mutedRef.current).forEach((identity) => {
+          if (!speaking.includes(identity)) {
+            mutedRef.current.delete(identity);
+            released = true;
+          }
+        });
+        if (released) applyVolume(room, volumeRef.current);
       })
       .on(RoomEvent.DataReceived, (payload, participant, _kind, topic) => {
         if (topic !== 'radio-audience' || !participant || localRef.current) return;
@@ -358,6 +370,17 @@ export default function useTalkSession(channelId, options = {}) {
       const current = roomRef.current;
       if (!current) return;
       if (current.state === ConnectionState.Connected) {
+        // Coming back to the app restores everyone who is not actually
+        // speaking right now, so a missed release cannot leave the radio quiet.
+        let freed = false;
+        Array.from(mutedRef.current).forEach((identity) => {
+          const remote = current.remoteParticipants.get(identity);
+          if (!remote || !remote.isSpeaking) {
+            mutedRef.current.delete(identity);
+            freed = true;
+          }
+        });
+        if (freed) applyVolume(current, volumeRef.current);
         current.startAudio().then(() => setAudioBlocked(!current.canPlaybackAudio)).catch(() => {});
         return;
       }
@@ -470,6 +493,9 @@ export default function useTalkSession(channelId, options = {}) {
     }
     // Release everyone the transmission was holding silent.
     await announceRef.current?.('none');
+    // Keep the channel playing for this device: talking to one person never
+    // costs the background audio of everyone else.
+    room.startAudio().then(() => setAudioBlocked(!room.canPlaybackAudio)).catch(() => {});
   }, []);
 
   // Safety net: the microphone never stays open if the finger lifts outside the

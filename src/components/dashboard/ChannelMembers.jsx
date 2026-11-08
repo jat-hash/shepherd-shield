@@ -167,7 +167,7 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
       <p className="mt-1 text-[10px] text-slate-500">
         {audience === 'everyone'
           ? 'Holding talk reaches the whole channel.'
-          : 'Holding talk reaches only the selected member.'}
+          : 'Holding talk reaches only the selected member. You still hear the whole channel.'}
       </p>
     </div>
   );
