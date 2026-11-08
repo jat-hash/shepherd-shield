@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Users, ChevronDown, Check, Mic } from 'lucide-react';
 import useRadioPresence from '@/hooks/useRadioPresence';
 import { useRadioSession } from '@/context/RadioSessionContext';
+import { useAuth } from '@/lib/AuthContext';
 
 const canJoin = (member, channel) => {
   const roles = (channel?.allowed_roles || []).map((role) => String(role).toLowerCase());
@@ -20,7 +21,8 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
   const [members, setMembers] = useState([]);
   const [open, setOpen] = useState(false);
   const { presence } = useRadioPresence();
-  const { speakingEmails } = useRadioSession();
+  const { speakingEmails, radioReady } = useRadioSession();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!channel) return;
@@ -64,18 +66,34 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
       .filter((entry) => !onThisChannel.has(String(entry.email || '').toLowerCase()) && entry.channel_name)
       .map((entry) => [String(entry.email || '').toLowerCase(), entry.channel_name])
   );
-  // Fallback for when the radio server cannot be queried.
-  const sessionLive = new Set(liveEmails.map((email) => String(email).toLowerCase()));
-  const isActive = (email) =>
-    onThisChannel.has(String(email).toLowerCase()) || sessionLive.has(String(email).toLowerCase());
+  // Anyone this device already hears on the channel, plus your own connection —
+  // which the radio server picture never needs to be trusted for.
+  const selfEmail = String(user?.email || '').toLowerCase();
+  const selfOnChannel = !!selfEmail && radioReady;
+  const liveEntries = peopleOnChannel.map((entry) => ({
+    email: String(entry.email).toLowerCase(),
+    name: entry.name || entry.email,
+  }));
+  if (selfOnChannel && !liveEntries.some((entry) => entry.email === selfEmail)) {
+    liveEntries.push({ email: selfEmail, name: user?.full_name || user?.email });
+  }
+  liveEmails.forEach((email) => {
+    const key = String(email).toLowerCase();
+    if (liveEntries.some((entry) => entry.email === key)) return;
+    liveEntries.push({ email: key, name: members.find((m) => String(m.email).toLowerCase() === key)?.name || key });
+  });
+
+  const isActive = (email) => {
+    const key = String(email || '').toLowerCase();
+    return !!key && liveEntries.some((entry) => entry.email === key);
+  };
 
   // Anyone actually on the channel is listed even when the team directory is not
   // readable for this member, so the panel never claims the channel is empty.
   const roster = [...members];
-  Array.from(new Set([...onThisChannel, ...sessionLive])).forEach((email) => {
-    if (roster.some((member) => String(member.email).toLowerCase() === email)) return;
-    const live = peopleOnChannel.find((entry) => String(entry.email).toLowerCase() === email);
-    roster.push({ email: live?.email || email, name: live?.name || email });
+  liveEntries.forEach((entry) => {
+    if (roster.some((member) => String(member.email).toLowerCase() === entry.email)) return;
+    roster.push({ email: entry.email, name: entry.name });
   });
   roster.sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
@@ -113,7 +131,7 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
           </span>
         ) : (
           <span className="text-[10px] font-semibold text-emerald-400">
-            {activeCount} active on channel
+            {activeCount} active on {channel.name}
           </span>
         )}
       </div>
