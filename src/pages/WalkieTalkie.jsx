@@ -204,6 +204,8 @@ export default function WalkieTalkie() {
         <TalkerPanel
           participants={session.participants}
           activeSpeakerIds={session.activeSpeakerIds}
+          talkerIds={session.talkerIds}
+          selfSpeaking={session.transmitting}
           nearbyCount={session.nearbyPeers.length}
           selfName={user?.full_name || user?.email}
           connected={session.status === TALK_STATUS.ONLINE || session.status === TALK_STATUS.OFFLINE}

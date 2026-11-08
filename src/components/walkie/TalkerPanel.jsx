@@ -1,7 +1,22 @@
 import React from 'react';
 import { Mic, Users } from 'lucide-react';
 
-export default function TalkerPanel({ participants, activeSpeakerIds, nearbyCount, selfName, connected }) {
+export default function TalkerPanel({
+  participants,
+  activeSpeakerIds,
+  talkerIds = [],
+  selfSpeaking = false,
+  nearbyCount,
+  selfName,
+  connected,
+}) {
+  // The open microphone is the exact push-to-talk state, so a headset button
+  // press lights the person up immediately; voice detection is the backup.
+  const isTalking = (participant) =>
+    talkerIds.includes(participant.id) ||
+    participant.speaking ||
+    activeSpeakerIds.includes(participant.id);
+
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 p-3">
       <div className="mb-2 flex items-center justify-between">
@@ -14,13 +29,31 @@ export default function TalkerPanel({ participants, activeSpeakerIds, nearbyCoun
       </div>
 
       <div className="space-y-1.5">
-        <div className="flex items-center justify-between rounded-lg bg-[#0a1128]/60 px-2.5 py-1.5">
-          <span className={`text-xs ${connected ? 'text-slate-300' : 'text-slate-500'}`}>
+        <div
+          className={`flex items-center justify-between rounded-lg px-2.5 py-1.5 transition-colors ${
+            selfSpeaking ? 'bg-emerald-500/15 ring-1 ring-emerald-400/40' : 'bg-[#0a1128]/60'
+          }`}
+        >
+          <span
+            className={`text-xs ${
+              selfSpeaking
+                ? 'font-semibold text-emerald-200'
+                : connected
+                ? 'text-slate-300'
+                : 'text-slate-500'
+            }`}
+          >
             {selfName || 'You'}
           </span>
-          <span className="text-[10px] uppercase tracking-wider text-slate-500">
-            {connected ? 'You' : 'Not joined'}
-          </span>
+          {selfSpeaking ? (
+            <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+              <Mic className="h-3.5 w-3.5 animate-pulse" /> Talking
+            </span>
+          ) : (
+            <span className="text-[10px] uppercase tracking-wider text-slate-500">
+              {connected ? 'You' : 'Not joined'}
+            </span>
+          )}
         </div>
 
         {participants.length === 0 && (
@@ -32,7 +65,7 @@ export default function TalkerPanel({ participants, activeSpeakerIds, nearbyCoun
         )}
 
         {participants.map((participant) => {
-          const speaking = participant.speaking || activeSpeakerIds.includes(participant.id);
+          const speaking = isTalking(participant);
           return (
             <div
               key={participant.id}
