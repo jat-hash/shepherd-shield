@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Mic, Settings2, Siren, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
-import useTalkSession, { TALK_STATUS, TALK_TRANSPORT } from '@/hooks/useTalkSession';
+import { TALK_STATUS, TALK_TRANSPORT } from '@/hooks/useTalkSession';
+import { useRadioSession } from '@/context/RadioSessionContext';
 import ConnectionStatusPill from '@/components/walkie/ConnectionStatusPill';
 import ChannelChips from '@/components/walkie/ChannelChips';
 import ChannelManager from '@/components/walkie/ChannelManager';
@@ -15,39 +16,15 @@ import EmergencyBroadcast from '@/components/walkie/EmergencyBroadcast';
 
 export default function WalkieTalkie() {
   const [user, setUser] = useState(null);
-  const [channels, setChannels] = useState([]);
-  const [channelId, setChannelId] = useState(null);
+  // The app-wide radio connection: already on the main team channel since open.
+  const { channels, channelId, activeChannel, selectChannel, refreshChannels, session } = useRadioSession();
   const [micState, setMicState] = useState('unknown');
   const [volume, setVolume] = useState(1);
   const [emergency, setEmergency] = useState(null);
   const [managerOpen, setManagerOpen] = useState(false);
 
-  const session = useTalkSession(channelId);
-  const activeChannel = channels.find((channel) => channel.id === channelId) || null;
-
-  const loadChannels = async () => {
-    try {
-      const result = await base44.entities.TalkChannel.filter(
-        { is_active: true },
-        { sort: 'order', limit: 50 }
-      );
-      const items = result?.items || (Array.isArray(result) ? result : []);
-      setChannels(items);
-      if (items.length) {
-        const preferred = items.find((channel) => channel.channel_type !== 'Emergency') || items[0];
-        setChannelId((current) => current || preferred.id);
-      }
-    } catch (_) {
-      setChannels([]);
-    }
-  };
-
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => setUser(null));
-  }, []);
-
-  useEffect(() => {
-    loadChannels();
   }, []);
 
   useEffect(() => {
@@ -77,7 +54,7 @@ export default function WalkieTalkie() {
 
       setEmergency({ title: notification.title, message: notification.message });
       const emergencyChannel = channels.find((channel) => channel.channel_type === 'Emergency');
-      if (emergencyChannel) setChannelId(emergencyChannel.id);
+      if (emergencyChannel) selectChannel(emergencyChannel.id);
     });
     return unsubscribe;
   }, [user?.email, channels]);
@@ -102,10 +79,10 @@ export default function WalkieTalkie() {
         toast.error(data.error);
         return;
       }
-      if (data.channel_id) setChannelId(data.channel_id);
+      if (data.channel_id) selectChannel(data.channel_id);
       else {
         const emergencyChannel = channels.find((channel) => channel.channel_type === 'Emergency');
-        if (emergencyChannel) setChannelId(emergencyChannel.id);
+        if (emergencyChannel) selectChannel(emergencyChannel.id);
       }
       setEmergency({
         title: 'Emergency broadcast active',
@@ -220,10 +197,7 @@ export default function WalkieTalkie() {
         <ChannelChips
           channels={channels}
           activeId={channelId}
-          onSelect={(id) => {
-            setChannelId(id);
-            session.resumeAudio();
-          }}
+          onSelect={selectChannel}
         />
 
         <TalkerPanel
@@ -314,7 +288,7 @@ export default function WalkieTalkie() {
         open={managerOpen}
         channels={channels}
         onOpenChange={setManagerOpen}
-        onSaved={loadChannels}
+        onSaved={refreshChannels}
       />
     </div>
   );

@@ -80,6 +80,7 @@ class ErrorBoundary extends React.Component {
 }
 
 import NotificationProvider from '@/components/notifications/NotificationProvider';
+import { RadioSessionProvider } from '@/context/RadioSessionContext';
 import NurseryDashboard from './pages/NurseryDashboard';
 import NurseryMonitor from './pages/NurseryMonitor';
 import PushDiagnostics from './pages/PushDiagnostics';
@@ -193,6 +194,7 @@ const AuthenticatedApp = () => {
       <ErrorBoundary>
         <MinimizedAppBar>
         <NotificationProvider>
+          <RadioSessionProvider>
           <ErrorBoundary>
             <WakeLock />
           </ErrorBoundary>
@@ -233,6 +235,7 @@ const AuthenticatedApp = () => {
             <Route path="/WalkieTalkie" element={<LayoutWrapper currentPageName="WalkieTalkie"><WalkieTalkie /></LayoutWrapper>} />
             <Route path="*" element={<PageNotFound />} />
           </Routes>
+          </RadioSessionProvider>
         </NotificationProvider>
         </MinimizedAppBar>
       </ErrorBoundary>

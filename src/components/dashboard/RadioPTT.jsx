@@ -1,45 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
 import { Radio, Volume2 } from 'lucide-react';
-import useTalkSession, { TALK_STATUS } from '@/hooks/useTalkSession';
+import { TALK_STATUS } from '@/hooks/useTalkSession';
+import { useRadioSession } from '@/context/RadioSessionContext';
 import ChannelChips from '@/components/walkie/ChannelChips';
 import PTTButton from '@/components/walkie/PTTButton';
 import ChannelMembers from '@/components/dashboard/ChannelMembers';
 
 /**
- * Push-to-talk straight from the home screen: joins the chosen team channel and
- * transmits to everyone on it while the button is held.
+ * Push-to-talk straight from the home screen. The app joins the main team
+ * channel as soon as it opens, so this panel is live without any setup.
  */
 export default function RadioPTT() {
-  const [channels, setChannels] = useState([]);
-  const [channelId, setChannelId] = useState(null);
+  const { channels, channelId, activeChannel, selectChannel, session } = useRadioSession();
   const [targetLabel, setTargetLabel] = useState(null);
-  const session = useTalkSession(channelId, { audiencePersistent: true });
 
-  useEffect(() => {
-    let cancelled = false;
-    base44.entities.TalkChannel.filter({ is_active: true }, { sort: 'order', limit: 50 })
-      .then((result) => {
-        const items = result?.items || (Array.isArray(result) ? result : []);
-        if (cancelled || !items.length) return;
-        // Every app open starts on the main channel; members can switch after.
-        const chosen = items.find((channel) => channel.channel_type !== 'Emergency') || items[0];
-        setChannels(items);
-        setChannelId(chosen.id);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const selectChannel = (id) => {
-    setChannelId(id);
-    session.resumeAudio();
-  };
-
-  const channel = channels.find((item) => item.id === channelId) || null;
+  const channel = activeChannel;
   const channelName = channel?.name || '';
   const ready =
     !!channelId && (session.status === TALK_STATUS.ONLINE || session.status === TALK_STATUS.OFFLINE);
