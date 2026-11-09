@@ -77,6 +77,40 @@ const openMicrophone = async (room) => {
   }
 };
 
+// A transmission addressed to one member must reach that member alone. The room
+// is told only their devices may receive it, so phones whose app is asleep (and
+// never see the audience message) stay silent too.
+const allowOnly = async (room, audience) => {
+  const wanted = String(audience || '').split('#')[0].toLowerCase();
+  const identities = [];
+  room.remoteParticipants.forEach((participant) => {
+    const email = String(participant.identity || '').split('#')[0].toLowerCase();
+    // Every device of that member may listen, not just the one that joined first.
+    if (email && email === wanted) identities.push(participant.identity);
+  });
+  await room.localParticipant.setTrackSubscriptionPermissions(
+    false,
+    identities.map((participantIdentity) => ({ participantIdentity, allTracks: true }))
+  );
+};
+
+const allowEveryone = async (room) => {
+  await room.localParticipant.setTrackSubscriptionPermissions(true).catch(() => {});
+};
+
+// Person-only voice is published fresh for that transmission and taken back
+// down afterwards, so the next transmission can be addressed differently
+// without anyone else ever holding a subscription to it.
+const dropMicrophone = async (room) => {
+  const local = room.localParticipant;
+  const publications = Array.from(local.audioTrackPublications.values());
+  await Promise.all(
+    publications.map((publication) =>
+      publication.track ? local.unpublishTrack(publication.track) : null
+    )
+  );
+};
+
 const mapPeer = (peer) => ({
   id: peer?.id || peer?.name || 'peer',
   name: peer?.name || 'Team member',
@@ -106,9 +140,12 @@ export default function useTalkSession(channelId, options = {}) {
   const localRef = useRef(false);
   const directTryingRef = useRef(false);
   const transmittingRef = useRef(false);
+  // True while the transmission on air is addressed to one member only.
+  const targetedRef = useRef(false);
   const audioContainerRef = useRef(null);
   const upgradeToDirectRef = useRef(null);
   const audienceRef = useRef('everyone');
+  const retargetRef = useRef(null);
   const selfEmailRef = useRef(null);
   const mutedRef = useRef(new Set());
   const announceRef = useRef(null);
@@ -274,6 +311,18 @@ export default function useTalkSession(channelId, options = {}) {
     };
     announceRef.current = announceAudience;
 
+    // Moving an on-air transmission to a different audience republishes the
+    // voice with that audience's permission, never leaving old subscribers
+    // hearing something that is no longer meant for them.
+    retargetRef.current = async (next) => {
+      const onlyOne = !!next && next !== 'everyone';
+      targetedRef.current = onlyOne;
+      await dropMicrophone(room).catch(() => {});
+      if (onlyOne) await allowOnly(room, next).catch(() => {});
+      else await allowEveryone(room);
+      if (transmittingRef.current) await openMicrophone(room).catch(() => {});
+    };
+
     // A member pressing push-to-talk (headset button or on-screen) opens their
     // microphone, so the open microphone is the reliable "talking" signal.
     const micOpen = (participant) => {
@@ -334,6 +383,7 @@ export default function useTalkSession(channelId, options = {}) {
       })
       .on(RoomEvent.TrackUnmuted, syncParticipants)
       .on(RoomEvent.TrackPublished, syncParticipants)
+      .on(RoomEvent.TrackUnpublished, syncParticipants)
       .on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
         if (track.kind !== 'audio') return;
         const element = track.attach();
@@ -614,8 +664,10 @@ export default function useTalkSession(channelId, options = {}) {
       cancelled = true;
       if (rebuildTimer) clearTimeout(rebuildTimer);
       transmittingRef.current = false;
+      targetedRef.current = false;
       setTransmitting(false);
       upgradeToDirectRef.current = null;
+      retargetRef.current = null;
       announceRef.current = null;
       clearInterval(retryId);
       document.removeEventListener('visibilitychange', wake);
@@ -673,6 +725,17 @@ export default function useTalkSession(channelId, options = {}) {
     try {
       await room.startAudio();
       setAudioBlocked(!room.canPlaybackAudio);
+      const target = audienceRef.current;
+      const onlyOne = !!target && target !== 'everyone';
+      targetedRef.current = onlyOne;
+      if (onlyOne) {
+        // Anything still published was addressed to the whole channel, so it is
+        // taken down before this voice is sent to the one selected member.
+        await dropMicrophone(room).catch(() => {});
+        await allowOnly(room, target).catch(() => {});
+      } else {
+        await allowEveryone(room);
+      }
       // Announced before the microphone opens so nobody hears the first word.
       await announceRef.current?.(audienceRef.current);
       await openMicrophone(room);
@@ -708,9 +771,17 @@ export default function useTalkSession(channelId, options = {}) {
     const room = roomRef.current;
     if (!room) return;
     try {
-      await room.localParticipant.setMicrophoneEnabled(false);
+      if (targetedRef.current) {
+        // A person-only voice leaves nothing behind: the microphone is taken
+        // back down and the channel is open to everyone again.
+        await dropMicrophone(room);
+        await allowEveryone(room);
+        targetedRef.current = false;
+      } else {
+        await room.localParticipant.setMicrophoneEnabled(false);
+      }
     } catch (_) {
-      /* already muted or disconnected */
+      /* already muted, unpublished or disconnected */
     }
     // Release everyone the transmission was holding silent.
     await announceRef.current?.('none');
@@ -756,7 +827,12 @@ export default function useTalkSession(channelId, options = {}) {
     const next = value || 'everyone';
     audienceRef.current = next;
     setAudienceState(next);
-    if (transmittingRef.current) announceRef.current?.(next);
+    if (transmittingRef.current) {
+      announceRef.current?.(next);
+      // Picking someone else mid-transmission moves the voice itself, not just
+      // the silence, so the channel only carries it to the new selection.
+      retargetRef.current?.(next).catch(() => {});
+    }
   }, []);
 
   // If the chosen person leaves the channel, fall back to the whole channel.
