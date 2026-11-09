@@ -238,21 +238,30 @@ export default function useTalkSession(channelId, options = {}) {
       return !!participant.isSpeaking;
     };
 
+    // One row per member, never one per device: identities carry a device
+    // suffix, so the same person on two devices (or a leftover session) would
+    // otherwise be listed again and again.
     const syncParticipants = () => {
       if (localRef.current) return;
-      const list = [];
-      const talkers = [];
+      const byMember = new Map();
       room.remoteParticipants.forEach((participant) => {
+        const email = String(participant.identity || '').split('#')[0].toLowerCase();
+        if (!email) return;
         const talking = micOpen(participant);
-        list.push({
-          id: participant.identity,
-          name: participant.name || participant.identity,
+        const existing = byMember.get(email);
+        if (existing) {
+          existing.speaking = existing.speaking || talking;
+          return;
+        }
+        byMember.set(email, {
+          id: email,
+          name: participant.name || email,
           speaking: talking,
         });
-        if (talking) talkers.push(participant.identity);
       });
+      const list = Array.from(byMember.values());
       setParticipants(list);
-      setTalkerIds(talkers);
+      setTalkerIds(list.filter((member) => member.speaking).map((member) => member.id));
     };
 
     room
@@ -297,7 +306,9 @@ export default function useTalkSession(channelId, options = {}) {
       .on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
         if (localRef.current) return;
         const speaking = (speakers || []).map((speaker) => speaker.identity);
-        setActiveSpeakerIds(speaking);
+        setActiveSpeakerIds(
+          speaking.map((identity) => String(identity).split('#')[0].toLowerCase())
+        );
         syncParticipants();
         // A silence only covers the transmission it was announced for. The
         // moment that member stops talking the channel plays again, so a

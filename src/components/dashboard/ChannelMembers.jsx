@@ -96,11 +96,18 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
     if (roster.some((member) => String(member.email).toLowerCase() === entry.email)) return;
     roster.push({ email: entry.email, name: entry.name });
   });
-  roster.sort((a, b) => String(a.name).localeCompare(String(b.name)));
-
   // Live push-to-talk state, so the exact person holding the microphone open is
   // marked the instant they press their headset button.
   const speakingSet = new Set((speakingEmails || []).map((email) => String(email).toLowerCase()));
+
+  // Everyone actually on the channel comes first, then the rest — alphabetical
+  // inside each group, so the list never reshuffles as people come and go.
+  const onAir = (member) => isActive(member.email) || speakingSet.has(String(member.email).toLowerCase());
+  roster.sort((a, b) => {
+    const rank = (member) => (onAir(member) ? 0 : 1);
+    return rank(a) - rank(b) || String(a.name).localeCompare(String(b.name));
+  });
+
   const isSpeaking = (email) => !!email && speakingSet.has(String(email).toLowerCase());
   const speakerNames = roster.filter((member) => isSpeaking(member.email)).map((member) => member.name);
 
