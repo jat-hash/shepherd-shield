@@ -3,6 +3,7 @@ import { ConnectionState, Room, RoomEvent } from 'livekit-client';
 import { base44 } from '@/api/base44Client';
 import { localLink } from '@/lib/localLink';
 import { createSilentCarrier } from '@/lib/silentCarrier';
+import { getCleanMicProcessor } from '@/lib/cleanMic';
 
 /**
  * Talk session engine.
@@ -56,24 +57,33 @@ export const isBrowserOffline = () =>
 // is already cleaned: echo cancellation, background noise suppression, mono
 // capture, and — on browsers that offer it — voice isolation, which filters
 // everything that is not a voice.
-const micCleanup = () => {
-  const options = {
-    echoCancellation: true,
-    noiseSuppression: true,
-    autoGainControl: true,
-  };
-  const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
-  if (/Chrome|Chromium|Edg\//.test(ua)) options.voiceIsolation = true;
-  return options;
-};
+const micCleanup = () => ({
+  echoCancellation: true,
+  noiseSuppression: true,
+  autoGainControl: true,
+  channelCount: 1,
+  // Honoured by Chromium, ignored by browsers that do not know it: it filters
+  // out everything that is not a human voice.
+  voiceIsolation: true,
+});
 
-// Opens the microphone with the cleanup filters; a device that cannot accept
-// them still gets a plain microphone rather than a failed transmission.
+// Opens the microphone with the cleanup filters and routes the voice through
+// the noise-shaping processor, so the channel carries a clean voice instead of
+// the noise-shaping processor, so the channel carries a clean voice instead of
+// the room around it. A device or browser that cannot accept either still gets
+// a plain microphone rather than a failed transmission.
 const openMicrophone = async (room) => {
   try {
-    await room.localParticipant.setMicrophoneEnabled(true, micCleanup());
+    await room.localParticipant.setMicrophoneEnabled(true, {
+      ...micCleanup(),
+      processor: getCleanMicProcessor(),
+    });
   } catch (_) {
-    await room.localParticipant.setMicrophoneEnabled(true);
+    try {
+      await room.localParticipant.setMicrophoneEnabled(true, micCleanup());
+    } catch (_) {
+      await room.localParticipant.setMicrophoneEnabled(true);
+    }
   }
 };
 
