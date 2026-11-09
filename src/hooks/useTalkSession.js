@@ -243,10 +243,14 @@ export default function useTalkSession(channelId, options = {}) {
     // otherwise be listed again and again.
     const syncParticipants = () => {
       if (localRef.current) return;
+      const selfEmail = String(selfEmailRef.current || '').split('#')[0].toLowerCase();
       const byMember = new Map();
       room.remoteParticipants.forEach((participant) => {
         const email = String(participant.identity || '').split('#')[0].toLowerCase();
         if (!email) return;
+        // This member's own other devices are not teammates — the panel already
+        // shows "you" once, so they must never add another row.
+        if (selfEmail && email === selfEmail) return;
         const talking = micOpen(participant);
         const existing = byMember.get(email);
         if (existing) {
