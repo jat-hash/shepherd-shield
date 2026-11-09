@@ -104,11 +104,16 @@ export default function WalkieTalkie() {
 
   const canTalk = !!channelId && (session.status === TALK_STATUS.ONLINE || session.status === TALK_STATUS.OFFLINE);
   const isDirectLink = session.transport === TALK_TRANSPORT.DIRECT;
+  const targets = Array.isArray(session.audience) ? session.audience : [];
+  const targetNames = targets
+    .map((email) => session.participants.find((participant) => participant.id === email)?.name)
+    .filter(Boolean);
   const audienceName =
-    session.audience === 'everyone'
+    targets.length === 0
       ? 'Everyone on this channel'
-      : session.participants.find((participant) => participant.id === session.audience)?.name ||
-        'That member';
+      : targetNames.length === targets.length
+      ? targetNames.join(', ')
+      : `${targets.length} ${targets.length === 1 ? 'member' : 'members'}`;
 
   return (
     <div className="min-h-screen bg-[#0a1128] px-4 pb-8 pt-4 text-white">
@@ -222,9 +227,11 @@ export default function WalkieTalkie() {
           <p className="text-[10px] leading-relaxed text-slate-500">
             {isDirectLink
               ? 'On a direct device link every nearby radio hears you.'
-              : session.audience === 'everyone'
+              : targets.length === 0
               ? 'Everyone on this channel will hear you.'
-              : `Only ${audienceName} will hear you. You still hear everyone else on the channel.`}
+              : `Only ${audienceName} ${
+                  targets.length === 1 ? 'hears' : 'hear'
+                } you. You still hear everyone on the channel, and they can call you back — you stay on ${activeChannel?.name || 'this channel'}.`}
           </p>
         </div>
 

@@ -14,24 +14,35 @@ import ChannelMembers from '@/components/dashboard/ChannelMembers';
  */
 export default function RadioPTT() {
   const { channels, channelId, activeChannel, selectChannel, session } = useRadioSession();
-  const [targetLabel, setTargetLabel] = useState(null);
+  const [targetLabel, setTargetLabel] = useState('');
 
   const channel = activeChannel;
   const channelName = channel?.name || '';
   const ready =
     !!channelId && (session.status === TALK_STATUS.ONLINE || session.status === TALK_STATUS.OFFLINE);
 
+  // Nobody picked means the whole channel; otherwise this is a temporary private
+  // contact with the people selected, inside the same channel.
+  const targets = Array.isArray(session.audience) ? session.audience : [];
   const targetName =
-    session.audience === 'everyone'
+    targets.length === 0
       ? null
-      : session.participants.find((participant) => participant.id === session.audience)?.name ||
-        targetLabel ||
-        session.audience;
+      : targetLabel ||
+        targets
+          .map((email) => session.participants.find((participant) => participant.id === email)?.name)
+          .filter(Boolean)
+          .join(', ') ||
+        `${targets.length} ${targets.length === 1 ? 'member' : 'people'}`;
 
   const pickMember = (value, name) => {
-    setTargetLabel(name || null);
+    setTargetLabel(name || '');
     session.setAudience(value);
   };
+
+  const answering =
+    session.privateFrom && targets.includes(String(session.privateFrom.email || '').toLowerCase())
+      ? session.privateFrom
+      : null;
 
   const start = () => {
     session.startTransmitting();
@@ -83,6 +94,13 @@ export default function RadioPTT() {
           onSelect={pickMember}
           liveEmails={session.participants.map((participant) => participant.id)}
         />
+      )}
+
+      {answering && (
+        <p className="mt-2 rounded-lg border border-[#d4a843]/40 bg-[#d4a843]/10 px-2 py-1.5 text-[10px] leading-relaxed text-[#f0d9a0]">
+          {answering.name} called you privately. Your reply goes only to them — tap “Everyone” to talk to the
+          whole channel again.
+        </p>
       )}
 
       {session.audioBlocked && (

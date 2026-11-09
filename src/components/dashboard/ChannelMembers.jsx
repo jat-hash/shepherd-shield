@@ -15,14 +15,18 @@ const canJoin = (member, channel) => {
 
 /**
  * Dropdown of the members who can be reached on the chosen channel, with their
- * live status. Picking one targets the next transmission at that person.
+ * live status. Picking people opens a temporary private contact with them: only
+ * they hear this device, they can call back privately, and the channel itself
+ * stays on so the rest of the team can still reach you.
  */
-export default function ChannelMembers({ channel, audience, onSelect, liveEmails = [] }) {
+export default function ChannelMembers({ channel, audience = [], onSelect, liveEmails = [] }) {
   const [members, setMembers] = useState([]);
   const [open, setOpen] = useState(false);
   const { presence } = useRadioPresence();
   const { speakingEmails, radioReady } = useRadioSession();
   const { user } = useAuth();
+
+  const selected = Array.isArray(audience) ? audience : [];
 
   useEffect(() => {
     if (!channel) return;
@@ -112,13 +116,28 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
   const speakerNames = roster.filter((member) => isSpeaking(member.email)).map((member) => member.name);
 
   const activeCount = roster.filter((member) => isActive(member.email)).length;
-  const selectedName =
-    audience === 'everyone'
-      ? 'Everyone'
-      : roster.find((member) => member.email === audience)?.name || audience;
 
-  const pick = (value, name) => {
-    onSelect(value, name);
+  const nameOf = (email) =>
+    roster.find((member) => String(member.email).toLowerCase() === email)?.name || email;
+  const selectedNames = selected.map(nameOf);
+  const selectedSummary =
+    selectedNames.length === 0
+      ? 'Everyone'
+      : selectedNames.length === 1
+      ? selectedNames[0]
+      : `${selectedNames[0]} +${selectedNames.length - 1}`;
+
+  // Adding or removing a person keeps the dropdown open so a small group can be
+  // picked in one go.
+  const apply = (list) => {
+    onSelect(list, list.length === 0 ? null : list.map(nameOf).join(', '));
+  };
+  const toggle = (email) => {
+    const key = String(email).toLowerCase();
+    apply(selected.includes(key) ? selected.filter((entry) => entry !== key) : [...selected, key]);
+  };
+  const pickEveryone = () => {
+    apply([]);
     setOpen(false);
   };
 
@@ -152,14 +171,14 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
         <span className="flex min-w-0 items-center gap-2">
           <span
             className={`h-2 w-2 shrink-0 rounded-full ${
-              audience === 'everyone'
+              selected.length === 0
                 ? 'bg-[#d4a843]'
-                : isActive(audience)
+                : selected.every((email) => isActive(email))
                 ? 'bg-emerald-400'
                 : 'bg-slate-600'
             }`}
           />
-          <span className="truncate text-xs font-semibold text-white">{selectedName}</span>
+          <span className="truncate text-xs font-semibold text-white">{selectedSummary}</span>
         </span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
@@ -168,29 +187,29 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
         <div className="mt-1 max-h-56 overflow-y-auto rounded-lg border border-white/10 bg-[#0a1128] p-1.5">
           <button
             type="button"
-            onClick={() => pick('everyone', null)}
+            onClick={pickEveryone}
             className={`flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left text-xs ${
-              audience === 'everyone' ? 'bg-[#d4a843]/15 text-white' : 'text-slate-300 hover:bg-white/5'
+              selected.length === 0 ? 'bg-[#d4a843]/15 text-white' : 'text-slate-300 hover:bg-white/5'
             }`}
           >
             <span className="font-semibold">Everyone on {channel.name}</span>
-            {audience === 'everyone' && <Check className="h-3.5 w-3.5 text-[#d4a843]" />}
+            {selected.length === 0 && <Check className="h-3.5 w-3.5 text-[#d4a843]" />}
           </button>
 
           {roster.map((member) => {
             const talking = isSpeaking(member.email);
             const onChannel = isActive(member.email) || talking;
             const elsewhere = onOtherChannel.get(String(member.email).toLowerCase()) || null;
-            const selected = audience === member.email;
+            const picked = selected.includes(String(member.email).toLowerCase());
             return (
               <button
                 key={member.email}
                 type="button"
-                onClick={() => pick(member.email, member.name)}
+                onClick={() => toggle(member.email)}
                 className={`flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left text-xs transition-colors ${
                   talking
                     ? 'bg-emerald-500/15 text-white ring-1 ring-inset ring-emerald-400/50'
-                    : selected
+                    : picked
                     ? 'bg-[#d4a843]/15 text-white'
                     : 'text-slate-300 hover:bg-white/5'
                 }`}
@@ -225,7 +244,7 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
                       {onChannel ? 'Active' : elsewhere ? elsewhere : 'Offline'}
                     </span>
                   )}
-                  {selected && <Check className="h-3.5 w-3.5 text-[#d4a843]" />}
+                  {picked && <Check className="h-3.5 w-3.5 text-[#d4a843]" />}
                 </span>
               </button>
             );
@@ -238,9 +257,11 @@ export default function ChannelMembers({ channel, audience, onSelect, liveEmails
       )}
 
       <p className="mt-1 text-[10px] text-slate-500">
-        {audience === 'everyone'
-          ? 'Holding talk reaches the whole channel.'
-          : 'Holding talk reaches only the selected member. You still hear the whole channel.'}
+        {selected.length === 0
+          ? `Holding talk reaches the whole channel. Pick one or more people for a private contact — you stay on ${channel.name}.`
+          : `Only ${selectedNames.join(', ')} ${
+              selectedNames.length === 1 ? 'hears' : 'hear'
+            } you. You still hear the whole channel, and they can call you back.`}
       </p>
     </div>
   );

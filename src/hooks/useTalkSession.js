@@ -77,6 +77,20 @@ const openMicrophone = async (room) => {
   }
 };
 
+// Who hears this device's transmissions: an empty list is the whole channel,
+// a list of member emails is a temporary private contact.
+const normalizeAudience = (value) => {
+  if (!value || value === 'everyone' || value === 'none') return [];
+  const list = Array.isArray(value) ? value : [value];
+  return Array.from(
+    new Set(
+      list
+        .map((entry) => String(entry || '').split('#')[0].toLowerCase())
+        .filter(Boolean)
+    )
+  );
+};
+
 const mapPeer = (peer) => ({
   id: peer?.id || peer?.name || 'peer',
   name: peer?.name || 'Team member',
@@ -97,7 +111,10 @@ export default function useTalkSession(channelId, options = {}) {
   const [setupRequired, setSetupRequired] = useState(false);
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [error, setError] = useState(null);
-  const [audience, setAudienceState] = useState('everyone');
+  const [audience, setAudienceState] = useState([]);
+  // A member who is calling this device privately, so the reply can go back to
+  // them and the panel can say whose call is being answered.
+  const [privateFrom, setPrivateFrom] = useState(null);
   // Bumped whenever the channel has to be reopened from scratch.
   const [sessionKey, setSessionKey] = useState(0);
 
@@ -108,10 +125,12 @@ export default function useTalkSession(channelId, options = {}) {
   const transmittingRef = useRef(false);
   const audioContainerRef = useRef(null);
   const upgradeToDirectRef = useRef(null);
-  const audienceRef = useRef('everyone');
+  const audienceRef = useRef([]);
   const selfEmailRef = useRef(null);
   const mutedRef = useRef(new Set());
   const announceRef = useRef(null);
+  // A private contact is temporary: it drops back to the whole channel on its own.
+  const privateTimerRef = useRef(null);
   const lastAlertRef = useRef(0);
   const connectingRef = useRef(false);
   const configBlockedRef = useRef(false);
@@ -249,8 +268,9 @@ export default function useTalkSession(channelId, options = {}) {
     setTalkerIds([]);
     setTransport(TALK_TRANSPORT.NONE);
     mutedRef.current = new Set();
-    audienceRef.current = 'everyone';
-    setAudienceState('everyone');
+    audienceRef.current = [];
+    setAudienceState([]);
+    setPrivateFrom(null);
 
     // Remote audio only reaches the speakers once its track is attached to a
     // media element, so this hidden holder keeps every incoming voice stream.
@@ -263,9 +283,12 @@ export default function useTalkSession(channelId, options = {}) {
     // that are not addressed keep the speaker silenced.
     const announceAudience = async (value) => {
       if (localRef.current) return;
+      const targets = normalizeAudience(value);
       try {
         await room.localParticipant.publishData(
-          new TextEncoder().encode(JSON.stringify({ audience: value })),
+          new TextEncoder().encode(
+            JSON.stringify({ targets, audience: targets[0] || 'everyone' })
+          ),
           { reliable: true, topic: 'radio-audience' }
         );
       } catch (_) {
@@ -273,6 +296,42 @@ export default function useTalkSession(channelId, options = {}) {
       }
     };
     announceRef.current = announceAudience;
+
+    // A private contact only lasts while it is being used: after a couple of
+    // quiet minutes the radio returns to the whole channel by itself.
+    const armPrivateExpiry = (email) => {
+      if (privateTimerRef.current) clearTimeout(privateTimerRef.current);
+      privateTimerRef.current = setTimeout(() => {
+        privateTimerRef.current = null;
+        if (transmittingRef.current) {
+          armPrivateExpiry(email);
+          return;
+        }
+        const current = normalizeAudience(audienceRef.current);
+        // The member changed the selection themselves — leave it alone.
+        if (current.length !== 1 || current[0] !== email) return;
+        audienceRef.current = [];
+        setAudienceState([]);
+        setPrivateFrom(null);
+      }, 120000);
+    };
+
+    // A private call is answered privately: the reply goes back to whoever
+    // called, so the team never hears it. The channel itself stays on, so the
+    // rest of the team can still reach this device and everyone else is heard.
+    const answerPrivateCall = (email, name) => {
+      if (!email) return;
+      setPrivateFrom({ email, name: name || email });
+      const current = normalizeAudience(audienceRef.current);
+      // Already talking to this member: just keep the contact alive.
+      if (current.length > 0) {
+        if (current.length === 1 && current[0] === email) armPrivateExpiry(email);
+        return;
+      }
+      audienceRef.current = [email];
+      setAudienceState([email]);
+      armPrivateExpiry(email);
+    };
 
     // A member pressing push-to-talk (headset button or on-screen) opens their
     // microphone, so the open microphone is the reliable "talking" signal.
@@ -383,18 +442,21 @@ export default function useTalkSession(channelId, options = {}) {
         } catch (_) {
           return;
         }
-        const target = message?.audience;
-        // A target can arrive as this device's identity or as the member's email.
-        const selfIdentity = String(selfEmailRef.current || '');
-        const selfEmail = selfIdentity.split('#')[0];
-        const meantForMe =
-          !target ||
-          target === 'none' ||
-          target === 'everyone' ||
-          target === selfIdentity ||
-          target === selfEmail;
-        if (meantForMe) mutedRef.current.delete(participant.identity);
-        else mutedRef.current.add(participant.identity);
+        // No target (or 'everyone') is the whole channel; otherwise the member
+        // addressed this transmission at one or more specific people.
+        const rawTargets = message?.targets ?? message?.audience;
+        const targets = normalizeAudience(rawTargets);
+        const selfEmail = String(selfEmailRef.current || '').split('#')[0].toLowerCase();
+        const meantForMe = targets.length === 0 || targets.includes(selfEmail);
+        if (meantForMe) {
+          mutedRef.current.delete(participant.identity);
+          if (targets.length > 0) {
+            const senderEmail = String(participant.identity || '').split('#')[0].toLowerCase();
+            answerPrivateCall(senderEmail, participant.name);
+          }
+        } else {
+          mutedRef.current.add(participant.identity);
+        }
         applyVolume(room, volumeRef.current);
       })
       .on(RoomEvent.Reconnecting, () => setStatus(TALK_STATUS.SEARCHING))
@@ -613,6 +675,8 @@ export default function useTalkSession(channelId, options = {}) {
     return () => {
       cancelled = true;
       if (rebuildTimer) clearTimeout(rebuildTimer);
+      if (privateTimerRef.current) clearTimeout(privateTimerRef.current);
+      privateTimerRef.current = null;
       transmittingRef.current = false;
       setTransmitting(false);
       upgradeToDirectRef.current = null;
@@ -751,26 +815,30 @@ export default function useTalkSession(channelId, options = {}) {
     applyVolume(roomRef.current, value);
   }, []);
 
-  // 'everyone' or the identity of one team member on the channel.
+  // Who hears this device: nothing picked (or 'everyone') is the whole channel,
+  // a member email or a list of them is a temporary private contact.
   const setAudience = useCallback((value) => {
-    const next = value || 'everyone';
+    const next = normalizeAudience(value);
     audienceRef.current = next;
     setAudienceState(next);
+    setPrivateFrom(null);
     if (transmittingRef.current) announceRef.current?.(next);
   }, []);
 
-  // If the chosen person leaves the channel, fall back to the whole channel.
+  // If everyone picked leaves the channel, fall back to the whole channel.
   // A caller that picks a member up front keeps that choice regardless.
   useEffect(() => {
     if (options.audiencePersistent) return;
-    if (audience === 'everyone') return;
-    if (participants.some((participant) => participant.id === audience)) return;
+    if (audience.length === 0) return;
+    const live = new Set(participants.map((participant) => String(participant.id).toLowerCase()));
+    if (audience.some((email) => live.has(email))) return;
     setAudience('everyone');
   }, [participants, audience, setAudience, options.audiencePersistent]);
 
   return {
     status,
     audience,
+    privateFrom,
     transport,
     networkOffline,
     participants,
