@@ -112,6 +112,7 @@ export default function useTalkSession(channelId, options = {}) {
   const selfEmailRef = useRef(null);
   const mutedRef = useRef(new Set());
   const announceRef = useRef(null);
+  const announceTimerRef = useRef(null);
   const lastAlertRef = useRef(0);
   const connectingRef = useRef(false);
   const configBlockedRef = useRef(false);
@@ -323,7 +324,12 @@ export default function useTalkSession(channelId, options = {}) {
         // Someone who joined mid-transmission still needs to know who it is for.
         if (transmittingRef.current) announceAudience(audienceRef.current);
       })
-      .on(RoomEvent.ParticipantDisconnected, syncParticipants)
+      .on(RoomEvent.ParticipantDisconnected, (participant) => {
+        // A member who leaves takes their silence with them, so a rejoin is
+        // heard again.
+        if (participant) mutedRef.current.delete(participant.identity);
+        syncParticipants();
+      })
       .on(RoomEvent.TrackMuted, (publication, participant) => {
         // A speaker who stopped transmitting releases any silence we held.
         if (publication?.kind === 'audio' && participant) {
@@ -363,17 +369,9 @@ export default function useTalkSession(channelId, options = {}) {
           speaking.map((identity) => String(identity).split('#')[0].toLowerCase())
         );
         syncParticipants();
-        // A silence only covers the transmission it was announced for. The
-        // moment that member stops talking the channel plays again, so a
-        // targeted call never leaves anyone deaf to the rest of the team.
-        let released = false;
-        Array.from(mutedRef.current).forEach((identity) => {
-          if (!speaking.includes(identity)) {
-            mutedRef.current.delete(identity);
-            released = true;
-          }
-        });
-        if (released) applyVolume(room, volumeRef.current);
+        // A silence lasts for the whole transmission, even through the pauses
+        // between sentences. It is released only when the speaker closes their
+        // microphone, so nobody ever hears the second half of a private call.
       })
       .on(RoomEvent.DataReceived, (payload, participant, _kind, topic) => {
         if (topic !== 'radio-audience' || !participant || localRef.current) return;
@@ -595,7 +593,7 @@ export default function useTalkSession(channelId, options = {}) {
         let freed = false;
         Array.from(mutedRef.current).forEach((identity) => {
           const remote = current.remoteParticipants.get(identity);
-          if (!remote || !remote.isSpeaking) {
+          if (!remote || !remote.isMicrophoneEnabled) {
             mutedRef.current.delete(identity);
             freed = true;
           }
@@ -613,6 +611,8 @@ export default function useTalkSession(channelId, options = {}) {
     return () => {
       cancelled = true;
       if (rebuildTimer) clearTimeout(rebuildTimer);
+      if (announceTimerRef.current) clearInterval(announceTimerRef.current);
+      announceTimerRef.current = null;
       transmittingRef.current = false;
       setTransmitting(false);
       upgradeToDirectRef.current = null;
@@ -676,6 +676,12 @@ export default function useTalkSession(channelId, options = {}) {
       // Announced before the microphone opens so nobody hears the first word.
       await announceRef.current?.(audienceRef.current);
       await openMicrophone(room);
+      // Repeated while the microphone is open: a member whose app was asleep,
+      // or one who joined mid-transmission, must never hear a private call.
+      if (announceTimerRef.current) clearInterval(announceTimerRef.current);
+      announceTimerRef.current = setInterval(() => {
+        announceRef.current?.(audienceRef.current);
+      }, 2000);
 
       // Everyone who is not in the channel right now gets an alert, so members
       // whose app is closed still learn that a transmission is happening.
@@ -686,11 +692,21 @@ export default function useTalkSession(channelId, options = {}) {
           (participant) => String(participant.identity || '').split('#')[0]
         );
         base44.functions
-          .invoke('notifyRadioTransmission', { channel_id: channelId, exclude_emails: listening })
+          // A private call reaches only the member it is meant for — the rest
+          // of the team is not even told that a transmission is happening.
+          .invoke('notifyRadioTransmission', {
+            channel_id: channelId,
+            exclude_emails: listening,
+            ...(audienceRef.current && audienceRef.current !== 'everyone'
+              ? { target_emails: [audienceRef.current] }
+              : {}),
+          })
           .catch(() => {});
       }
     } catch (micError) {
       console.error('Could not open the microphone:', micError);
+      if (announceTimerRef.current) clearInterval(announceTimerRef.current);
+      announceTimerRef.current = null;
       transmittingRef.current = false;
       setTransmitting(false);
       setError('Microphone access is required to talk. Allow the microphone and try again.');
@@ -701,6 +717,8 @@ export default function useTalkSession(channelId, options = {}) {
     if (!transmittingRef.current) return;
     transmittingRef.current = false;
     setTransmitting(false);
+    if (announceTimerRef.current) clearInterval(announceTimerRef.current);
+    announceTimerRef.current = null;
     if (localRef.current) {
       await localLink.transmit(false);
       return;

@@ -29,11 +29,22 @@ export default async function (req) {
     );
     listening.add(String(user.email || '').toLowerCase());
 
+    // A private call names the one member it is for; everyone else is left out.
+    const targetEmails = new Set(
+      (Array.isArray(body?.target_emails) ? body.target_emails : [])
+        .map((email) => String(email).trim().toLowerCase())
+        .filter(Boolean)
+    );
+
     const users = await base44.asServiceRole.entities.User.list();
     const recipients = (users || [])
       .filter((candidate) => candidate?.email)
       .filter((candidate) => !listening.has(String(candidate.email).toLowerCase()))
       .filter((candidate) => isAuthorizedForChannel(candidate, channel))
+      .filter(
+        (candidate) =>
+          targetEmails.size === 0 || targetEmails.has(String(candidate.email).toLowerCase())
+      )
       .map((candidate) => candidate.email);
 
     if (recipients.length === 0) {
@@ -41,8 +52,11 @@ export default async function (req) {
     }
 
     const speaker = user.full_name || user.email;
-    const title = `📻 ${speaker} is on ${channel.name}`;
-    const message = 'Tap to listen and talk back on the team radio.';
+    const direct = targetEmails.size > 0;
+    const title = direct ? `📻 ${speaker} is calling you` : `📻 ${speaker} is on ${channel.name}`;
+    const message = direct
+      ? 'Tap to answer on the team radio.'
+      : 'Tap to listen and talk back on the team radio.';
 
     let sent = 0;
     for (let i = 0; i < recipients.length; i += 6) {
