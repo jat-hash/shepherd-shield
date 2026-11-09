@@ -29,6 +29,12 @@ export const TALK_TRANSPORT = {
 // This device's own radio identity suffix. Two devices signed in as the same
 // member must both stay connected, so each joins under its own identity.
 const DEVICE_KEY = 'shepherd-radio-device';
+// Chosen speaker for the radio voice (a Bluetooth headset, a car kit, …).
+const OUTPUT_KEY = 'shepherd-radio-output';
+const canPickOutput = () =>
+  typeof window !== 'undefined' &&
+  !!window.HTMLMediaElement?.prototype &&
+  'setSinkId' in window.HTMLMediaElement.prototype;
 const getDeviceId = () => {
   try {
     let id = localStorage.getItem(DEVICE_KEY);
@@ -83,6 +89,59 @@ export default function useTalkSession(channelId, options = {}) {
   const lastAlertRef = useRef(0);
   const connectingRef = useRef(false);
   const configBlockedRef = useRef(false);
+  // Where the radio voice is played. Kept across sessions so a paired headset
+  // stays the speaker on the next shift too.
+  const outputRef = useRef('');
+  const [outputDeviceId, setOutputDeviceId] = useState('');
+  const [audioOutputs, setAudioOutputs] = useState([]);
+
+  const refreshOutputs = useCallback(async () => {
+    if (!canPickOutput()) return;
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      setAudioOutputs(devices.filter((device) => device.kind === 'audiooutput' && !!device.deviceId));
+    } catch (_) {
+      setAudioOutputs([]);
+    }
+  }, []);
+
+  const selectOutput = useCallback(async (deviceId) => {
+    const value = deviceId === 'default' ? '' : deviceId || '';
+    outputRef.current = value;
+    setOutputDeviceId(value);
+    try {
+      localStorage.setItem(OUTPUT_KEY, value);
+    } catch (_) {
+      /* storage may be blocked */
+    }
+    const room = roomRef.current;
+    if (!room) return;
+    try {
+      await room.switchActiveDevice('audiooutput', value || 'default');
+    } catch (_) {
+      /* this browser cannot choose a speaker */
+    }
+  }, []);
+
+  // A headset paired (or unpaired) mid-shift has to appear in the list.
+  useEffect(() => {
+    if (!canPickOutput()) return undefined;
+    try {
+      outputRef.current = localStorage.getItem(OUTPUT_KEY) || '';
+      setOutputDeviceId(outputRef.current);
+    } catch (_) {
+      /* storage may be blocked */
+    }
+    refreshOutputs();
+    const onDeviceChange = () => refreshOutputs();
+    navigator.mediaDevices?.addEventListener?.('devicechange', onDeviceChange);
+    return () => navigator.mediaDevices?.removeEventListener?.('devicechange', onDeviceChange);
+  }, [refreshOutputs]);
+
+  // Once the radio is live the microphone is allowed, so device names appear.
+  useEffect(() => {
+    if (status === TALK_STATUS.ONLINE) refreshOutputs();
+  }, [status, refreshOutputs]);
 
   // Anyone the current speaker is not addressing stays silenced, even though
   // the channel itself carries their voice to every joined device.
@@ -219,6 +278,14 @@ export default function useTalkSession(channelId, options = {}) {
         element.autoplay = true;
         element.setAttribute('playsinline', 'true');
         audioContainer.appendChild(element);
+        // A voice that arrives after the speaker was chosen still belongs on it.
+        if (outputRef.current) {
+          try {
+            element.setSinkId?.(outputRef.current)?.catch?.(() => {});
+          } catch (_) {
+            /* this browser cannot choose a speaker */
+          }
+        }
         applyVolume(room, volumeRef.current);
       })
       .on(RoomEvent.TrackUnsubscribed, (track) => {
@@ -349,6 +416,13 @@ export default function useTalkSession(channelId, options = {}) {
         selfEmailRef.current = data.identity || selfEmailRef.current;
         await room.connect(data.url, data.token);
         if (cancelled) return false;
+
+        // Return the voice to the speaker this member picked (e.g. their headset).
+        if (outputRef.current) {
+          await room
+            .switchActiveDevice('audiooutput', outputRef.current)
+            .catch(() => {});
+        }
 
         await room.startAudio().catch(() => {});
         // Register the channel as a media session so the device keeps the radio
@@ -648,5 +722,9 @@ export default function useTalkSession(channelId, options = {}) {
     setVolume,
     audioBlocked,
     resumeAudio,
+    audioOutputs,
+    outputDeviceId,
+    selectOutput,
+    canPickOutput: canPickOutput(),
   };
 }

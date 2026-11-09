@@ -13,6 +13,7 @@ import PTTButton from '@/components/walkie/PTTButton';
 import BluetoothPttCard from '@/components/walkie/BluetoothPttCard';
 import TalkerPanel from '@/components/walkie/TalkerPanel';
 import AudienceSelector from '@/components/walkie/AudienceSelector';
+import AudioOutputPicker from '@/components/walkie/AudioOutputPicker';
 import EmergencyBroadcast from '@/components/walkie/EmergencyBroadcast';
 
 export default function WalkieTalkie() {
@@ -244,6 +245,12 @@ export default function WalkieTalkie() {
             <Slider value={[Math.round(volume * 100)]} onValueChange={handleVolume} max={100} step={5} />
             <span className="w-9 text-right text-[11px] text-slate-400">{Math.round(volume * 100)}%</span>
           </div>
+
+          <AudioOutputPicker
+            outputs={session.audioOutputs || []}
+            value={session.outputDeviceId}
+            onChange={session.selectOutput}
+          />
 
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-[11px] text-slate-400">
