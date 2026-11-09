@@ -8,6 +8,8 @@ import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bel
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { cacheUserVibrationPrefs, primeAudioContext } from "@/lib/notificationEffects";
 import { canAccessMainApp, canAccessNursery, canAccessPropertyMonitor } from "@/lib/leadership";
+import { useRadioSession } from "@/context/RadioSessionContext";
+import { TALK_STATUS } from "@/hooks/useTalkSession";
 import EmergencyOverrideFlash from "@/components/notifications/EmergencyOverrideFlash";
 import AlertNotificationSystem from "@/components/notifications/AlertNotificationSystem";
 import UserSwitcher from "@/components/UserSwitcher";
@@ -63,6 +65,10 @@ export default function Layout({ children, currentPageName }) {
   const mountedRef = useRef(false);
   const vibrationPrimedRef = useRef(false);
 
+  const { channelId: radioChannelId, session: radioSession } = useRadioSession();
+  const radioLiveRef = useRef(false);
+  radioLiveRef.current = !!radioChannelId && radioSession.status === TALK_STATUS.ONLINE;
+
   const user = authUser || fallbackUser;
   const isNurseryOnly = !!user && !canAccessMainApp(user);
   const onNurseryPage = location.pathname === '/NurseryDashboard' || location.pathname === '/NurseryMonitor';
@@ -96,19 +102,30 @@ export default function Layout({ children, currentPageName }) {
   useEffect(() => {
     let hiddenAt = null;
 
+    // The radio stays live in the background, so coming back must not restart
+    // the app around it — only refresh the data that is on screen.
+    const refresh = () => {
+      if (radioLiveRef.current) {
+        window.dispatchEvent(new CustomEvent("app:refresh"));
+        return;
+      }
+      window.location.reload();
+    };
+
     const onVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
         hiddenAt = Date.now();
       } else if (document.visibilityState === 'visible' && hiddenAt) {
         hiddenAt = null;
-        // Always reload when returning to the foreground so the app is fresh.
-        window.location.reload();
+        // Reload when returning to the foreground so the app is fresh.
+        refresh();
       }
     };
 
-    const onPageShow = (e) => {
-      // Restored from bfcache or tab/app reopened — always refresh.
-      window.location.reload();
+    const onPageShow = (event) => {
+      // Only a page restored from the back/forward cache needs refreshing; a
+      // normal load is already fresh.
+      if (event.persisted) refresh();
     };
 
     document.addEventListener('visibilitychange', onVisibilityChange);

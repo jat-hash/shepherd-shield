@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ConnectionState, Room, RoomEvent } from 'livekit-client';
 import { base44 } from '@/api/base44Client';
 import { localLink } from '@/lib/localLink';
+import { createSilentCarrier } from '@/lib/silentCarrier';
 
 /**
  * Talk session engine.
@@ -142,6 +143,33 @@ export default function useTalkSession(channelId, options = {}) {
   useEffect(() => {
     if (status === TALK_STATUS.ONLINE) refreshOutputs();
   }, [status, refreshOutputs]);
+
+  // A phone suspends a page that is not playing anything, which cuts the radio
+  // off the moment the screen locks or another app opens. Holding a silent loop
+  // open keeps the channel joined and its voice audible while backgrounded.
+  useEffect(() => {
+    if (transport !== TALK_TRANSPORT.INTERNET) return undefined;
+    const carrier = createSilentCarrier();
+    if ('mediaSession' in navigator) {
+      try {
+        navigator.mediaSession.playbackState = 'playing';
+      } catch (_) {
+        /* unsupported playback state */
+      }
+    }
+    const keepAlive = () => carrier.keepAlive();
+    const timer = setInterval(keepAlive, 15000);
+    document.addEventListener('visibilitychange', keepAlive);
+    window.addEventListener('pageshow', keepAlive);
+    window.addEventListener('focus', keepAlive);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', keepAlive);
+      window.removeEventListener('pageshow', keepAlive);
+      window.removeEventListener('focus', keepAlive);
+      carrier.dispose();
+    };
+  }, [transport]);
 
   // Anyone the current speaker is not addressing stays silenced, even though
   // the channel itself carries their voice to every joined device.
