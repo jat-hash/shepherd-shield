@@ -52,6 +52,31 @@ const getDeviceId = () => {
 export const isBrowserOffline = () =>
   typeof navigator !== 'undefined' && navigator.onLine === false;
 
+// Noise cleanup applied to the microphone itself, so everything the team hears
+// is already cleaned: echo cancellation, background noise suppression, mono
+// capture, and — on browsers that offer it — voice isolation, which filters
+// everything that is not a voice.
+const micCleanup = () => {
+  const options = {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+  };
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
+  if (/Chrome|Chromium|Edg\//.test(ua)) options.voiceIsolation = true;
+  return options;
+};
+
+// Opens the microphone with the cleanup filters; a device that cannot accept
+// them still gets a plain microphone rather than a failed transmission.
+const openMicrophone = async (room) => {
+  try {
+    await room.localParticipant.setMicrophoneEnabled(true, micCleanup());
+  } catch (_) {
+    await room.localParticipant.setMicrophoneEnabled(true);
+  }
+};
+
 const mapPeer = (peer) => ({
   id: peer?.id || peer?.name || 'peer',
   name: peer?.name || 'Team member',
@@ -210,11 +235,7 @@ export default function useTalkSession(channelId, options = {}) {
     const room = new Room({
       adaptiveStream: true,
       dynacast: true,
-      audioCaptureDefaults: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-      },
+      audioCaptureDefaults: micCleanup(),
     });
     roomRef.current = room;
     localRef.current = false;
@@ -654,7 +675,7 @@ export default function useTalkSession(channelId, options = {}) {
       setAudioBlocked(!room.canPlaybackAudio);
       // Announced before the microphone opens so nobody hears the first word.
       await announceRef.current?.(audienceRef.current);
-      await room.localParticipant.setMicrophoneEnabled(true);
+      await openMicrophone(room);
 
       // Everyone who is not in the channel right now gets an alert, so members
       // whose app is closed still learn that a transmission is happening.
