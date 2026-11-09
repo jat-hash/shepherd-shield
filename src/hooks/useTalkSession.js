@@ -87,8 +87,13 @@ export default function useTalkSession(channelId, options = {}) {
   // Anyone the current speaker is not addressing stays silenced, even though
   // the channel itself carries their voice to every joined device.
   const applyVolume = (room, value) => {
+    const selfEmail = String(selfEmailRef.current || '').split('#')[0].toLowerCase();
     room?.remoteParticipants?.forEach((participant) => {
-      const silenced = mutedRef.current.has(participant.identity);
+      // Another session of this same member (a second phone, a tab, the preview)
+      // is never played back here — that is exactly hearing your own voice.
+      const ownSession =
+        !!selfEmail && String(participant.identity || '').split('#')[0].toLowerCase() === selfEmail;
+      const silenced = ownSession || mutedRef.current.has(participant.identity);
       try {
         participant.setVolume(silenced ? 0 : value);
       } catch (_) {
