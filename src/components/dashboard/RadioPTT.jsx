@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Radio, Volume2 } from 'lucide-react';
+import { Mic, Radio, Volume2 } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
 import { TALK_STATUS } from '@/hooks/useTalkSession';
 import { useRadioSession } from '@/context/RadioSessionContext';
 import ChannelChips from '@/components/walkie/ChannelChips';
@@ -132,6 +133,20 @@ export default function RadioPTT() {
 
       <div className="mt-3">
         <BluetoothPttCard ready={ready} />
+      </div>
+
+      <div className="mt-3 flex items-center gap-2">
+        <Mic className="h-3.5 w-3.5 flex-shrink-0 text-slate-500" />
+        <Slider
+          value={[Math.round((session.micBoost || 1) * 100)]}
+          onValueChange={(value) => session.setMicBoost(value[0] / 100)}
+          min={100}
+          max={Math.round((session.micBoostMax || 3) * 100)}
+          step={10}
+        />
+        <span className="w-8 flex-shrink-0 text-right text-[10px] text-slate-500">
+          {Math.round((session.micBoost || 1) * 100)}%
+        </span>
       </div>
 
       <Link

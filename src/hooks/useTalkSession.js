@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ConnectionState, Room, RoomEvent } from 'livekit-client';
+import { ConnectionState, Room, RoomEvent, Track } from 'livekit-client';
 import { base44 } from '@/api/base44Client';
 import { localLink } from '@/lib/localLink';
 import { createSilentCarrier } from '@/lib/silentCarrier';
@@ -61,20 +61,147 @@ const micCleanup = () => {
     echoCancellation: true,
     noiseSuppression: true,
     autoGainControl: true,
+    // A headset mic is always one channel; asking for the same keeps Bluetooth
+    // hands-free audio from arriving as a hollow, doubled voice.
+    channelCount: 1,
   };
   const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
   if (/Chrome|Chromium|Edg\//.test(ua)) options.voiceIsolation = true;
   return options;
 };
 
-// Opens the microphone with the cleanup filters; a device that cannot accept
-// them still gets a plain microphone rather than a failed transmission.
-const openMicrophone = async (room) => {
+// How hard this device drives its microphone. A radio sits in a pocket or on a
+// belt, often far from the mouth, so the transmit level has to be adjustable
+// well above what the device's own automatic gain settles on.
+const BOOST_KEY = 'shepherd-radio-mic-boost';
+const MIC_BOOST_MAX = 3;
+
+// Clarity chain for the outgoing voice, which matters most on a Bluetooth
+// headset mic in a noisy room: rumble and hiss either side of speech are cut,
+// the presence band that carries consonants is lifted, the level is driven up,
+// and a compressor then holds it steady so a quiet talker still comes through
+// and a loud room never swamps the words.
+const buildVoiceChain = (ctx, source, boost, destination) => {
+  const highpass = ctx.createBiquadFilter();
+  highpass.type = 'highpass';
+  highpass.frequency.value = 110;
+  highpass.Q.value = 0.7;
+
+  const lowpass = ctx.createBiquadFilter();
+  lowpass.type = 'lowpass';
+  lowpass.frequency.value = 9500;
+
+  const presence = ctx.createBiquadFilter();
+  presence.type = 'peaking';
+  presence.frequency.value = 2600;
+  presence.Q.value = 1;
+  presence.gain.value = 4;
+
+  const gainNode = ctx.createGain();
+  gainNode.gain.value = boost;
+
+  const compressor = ctx.createDynamicsCompressor();
+  compressor.threshold.value = -22;
+  compressor.knee.value = 12;
+  compressor.ratio.value = 4;
+  compressor.attack.value = 0.004;
+  compressor.release.value = 0.2;
+
+  source
+    .connect(highpass)
+    .connect(lowpass)
+    .connect(presence)
+    .connect(gainNode)
+    .connect(compressor)
+    .connect(destination);
+  return gainNode;
+};
+const readBoost = () => {
   try {
-    await room.localParticipant.setMicrophoneEnabled(true, micCleanup());
+    const value = parseFloat(localStorage.getItem(BOOST_KEY));
+    if (Number.isFinite(value) && value >= 1) return Math.min(MIC_BOOST_MAX, value);
   } catch (_) {
-    await room.localParticipant.setMicrophoneEnabled(true);
+    /* storage may be blocked */
   }
+  return 1;
+};
+
+// The voice the team hears: the cleaned capture runs through a gain stage, so
+// the level can go far past the device's own limit, and it is published at a
+// speech bitrate high enough to keep words crisp instead of choppy.
+const openMicrophone = async (room, boost) => {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: micCleanup() });
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) throw new Error('Audio processing is unavailable');
+  const ctx = new AudioCtx();
+  try {
+    await ctx.resume();
+  } catch (_) {
+    /* the next tap resumes it */
+  }
+  const destination = ctx.createMediaStreamDestination();
+  const gainNode = buildVoiceChain(ctx, ctx.createMediaStreamSource(stream), boost, destination);
+  const track = destination.stream.getAudioTracks()[0];
+
+  // Anything still published as the microphone would be a second, unboosted
+  // voice on the channel.
+  const existing = room.localParticipant.getTrackPublication?.(Track.Source.Microphone);
+  if (existing?.track) {
+    try {
+      await room.localParticipant.unpublishTrack(existing.track);
+    } catch (_) {
+      /* already gone */
+    }
+  }
+  await room.localParticipant.publishTrack(track, {
+    name: 'microphone',
+    source: Track.Source.Microphone,
+    audioPreset: { maxBitrate: 64000, dtx: false, red: true },
+  });
+  return { ctx, stream, track, gainNode };
+};
+
+// A device that cannot run the gain stage still gets a working microphone
+// rather than a failed transmission.
+const startMicrophone = async (room, boost) => {
+  try {
+    return await openMicrophone(room, boost);
+  } catch (error) {
+    console.error('Boosted microphone unavailable:', error);
+    try {
+      await room.localParticipant.setMicrophoneEnabled(true, micCleanup());
+    } catch (_) {
+      await room.localParticipant.setMicrophoneEnabled(true);
+    }
+    return null;
+  }
+};
+
+const closeMicrophone = async (room, mic) => {
+  if (!mic) {
+    try {
+      await room.localParticipant.setMicrophoneEnabled(false);
+    } catch (_) {
+      /* already muted or disconnected */
+    }
+    return;
+  }
+  try {
+    await room.localParticipant.unpublishTrack(mic.track);
+  } catch (_) {
+    /* already unpublished */
+  }
+  try {
+    mic.track.stop();
+  } catch (_) {}
+  mic.stream.getTracks().forEach((item) => {
+    try {
+      item.stop();
+    } catch (_) {}
+  });
+  try {
+    await mic.ctx.close();
+  } catch (_) {}
 };
 
 // Who hears this device's transmissions: an empty list is the whole channel,
@@ -117,6 +244,10 @@ export default function useTalkSession(channelId, options = {}) {
   const [privateFrom, setPrivateFrom] = useState(null);
   // Bumped whenever the channel has to be reopened from scratch.
   const [sessionKey, setSessionKey] = useState(0);
+  // How loudly the team hears this device, remembered between shifts.
+  const [micBoost, setMicBoostState] = useState(readBoost);
+  const micBoostRef = useRef(micBoost);
+  const micHandleRef = useRef(null);
 
   const roomRef = useRef(null);
   const volumeRef = useRef(1);
@@ -165,6 +296,26 @@ export default function useTalkSession(channelId, options = {}) {
       await room.switchActiveDevice('audiooutput', value || 'default');
     } catch (_) {
       /* this browser cannot choose a speaker */
+    }
+  }, []);
+
+  // The transmit level can be pushed up on the spot, even mid-transmission.
+  const setMicBoost = useCallback((value) => {
+    const next = Math.min(MIC_BOOST_MAX, Math.max(1, Number(value) || 1));
+    micBoostRef.current = next;
+    setMicBoostState(next);
+    try {
+      localStorage.setItem(BOOST_KEY, String(next));
+    } catch (_) {
+      /* storage may be blocked */
+    }
+    const mic = micHandleRef.current;
+    if (mic?.gainNode) {
+      try {
+        mic.gainNode.gain.value = next;
+      } catch (_) {
+        /* the gain stage is already closed */
+      }
     }
   }, []);
 
@@ -687,6 +838,21 @@ export default function useTalkSession(channelId, options = {}) {
       window.removeEventListener('focus', wake);
       window.removeEventListener('offline', onOffline);
       window.removeEventListener('online', onOnline);
+      const open = micHandleRef.current;
+      micHandleRef.current = null;
+      if (open) {
+        try {
+          open.track.stop();
+        } catch (_) {}
+        open.stream.getTracks().forEach((item) => {
+          try {
+            item.stop();
+          } catch (_) {}
+        });
+        try {
+          open.ctx.close();
+        } catch (_) {}
+      }
       if (localRef.current) localLink.stop();
       room.disconnect();
       audioContainer.remove();
@@ -739,7 +905,7 @@ export default function useTalkSession(channelId, options = {}) {
       setAudioBlocked(!room.canPlaybackAudio);
       // Announced before the microphone opens so nobody hears the first word.
       await announceRef.current?.(audienceRef.current);
-      await openMicrophone(room);
+      micHandleRef.current = await startMicrophone(room, micBoostRef.current);
 
       // Everyone who is not in the channel right now gets an alert, so members
       // whose app is closed still learn that a transmission is happening.
@@ -771,11 +937,9 @@ export default function useTalkSession(channelId, options = {}) {
     }
     const room = roomRef.current;
     if (!room) return;
-    try {
-      await room.localParticipant.setMicrophoneEnabled(false);
-    } catch (_) {
-      /* already muted or disconnected */
-    }
+    const mic = micHandleRef.current;
+    micHandleRef.current = null;
+    await closeMicrophone(room, mic);
     // Release everyone the transmission was holding silent.
     await announceRef.current?.('none');
     // Keep the channel playing for this device: talking to one person never
@@ -852,6 +1016,9 @@ export default function useTalkSession(channelId, options = {}) {
     stopTransmitting,
     setAudience,
     setVolume,
+    micBoost,
+    setMicBoost,
+    micBoostMax: MIC_BOOST_MAX,
     audioBlocked,
     resumeAudio,
     audioOutputs,

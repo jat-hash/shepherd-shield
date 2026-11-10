@@ -253,6 +253,23 @@ export default function WalkieTalkie() {
             <span className="w-9 text-right text-[11px] text-slate-400">{Math.round(volume * 100)}%</span>
           </div>
 
+          <div className="flex items-center gap-3">
+            <Mic className="h-4 w-4 text-slate-400" />
+            <Slider
+              value={[Math.round((session.micBoost || 1) * 100)]}
+              onValueChange={(value) => session.setMicBoost(value[0] / 100)}
+              min={100}
+              max={Math.round((session.micBoostMax || 3) * 100)}
+              step={10}
+            />
+            <span className="w-9 text-right text-[11px] text-slate-400">
+              {Math.round((session.micBoost || 1) * 100)}%
+            </span>
+          </div>
+          <p className="text-[10px] leading-relaxed text-slate-500">
+            Mic level — how loudly the team hears you. Push it up when the phone is on your belt or the room is loud.
+          </p>
+
           <AudioOutputPicker
             outputs={session.audioOutputs || []}
             value={session.outputDeviceId}
