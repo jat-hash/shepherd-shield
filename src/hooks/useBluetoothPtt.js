@@ -14,11 +14,12 @@ const MEDIA_KEY_CODES = new Set([179, 178, 79]);
 // command — so a repeat inside this window is treated as the same press.
 const PRESS_GAP = 400;
 
+// A paired headset works out of the box; the switch is there to turn it off.
 const readArmed = () => {
   try {
-    return localStorage.getItem(STORAGE_KEY) === 'on';
+    return localStorage.getItem(STORAGE_KEY) !== 'off';
   } catch (_) {
-    return false;
+    return true;
   }
 };
 
@@ -33,6 +34,11 @@ const saveArmed = (value) => {
 const isTypingTarget = (target) =>
   target instanceof HTMLElement &&
   (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+
+// Enter and Space still belong to the focused control (a button, a link) while
+// headset talk is armed, so a remote button never triggers the UI by accident.
+const isControlTarget = (target) =>
+  target instanceof HTMLElement && !!target.closest('button, a, [role="button"], [role="tab"]');
 
 const dialogOpen = () => !!document.querySelector('[role="dialog"], [role="alertdialog"]');
 
@@ -73,7 +79,7 @@ export default function useBluetoothPtt({ enabled, transmitting, onStart, onEnd 
 
     const down = (event) => {
       if (event.repeat || !HOLD_KEYS.has(event.key)) return;
-      if (isTypingTarget(event.target) || dialogOpen()) return;
+      if (isTypingTarget(event.target) || isControlTarget(event.target) || dialogOpen()) return;
       event.preventDefault();
       if (heldRef.current) return;
       heldRef.current = true;
@@ -151,18 +157,32 @@ export default function useBluetoothPtt({ enabled, transmitting, onStart, onEnd 
         media.setActionHandler('play', onHeadsetPress);
         media.setActionHandler('pause', onHeadsetPress);
         media.setActionHandler('stop', onHeadsetPress);
+        // A double tap on many headsets arrives as next/previous track; it is
+        // still the one call button, so it talks here instead of skipping music.
+        media.setActionHandler('nexttrack', onHeadsetPress);
+        media.setActionHandler('previoustrack', onHeadsetPress);
       } catch (_) {
         /* no media button support */
       }
     }
 
+    // A headset paired mid-shift needs the silent session running again.
+    const onDeviceChange = () => {
+      claimSession();
+      carrier.keepAlive();
+    };
+    navigator.mediaDevices?.addEventListener?.('devicechange', onDeviceChange);
+
     return () => {
       carrier.dispose();
+      navigator.mediaDevices?.removeEventListener?.('devicechange', onDeviceChange);
       if (media) {
         try {
           media.setActionHandler('play', null);
           media.setActionHandler('pause', null);
           media.setActionHandler('stop', null);
+          media.setActionHandler('nexttrack', null);
+          media.setActionHandler('previoustrack', null);
         } catch (_) {
           /* handler already gone */
         }

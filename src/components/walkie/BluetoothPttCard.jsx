@@ -29,8 +29,8 @@ export default function BluetoothPttCard({ ready }) {
                 : armed
                 ? session.transmitting
                   ? 'Live — tap the headset button again to stop'
-                  : 'Armed — tap the headset call button to talk'
-                : 'Pair the headset in your phone settings, then switch on'}
+                  : 'Ready — tap your headset call button to talk'
+                : 'Switched off — turn on to talk with the headset button'}
             </p>
           </div>
         </div>
@@ -43,8 +43,9 @@ export default function BluetoothPttCard({ ready }) {
         />
       </div>
       <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-        Works with a Bluetooth headset call button and with clip-on remote buttons, on any screen
-        in the app. Sound and microphone follow the headset your phone is paired to.
+        Any paired Bluetooth headset works: press its call button once to talk and again to stop,
+        from any screen in the app. Clip-on remote buttons hold down to talk. Sound and microphone
+        follow the headset your phone is paired to.
       </p>
     </div>
   );
