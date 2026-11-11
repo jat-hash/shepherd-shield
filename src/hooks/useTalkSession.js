@@ -905,7 +905,17 @@ export default function useTalkSession(channelId, options = {}) {
       setAudioBlocked(!room.canPlaybackAudio);
       // Announced before the microphone opens so nobody hears the first word.
       await announceRef.current?.(audienceRef.current);
-      micHandleRef.current = await startMicrophone(room, micBoostRef.current);
+      const mic = await startMicrophone(room, micBoostRef.current);
+      // The button can be released, or the app can lose focus, while the
+      // microphone is still opening. A stream that arrives after the
+      // transmission ended has to be closed right away, otherwise the device
+      // keeps the mic live with nothing on screen showing it.
+      if (!transmittingRef.current) {
+        await closeMicrophone(room, mic);
+        await announceRef.current?.('none');
+        return;
+      }
+      micHandleRef.current = mic;
 
       // Everyone who is not in the channel right now gets an alert, so members
       // whose app is closed still learn that a transmission is happening.
