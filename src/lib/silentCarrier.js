@@ -40,17 +40,31 @@ export function createSilentCarrier() {
   element.style.display = 'none';
   document.body.appendChild(element);
 
+  // When the button pause reaches us we bring playback straight back; the
+  // browser reports that resume as a "play" command of its own, which must not
+  // be mistaken for a second press of the button.
+  let resumedAt = 0;
+  let lastAttempt = 0;
+
   const keepAlive = () => {
-    if (element.paused) element.play().catch(() => {});
+    if (!element.paused) return;
+    const now = Date.now();
+    // A headset that keeps refusing playback must not turn into a rapid
+    // start/stop loop, which is heard as a stutter in the radio audio.
+    if (now - lastAttempt < 1200) return;
+    lastAttempt = now;
+    resumedAt = now;
+    element.play().catch(() => {});
   };
 
   // The browser or the headset itself can pause playback; bring it straight back
   // so the media session never falls out of "playing".
   element.addEventListener('pause', keepAlive);
-  element.play().catch(() => {});
+  keepAlive();
 
   return {
     keepAlive,
+    isResuming: () => Date.now() - resumedAt < 900,
     dispose() {
       element.removeEventListener('pause', keepAlive);
       element.pause();

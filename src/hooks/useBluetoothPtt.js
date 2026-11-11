@@ -12,7 +12,7 @@ const MEDIA_KEY_CODES = new Set([179, 178, 79]);
 
 // One headset press can arrive twice — as a media key and as a media session
 // command — so a repeat inside this window is treated as the same press.
-const PRESS_GAP = 400;
+const PRESS_GAP = 700;
 
 // A paired headset works out of the box; the switch is there to turn it off.
 const readArmed = () => {
@@ -109,6 +109,7 @@ export default function useBluetoothPtt({ enabled, transmitting, onStart, onEnd 
     if (!armed || !enabled) return undefined;
 
     const onMediaKey = (event) => {
+      if (event.repeat) return;
       if (!MEDIA_KEYS.has(event.key) && !MEDIA_KEY_CODES.has(event.keyCode)) return;
       if (isTypingTarget(event.target) || dialogOpen()) return;
       event.preventDefault();
@@ -145,6 +146,9 @@ export default function useBluetoothPtt({ enabled, transmitting, onStart, onEnd 
     };
 
     const onHeadsetPress = () => {
+      // Bringing our own silence back reports itself as a play command — that is
+      // not the member touching the button.
+      if (carrier.isResuming()) return;
       press();
       claimSession();
       carrier.keepAlive();
@@ -152,15 +156,16 @@ export default function useBluetoothPtt({ enabled, transmitting, onStart, onEnd 
 
     claimSession();
 
+    // A browser only lets audio start after a tap, so the first touch anywhere in
+    // the app starts the session the button belongs to.
+    const onFirstTouch = () => carrier.keepAlive();
+    document.addEventListener('pointerdown', onFirstTouch, { passive: true });
+
     if (media) {
       try {
         media.setActionHandler('play', onHeadsetPress);
         media.setActionHandler('pause', onHeadsetPress);
         media.setActionHandler('stop', onHeadsetPress);
-        // A double tap on many headsets arrives as next/previous track; it is
-        // still the one call button, so it talks here instead of skipping music.
-        media.setActionHandler('nexttrack', onHeadsetPress);
-        media.setActionHandler('previoustrack', onHeadsetPress);
       } catch (_) {
         /* no media button support */
       }
@@ -176,13 +181,12 @@ export default function useBluetoothPtt({ enabled, transmitting, onStart, onEnd 
     return () => {
       carrier.dispose();
       navigator.mediaDevices?.removeEventListener?.('devicechange', onDeviceChange);
+      document.removeEventListener('pointerdown', onFirstTouch);
       if (media) {
         try {
           media.setActionHandler('play', null);
           media.setActionHandler('pause', null);
           media.setActionHandler('stop', null);
-          media.setActionHandler('nexttrack', null);
-          media.setActionHandler('previoustrack', null);
         } catch (_) {
           /* handler already gone */
         }
