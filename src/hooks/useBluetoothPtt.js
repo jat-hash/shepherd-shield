@@ -145,10 +145,11 @@ export default function useBluetoothPtt({ enabled, transmitting, onStart, onEnd 
       }
     };
 
-    const onHeadsetPress = () => {
-      // Bringing our own silence back reports itself as a play command — that is
-      // not the member touching the button.
-      if (carrier.isResuming()) return;
+    // Bringing our own silence back is reported to the page as a play command,
+    // which is not the member touching the button. A pause or stop can only come
+    // from the button itself, so those always count.
+    const onHeadsetPress = (action) => {
+      if (action === 'play' && carrier.isResuming()) return;
       press();
       claimSession();
       carrier.keepAlive();
@@ -156,16 +157,25 @@ export default function useBluetoothPtt({ enabled, transmitting, onStart, onEnd 
 
     claimSession();
 
-    // A browser only lets audio start after a tap, so the first touch anywhere in
-    // the app starts the session the button belongs to.
-    const onFirstTouch = () => carrier.keepAlive();
-    document.addEventListener('pointerdown', onFirstTouch, { passive: true });
+    // A browser only lets audio start after a tap of its own, and the headset
+    // button is not one of those. Every touch, click or key on the app starts
+    // the session the button belongs to, and coming back to the app restarts it
+    // if the phone stopped it.
+    const resume = () => carrier.keepAlive();
+    const resumeEvents = ['pointerdown', 'touchstart', 'click', 'keydown'];
+    resumeEvents.forEach((name) =>
+      document.addEventListener(name, resume, { passive: true, capture: true })
+    );
+    document.addEventListener('visibilitychange', resume);
+    window.addEventListener('focus', resume);
+    window.addEventListener('pageshow', resume);
+    resume();
 
     if (media) {
       try {
-        media.setActionHandler('play', onHeadsetPress);
-        media.setActionHandler('pause', onHeadsetPress);
-        media.setActionHandler('stop', onHeadsetPress);
+        media.setActionHandler('play', () => onHeadsetPress('play'));
+        media.setActionHandler('pause', () => onHeadsetPress('pause'));
+        media.setActionHandler('stop', () => onHeadsetPress('stop'));
       } catch (_) {
         /* no media button support */
       }
@@ -181,7 +191,12 @@ export default function useBluetoothPtt({ enabled, transmitting, onStart, onEnd 
     return () => {
       carrier.dispose();
       navigator.mediaDevices?.removeEventListener?.('devicechange', onDeviceChange);
-      document.removeEventListener('pointerdown', onFirstTouch);
+      resumeEvents.forEach((name) =>
+        document.removeEventListener(name, resume, { capture: true })
+      );
+      document.removeEventListener('visibilitychange', resume);
+      window.removeEventListener('focus', resume);
+      window.removeEventListener('pageshow', resume);
       if (media) {
         try {
           media.setActionHandler('play', null);

@@ -79,13 +79,14 @@ export function RadioSessionProvider({ children }) {
 
   const session = useTalkSession(channelId, { audiencePersistent: true });
 
-  // The radio is usable as soon as it holds a channel, online or holding on a
-  // direct link. Patrols move between screens, so the headset button is armed
-  // here for the whole app rather than on the radio pages only.
+  // The radio is usable as soon as it holds a channel. Patrols move between
+  // screens, so the headset button is armed here for the whole app rather than
+  // on the radio pages only — and it stays armed while the channel is still
+  // joining or reconnecting, so a tap is never silently ignored.
   const radioReady =
     !!channelId && (session.status === TALK_STATUS.ONLINE || session.status === TALK_STATUS.OFFLINE);
   const headset = useBluetoothPtt({
-    enabled: radioReady,
+    enabled: !!channelId,
     transmitting: session.transmitting,
     onStart: session.startTransmitting,
     onEnd: session.stopTransmitting,
