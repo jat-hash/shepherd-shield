@@ -489,7 +489,7 @@ export default function useTalkSession(channelId, options = {}) {
     const micOpen = (participant) => {
       try {
         if (typeof participant.isMicrophoneEnabled === 'boolean') {
-          return participant.isMicrophoneEnabled || !!participant.isSpeaking;
+          return participant.isMicrophoneEnabled;
         }
       } catch (_) {
         /* the participant may already be gone */
@@ -563,6 +563,10 @@ export default function useTalkSession(channelId, options = {}) {
       .on(RoomEvent.TrackUnsubscribed, (track) => {
         track.detach().forEach((element) => element.remove());
       })
+      // A transmission ends by closing the speaker's microphone track, so the
+      // row has to be re-read here as well, or the channel keeps showing that
+      // member as still talking.
+      .on(RoomEvent.TrackUnpublished, () => syncParticipants())
       .on(RoomEvent.AudioPlaybackStatusChanged, () => {
         setAudioBlocked(!room.canPlaybackAudio);
       })
