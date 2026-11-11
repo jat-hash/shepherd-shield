@@ -61,8 +61,8 @@ export default function RadioPTT() {
     ? `Connecting to ${channelName}…`
     : ready
     ? targetName
-      ? `Tap to talk to ${targetName}`
-      : `Tap to talk to everyone on ${channelName}`
+      ? `Hold to talk to ${targetName}`
+      : `Hold to talk to everyone on ${channelName}`
     : session.networkOffline
     ? 'No connection — radio returns when service does'
     : 'Radio offline — reconnecting…';
