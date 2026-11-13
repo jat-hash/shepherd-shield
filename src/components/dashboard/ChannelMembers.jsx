@@ -57,17 +57,25 @@ export default function ChannelMembers({ channel, audience = [], onSelect, liveE
 
   // Presence comes from the radio server, so it covers everyone on the channel
   // (including this device) and knows who is on a different channel instead.
-  const peopleOnChannel = presence.filter(
-    (entry) =>
-      entry.channel_id === channel.id ||
-      (!!entry.channel_name && entry.channel_name === channel.name)
-  );
+  const onChannelNow = (entry) =>
+    entry.channel_id === channel.id ||
+    (!!entry.channel_name && entry.channel_name === channel.name);
+  const peopleOnChannel = presence.filter((entry) => !entry.standby && onChannelNow(entry));
+  // Members whose app is closed stay listed on the channel they were last on.
+  const standbyEntries = presence
+    .filter((entry) => entry.standby && onChannelNow(entry))
+    .map((entry) => ({
+      email: String(entry.email || '').toLowerCase(),
+      name: entry.name || entry.email,
+    }))
+    .filter((entry) => entry.email);
+  const standbyHere = new Set(standbyEntries.map((entry) => entry.email));
   const onThisChannel = new Set(
     peopleOnChannel.map((entry) => String(entry.email || '').toLowerCase()).filter(Boolean)
   );
   const onOtherChannel = new Map(
     presence
-      .filter((entry) => !onThisChannel.has(String(entry.email || '').toLowerCase()) && entry.channel_name)
+      .filter((entry) => !entry.standby && !onThisChannel.has(String(entry.email || '').toLowerCase()) && entry.channel_name)
       .map((entry) => [String(entry.email || '').toLowerCase(), entry.channel_name])
   );
   // Anyone this device already hears on the channel, plus your own connection —
@@ -96,7 +104,7 @@ export default function ChannelMembers({ channel, audience = [], onSelect, liveE
   // Anyone actually on the channel is listed even when the team directory is not
   // readable for this member, so the panel never claims the channel is empty.
   const roster = [...members];
-  liveEntries.forEach((entry) => {
+  [...liveEntries, ...standbyEntries].forEach((entry) => {
     if (roster.some((member) => String(member.email).toLowerCase() === entry.email)) return;
     roster.push({ email: entry.email, name: entry.name });
   });
@@ -108,7 +116,7 @@ export default function ChannelMembers({ channel, audience = [], onSelect, liveE
   // inside each group, so the list never reshuffles as people come and go.
   const onAir = (member) => isActive(member.email) || speakingSet.has(String(member.email).toLowerCase());
   roster.sort((a, b) => {
-    const rank = (member) => (onAir(member) ? 0 : 1);
+    const rank = (member) => (onAir(member) ? 0 : standbyHere.has(String(member.email).toLowerCase()) ? 1 : 2);
     return rank(a) - rank(b) || String(a.name).localeCompare(String(b.name));
   });
 
@@ -116,6 +124,12 @@ export default function ChannelMembers({ channel, audience = [], onSelect, liveE
   const speakerNames = roster.filter((member) => isSpeaking(member.email)).map((member) => member.name);
 
   const activeCount = roster.filter((member) => isActive(member.email)).length;
+  // Standby: their app is closed, but they are still on the channel and rejoin
+  // it as soon as they open it again.
+  const standbyCount = roster.filter((member) => {
+    const key = String(member.email).toLowerCase();
+    return !isActive(member.email) && standbyHere.has(key) && !onOtherChannel.has(key);
+  }).length;
 
   const nameOf = (email) =>
     roster.find((member) => String(member.email).toLowerCase() === email)?.name || email;
@@ -159,6 +173,9 @@ export default function ChannelMembers({ channel, audience = [], onSelect, liveE
         ) : (
           <span className="text-[10px] font-semibold text-emerald-400">
             {activeCount} active on {channel.name}
+            {standbyCount > 0 && (
+              <span className="text-[#d4a843]"> · {standbyCount} standby</span>
+            )}
           </span>
         )}
       </div>
@@ -200,6 +217,7 @@ export default function ChannelMembers({ channel, audience = [], onSelect, liveE
             const talking = isSpeaking(member.email);
             const onChannel = isActive(member.email) || talking;
             const elsewhere = onOtherChannel.get(String(member.email).toLowerCase()) || null;
+            const standby = !onChannel && !elsewhere && standbyHere.has(String(member.email).toLowerCase());
             const picked = selected.includes(String(member.email).toLowerCase());
             return (
               <button
@@ -221,6 +239,8 @@ export default function ChannelMembers({ channel, audience = [], onSelect, liveE
                         ? 'animate-pulse bg-emerald-400'
                         : onChannel
                         ? 'bg-emerald-400'
+                        : standby
+                        ? 'bg-[#d4a843]'
                         : elsewhere
                         ? 'bg-amber-400'
                         : 'bg-slate-600'
@@ -238,10 +258,16 @@ export default function ChannelMembers({ channel, audience = [], onSelect, liveE
                   ) : (
                     <span
                       className={`text-[9px] font-bold uppercase tracking-wide ${
-                        onChannel ? 'text-emerald-400' : elsewhere ? 'text-amber-400' : 'text-slate-600'
+                        onChannel
+                          ? 'text-emerald-400'
+                          : standby
+                          ? 'text-[#d4a843]'
+                          : elsewhere
+                          ? 'text-amber-400'
+                          : 'text-slate-600'
                       }`}
                     >
-                      {onChannel ? 'Active' : elsewhere ? elsewhere : 'Offline'}
+                      {onChannel ? 'Active' : standby ? 'Standby' : elsewhere ? elsewhere : 'Offline'}
                     </span>
                   )}
                   {picked && <Check className="h-3.5 w-3.5 text-[#d4a843]" />}

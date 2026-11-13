@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import useTalkSession, { TALK_STATUS } from '@/hooks/useTalkSession';
 import useBluetoothPtt from '@/hooks/useBluetoothPtt';
+import useRadioStandby from '@/hooks/useRadioStandby';
 import { canAccessMainApp } from '@/lib/leadership';
 
 const RadioSessionContext = createContext(null);
@@ -90,6 +91,15 @@ export function RadioSessionProvider({ children }) {
     transmitting: session.transmitting,
     onStart: session.startTransmitting,
     onEnd: session.stopTransmitting,
+  });
+
+  // Keeps this member listed on their channel after the app is closed, so the
+  // team still sees them and their device rejoins the same channel on reopen.
+  useRadioStandby({
+    user,
+    channelId,
+    channelName: channels.find((channel) => channel.id === channelId)?.name || null,
+    connected: radioReady,
   });
 
   // Emails of everyone talking right now, this device included.

@@ -1,0 +1,88 @@
+{
+  "name": "RadioStandby",
+  "type": "object",
+  "title": "Radio Standby",
+  "description": "The talk channel a member last connected to, kept after their app closes so the team still sees them on that channel and they rejoin it the moment they reopen the app",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email of the member"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the member"
+    },
+    "channel_id": {
+      "type": "string",
+      "description": "Id of the talk channel the member is standing by on"
+    },
+    "channel_name": {
+      "type": "string",
+      "description": "Name of the talk channel the member is standing by on"
+    },
+    "last_seen": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last time the member's device was connected to the radio"
+    }
+  },
+  "required": [
+    "user_email",
+    "channel_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
