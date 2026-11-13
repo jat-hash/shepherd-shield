@@ -23,10 +23,13 @@ export default function ChurchServiceAlerts({ user }) {
       : "Service has ended. Church is out. Begin dismissal procedures.";
 
     try {
-      // Send team notification (creates an in-app Notification + push for every
-      // user). We intentionally do NOT also post a TeamMessage here — posting one
+      // Anonymous broadcast: the alert reaches every member as a Shepherd Shield
+      // system alert with no sender attached — no member name, email, or chat
+      // message — so the team never learns which leader raised it.
+      //
+      // We intentionally do NOT also post a TeamMessage here — posting one
       // triggers the notifyNewMessage automation, which creates a SECOND
-      // notification per recipient (a double alert).
+      // notification per recipient (a double alert) and would show a sender.
       await base44.functions.invoke("sendTeamNotification", { title, message });
 
       if (isAltar) {
@@ -61,8 +64,8 @@ export default function ChurchServiceAlerts({ user }) {
         ) : (
           <Heart className="w-6 h-6 text-purple-300" />
         )}
-        <span>{altarSent ? "✓ Alert Sent!" : "Altar Call"}</span>
-        <span className="text-xs font-normal opacity-70">Notify all members</span>
+        <span>{altarSent ? "✓ Sent Anonymously" : "Altar Call"}</span>
+        <span className="text-xs font-normal opacity-70">Anonymous · all members</span>
       </button>
 
       {/* Church Out Button */}
@@ -80,8 +83,8 @@ export default function ChurchServiceAlerts({ user }) {
         ) : (
           <DoorOpen className="w-6 h-6 text-green-300" />
         )}
-        <span>{churchOutSent ? "✓ Alert Sent!" : "Church Out"}</span>
-        <span className="text-xs font-normal opacity-70">Service has ended</span>
+        <span>{churchOutSent ? "✓ Sent Anonymously" : "Church Out"}</span>
+        <span className="text-xs font-normal opacity-70">Anonymous · service ended</span>
       </button>
     </div>
   );
