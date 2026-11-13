@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, Radio, RotateCw, Baby, MonitorCheck, ChevronLeft, Lock } from "lucide-react";
+import { Home, MessageSquare, CalendarDays, FileText, User, Shield, Menu, X, Bell, ChevronDown, Eye, Wrench, BookOpen, MapPin, Calendar, Bot, FolderOpen, Radio, RotateCw, Baby, MonitorCheck, ChevronLeft, Lock, Handshake } from "lucide-react";
 
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { cacheUserVibrationPrefs, primeAudioContext } from "@/lib/notificationEffects";
@@ -32,6 +32,7 @@ const ROOT_PAGES = ["Dashboard", "Communications", "Assignments", "Incidents", "
 const PAGE_TITLES = {
   Members: "Team Members",
   WalkieTalkie: "Team Radio",
+  DirectLink: "Direct Link",
   TeamMap: "Live Map",
   WatchList: "Watch List",
   PropertySecurity: "Property Security",
@@ -457,6 +458,7 @@ export default function Layout({ children, currentPageName }) {
                     {[
                       { name: "Equipment", page: "EquipmentInventory", icon: Wrench },
                       { name: "Special Events", page: "SpecialEvents", icon: Calendar },
+                      { name: "Direct Link", page: "DirectLink", icon: Handshake },
                       ...(user?.role === 'admin' ? [{ name: "Auto Rotate Schedule", page: "AutoRotation", icon: Bot }] : []),
                       { name: "Documents", page: "Documents", icon: FolderOpen },
                       { name: "Property Security", page: "PropertySecurity", icon: Lock },
@@ -508,7 +510,17 @@ export default function Layout({ children, currentPageName }) {
             </Link>
           );
         })}
-...
+        <Link
+          to={createPageUrl("DirectLink")}
+          className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-all ${
+            currentPageName === "DirectLink"
+              ? "text-[#d4a843] bg-[rgba(212,168,67,0.08)] border-r-2 border-[#d4a843]"
+              : "text-slate-400 hover:text-white hover:bg-white/5"
+          }`}
+        >
+          <Handshake className="w-4 h-4" />
+          Direct Link
+        </Link>
       </nav>
       )}
       {!isNurseryOnly && <BottomTabs />}

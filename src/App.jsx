@@ -87,6 +87,7 @@ import PushDiagnostics from './pages/PushDiagnostics';
 import PropertySecurity from './pages/PropertySecurity';
 import PropertyMonitor from './pages/PropertyMonitor';
 import WalkieTalkie from './pages/WalkieTalkie';
+import DirectLink from './pages/DirectLink';
 import MinimizedAppBar from '@/components/MinimizedAppBar';
 import PWAInstaller from '@/components/PWAInstaller';
 import WakeLock from '@/components/WakeLock';
@@ -237,6 +238,7 @@ const AuthenticatedApp = () => {
             <Route path="/PropertySecurity" element={<LayoutWrapper currentPageName="PropertySecurity"><PropertySecurity /></LayoutWrapper>} />
             <Route path="/PropertyMonitor" element={<LayoutWrapper currentPageName="PropertyMonitor"><PropertyMonitor /></LayoutWrapper>} />
             <Route path="/WalkieTalkie" element={<LayoutWrapper currentPageName="WalkieTalkie"><WalkieTalkie /></LayoutWrapper>} />
+            <Route path="/DirectLink" element={<LayoutWrapper currentPageName="DirectLink"><DirectLink /></LayoutWrapper>} />
             <Route path="*" element={<PageNotFound />} />
           </Routes>
           </RadioSessionProvider>
