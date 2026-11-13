@@ -921,10 +921,11 @@ export default function useTalkSession(channelId, options = {}) {
       }
       micHandleRef.current = mic;
 
-      // Everyone who is not in the channel right now gets an alert, so members
-      // whose app is closed still learn that a transmission is happening.
+      // Members standing by on this channel get an alert, so someone whose app
+      // is closed still learns that the channel is being used. A private
+      // contact stays private, so it never rings the rest of the channel.
       const now = Date.now();
-      if (now - lastAlertRef.current > 90000) {
+      if (now - lastAlertRef.current > 90000 && normalizeAudience(audienceRef.current).length === 0) {
         lastAlertRef.current = now;
         const listening = Array.from(room.remoteParticipants.values()).map(
           (participant) => String(participant.identity || '').split('#')[0]

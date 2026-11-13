@@ -29,20 +29,37 @@ export default async function (req) {
     );
     listening.add(String(user.email || '').toLowerCase());
 
+    // Members standing by on this channel are the ones who closed the app on it.
+    const standbyCutoff = Date.now() - 12 * 60 * 60 * 1000;
+    const standbyPage = await base44.asServiceRole.entities.RadioStandby
+      .filter({ channel_id: channelId }, { sort: '-last_seen', limit: 200 })
+      .catch(() => null);
+    const standby = new Set(
+      (standbyPage?.items || [])
+        .filter((record) => new Date(record.last_seen).getTime() >= standbyCutoff)
+        .map((record) => String(record.user_email || '').toLowerCase())
+        .filter(Boolean)
+    );
+
     const users = await base44.asServiceRole.entities.User.list();
-    const recipients = (users || [])
+    const reachable = (users || [])
       .filter((candidate) => candidate?.email)
       .filter((candidate) => !listening.has(String(candidate.email).toLowerCase()))
       .filter((candidate) => isAuthorizedForChannel(candidate, channel))
-      .map((candidate) => candidate.email);
+      .map((candidate) => String(candidate.email).toLowerCase());
+
+    // Alert exactly the members standing by on this channel: everyone else has
+    // either closed the app on another channel or never joined the radio.
+    const onStandby = reachable.filter((email) => standby.has(email));
+    const recipients = onStandby.length > 0 ? onStandby : reachable;
 
     if (recipients.length === 0) {
       return Response.json({ success: true, sent: 0 });
     }
 
     const speaker = user.full_name || user.email;
-    const title = `📻 ${speaker} is on ${channel.name}`;
-    const message = 'Tap to listen and talk back on the team radio.';
+    const title = `📻 ${speaker} is talking on ${channel.name}`;
+    const message = 'You are standing by on this channel. Tap to listen and talk back.';
 
     let sent = 0;
     for (let i = 0; i < recipients.length; i += 6) {
