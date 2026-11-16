@@ -11,9 +11,9 @@ import ChannelChips from '@/components/walkie/ChannelChips';
 import ChannelManager from '@/components/walkie/ChannelManager';
 import PTTButton from '@/components/walkie/PTTButton';
 import BluetoothPttCard from '@/components/walkie/BluetoothPttCard';
+import BluetoothRadioLinkCard from '@/components/walkie/BluetoothRadioLinkCard';
 import TalkerPanel from '@/components/walkie/TalkerPanel';
 import AudienceSelector from '@/components/walkie/AudienceSelector';
-import AudioOutputPicker from '@/components/walkie/AudioOutputPicker';
 import EmergencyBroadcast from '@/components/walkie/EmergencyBroadcast';
 
 export default function WalkieTalkie() {
@@ -194,8 +194,8 @@ export default function WalkieTalkie() {
 
         {session.networkOffline && session.transport !== TALK_TRANSPORT.DIRECT && (
           <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-3 text-[11px] text-amber-100">
-            No connection. Voice needs WiFi or mobile data, so the radio is on standby until service returns —
-            it rejoins this channel automatically, no need to reopen the app.
+            No connection. Voice needs WiFi or mobile data, so the app radio is on standby until service
+            returns — it rejoins this channel on its own. Your paired Bluetooth radio stays linked meanwhile.
           </div>
         )}
 
@@ -260,6 +260,8 @@ export default function WalkieTalkie() {
 
         <BluetoothPttCard ready={canTalk} />
 
+        <BluetoothRadioLinkCard />
+
         <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-3">
           <div className="flex items-center gap-3">
             <Volume2 className="h-4 w-4 text-slate-400" />
@@ -283,12 +285,6 @@ export default function WalkieTalkie() {
           <p className="text-[10px] leading-relaxed text-slate-500">
             Mic level — how loudly the team hears you. Push it up when the phone is on your belt or the room is loud.
           </p>
-
-          <AudioOutputPicker
-            outputs={session.audioOutputs || []}
-            value={session.outputDeviceId}
-            onChange={session.selectOutput}
-          />
 
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-[11px] text-slate-400">

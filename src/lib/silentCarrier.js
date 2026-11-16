@@ -31,7 +31,7 @@ function silentWavUrl() {
   return URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
 }
 
-export function createSilentCarrier() {
+export function createSilentCarrier({ sinkId = '' } = {}) {
   const url = silentWavUrl();
   const element = new Audio(url);
   element.loop = true;
@@ -60,10 +60,23 @@ export function createSilentCarrier() {
   // The browser or the headset itself can pause playback; bring it straight back
   // so the media session never falls out of "playing".
   element.addEventListener('pause', keepAlive);
+
+  // Playing the loop on the paired radio itself is what keeps that radio's
+  // audio link open when the app has nothing else to play.
+  const applySink = (deviceId) => {
+    try {
+      element.setSinkId?.(deviceId || '')?.catch?.(() => {});
+    } catch (_) {
+      /* this browser cannot choose a speaker */
+    }
+  };
+  applySink(sinkId);
+
   keepAlive();
 
   return {
     keepAlive,
+    applySink,
     isResuming: () => Date.now() - resumedAt < 900,
     dispose() {
       element.removeEventListener('pause', keepAlive);

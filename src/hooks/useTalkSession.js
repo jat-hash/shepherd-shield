@@ -32,6 +32,16 @@ export const TALK_TRANSPORT = {
 const DEVICE_KEY = 'shepherd-radio-device';
 // Chosen speaker for the radio voice (a Bluetooth headset, a car kit, …).
 const OUTPUT_KEY = 'shepherd-radio-output';
+// Chosen microphone: the paired Bluetooth radio's own mic, so talking through
+// the radio does not fall back to the phone's mic.
+const INPUT_KEY = 'shepherd-radio-input';
+const readStored = (key) => {
+  try {
+    return localStorage.getItem(key) || '';
+  } catch (_) {
+    return '';
+  }
+};
 const canPickOutput = () =>
   typeof window !== 'undefined' &&
   !!window.HTMLMediaElement?.prototype &&
@@ -56,7 +66,7 @@ export const isBrowserOffline = () =>
 // is already cleaned: echo cancellation, background noise suppression, mono
 // capture, and — on browsers that offer it — voice isolation, which filters
 // everything that is not a voice.
-const micCleanup = () => {
+const micCleanup = (deviceId) => {
   const options = {
     echoCancellation: true,
     noiseSuppression: true,
@@ -67,6 +77,9 @@ const micCleanup = () => {
   };
   const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
   if (/Chrome|Chromium|Edg\//.test(ua)) options.voiceIsolation = true;
+  // A chosen device (the paired Bluetooth radio) is used when the browser can
+  // open it, and the microphone falls back to the phone's own if it cannot.
+  if (deviceId) options.deviceId = { exact: deviceId };
   return options;
 };
 
@@ -129,8 +142,8 @@ const readBoost = () => {
 // The voice the team hears: the cleaned capture runs through a gain stage, so
 // the level can go far past the device's own limit, and it is published at a
 // speech bitrate high enough to keep words crisp instead of choppy.
-const openMicrophone = async (room, boost) => {
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: micCleanup() });
+const openMicrophone = async (room, boost, deviceId) => {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: micCleanup(deviceId) });
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   if (!AudioCtx) throw new Error('Audio processing is unavailable');
   const ctx = new AudioCtx();
@@ -163,7 +176,16 @@ const openMicrophone = async (room, boost) => {
 
 // A device that cannot run the gain stage still gets a working microphone
 // rather than a failed transmission.
-const startMicrophone = async (room, boost) => {
+const startMicrophone = async (room, boost, deviceId) => {
+  // The paired radio's mic is preferred, but a radio that has just gone out of
+  // range must never cost this member their voice: the phone mic takes over.
+  if (deviceId) {
+    try {
+      return await openMicrophone(room, boost, deviceId);
+    } catch (_) {
+      /* fall through to the phone's own microphone */
+    }
+  }
   try {
     return await openMicrophone(room, boost);
   } catch (error) {
@@ -270,14 +292,22 @@ export default function useTalkSession(channelId, options = {}) {
   const outputRef = useRef('');
   const [outputDeviceId, setOutputDeviceId] = useState('');
   const [audioOutputs, setAudioOutputs] = useState([]);
+  // The microphone side of the same pairing — the radio's own mic.
+  const inputRef = useRef('');
+  const [inputDeviceId, setInputDeviceId] = useState('');
+  const [audioInputs, setAudioInputs] = useState([]);
 
-  const refreshOutputs = useCallback(async () => {
-    if (!canPickOutput()) return;
+  const refreshDevices = useCallback(async () => {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       setAudioOutputs(devices.filter((device) => device.kind === 'audiooutput' && !!device.deviceId));
+      // Inputs only carry a useful name once the microphone has been allowed.
+      setAudioInputs(
+        devices.filter((device) => device.kind === 'audioinput' && !!device.deviceId && !!device.label)
+      );
     } catch (_) {
       setAudioOutputs([]);
+      setAudioInputs([]);
     }
   }, []);
 
@@ -296,6 +326,17 @@ export default function useTalkSession(channelId, options = {}) {
       await room.switchActiveDevice('audiooutput', value || 'default');
     } catch (_) {
       /* this browser cannot choose a speaker */
+    }
+  }, []);
+
+  const selectInput = useCallback((deviceId) => {
+    const value = deviceId === 'default' ? '' : deviceId || '';
+    inputRef.current = value;
+    setInputDeviceId(value);
+    try {
+      localStorage.setItem(INPUT_KEY, value);
+    } catch (_) {
+      /* storage may be blocked */
     }
   }, []);
 
@@ -319,32 +360,32 @@ export default function useTalkSession(channelId, options = {}) {
     }
   }, []);
 
-  // A headset paired (or unpaired) mid-shift has to appear in the list.
+  // A radio paired (or unpaired) mid-shift has to appear in the list.
   useEffect(() => {
-    if (!canPickOutput()) return undefined;
-    try {
-      outputRef.current = localStorage.getItem(OUTPUT_KEY) || '';
-      setOutputDeviceId(outputRef.current);
-    } catch (_) {
-      /* storage may be blocked */
-    }
-    refreshOutputs();
-    const onDeviceChange = () => refreshOutputs();
+    outputRef.current = readStored(OUTPUT_KEY);
+    setOutputDeviceId(outputRef.current);
+    inputRef.current = readStored(INPUT_KEY);
+    setInputDeviceId(inputRef.current);
+    refreshDevices();
+    const onDeviceChange = () => refreshDevices();
     navigator.mediaDevices?.addEventListener?.('devicechange', onDeviceChange);
     return () => navigator.mediaDevices?.removeEventListener?.('devicechange', onDeviceChange);
-  }, [refreshOutputs]);
+  }, [refreshDevices]);
 
   // Once the radio is live the microphone is allowed, so device names appear.
   useEffect(() => {
-    if (status === TALK_STATUS.ONLINE) refreshOutputs();
-  }, [status, refreshOutputs]);
+    if (status === TALK_STATUS.ONLINE) refreshDevices();
+  }, [status, refreshDevices]);
 
   // A phone suspends a page that is not playing anything, which cuts the radio
   // off the moment the screen locks or another app opens. Holding a silent loop
   // open keeps the channel joined and its voice audible while backgrounded.
+  // The same loop holds the audio link to a paired Bluetooth radio open, so it
+  // keeps running on that radio even while the phone has no service — the radio
+  // stays linked to the earpiece instead of dropping back to the phone speaker.
   useEffect(() => {
-    if (transport !== TALK_TRANSPORT.INTERNET) return undefined;
-    const carrier = createSilentCarrier();
+    if (transport !== TALK_TRANSPORT.INTERNET && !outputDeviceId) return undefined;
+    const carrier = createSilentCarrier({ sinkId: outputRef.current });
     if ('mediaSession' in navigator) {
       try {
         navigator.mediaSession.playbackState = 'playing';
@@ -364,7 +405,7 @@ export default function useTalkSession(channelId, options = {}) {
       window.removeEventListener('focus', keepAlive);
       carrier.dispose();
     };
-  }, [transport]);
+  }, [transport, outputDeviceId]);
 
   // Anyone the current speaker is not addressing stays silenced, even though
   // the channel itself carries their voice to every joined device.
@@ -405,7 +446,7 @@ export default function useTalkSession(channelId, options = {}) {
     const room = new Room({
       adaptiveStream: true,
       dynacast: true,
-      audioCaptureDefaults: micCleanup(),
+      audioCaptureDefaults: micCleanup(inputRef.current),
     });
     roomRef.current = room;
     localRef.current = false;
@@ -909,7 +950,7 @@ export default function useTalkSession(channelId, options = {}) {
       setAudioBlocked(!room.canPlaybackAudio);
       // Announced before the microphone opens so nobody hears the first word.
       await announceRef.current?.(audienceRef.current);
-      const mic = await startMicrophone(room, micBoostRef.current);
+      const mic = await startMicrophone(room, micBoostRef.current, inputRef.current);
       // The button can be released, or the app can lose focus, while the
       // microphone is still opening. A stream that arrives after the
       // transmission ended has to be closed right away, otherwise the device
@@ -1039,6 +1080,9 @@ export default function useTalkSession(channelId, options = {}) {
     audioOutputs,
     outputDeviceId,
     selectOutput,
+    audioInputs,
+    inputDeviceId,
+    selectInput,
     canPickOutput: canPickOutput(),
   };
 }

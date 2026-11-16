@@ -24,7 +24,9 @@ export default function BluetoothPttCard({ ready }) {
               Bluetooth button
             </p>
             <p className="text-[10px] text-slate-500">
-              {!ready
+              {!ready && session.networkOffline
+                ? 'No service — your radio’s own talk button still works'
+                : !ready
                 ? 'Waiting for the radio to come online'
                 : armed
                 ? session.transmitting
@@ -37,7 +39,7 @@ export default function BluetoothPttCard({ ready }) {
         <Switch
           checked={armed}
           onCheckedChange={toggleArmed}
-          disabled={!ready}
+          disabled={!ready && !session.networkOffline}
           aria-label="Bluetooth push-to-talk"
           className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-white/20"
         />
