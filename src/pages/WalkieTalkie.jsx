@@ -19,7 +19,8 @@ import EmergencyBroadcast from '@/components/walkie/EmergencyBroadcast';
 export default function WalkieTalkie() {
   const [user, setUser] = useState(null);
   // The app-wide radio connection: already on the main team channel since open.
-  const { channels, channelId, activeChannel, selectChannel, refreshChannels, session } = useRadioSession();
+  const { channels, channelId, activeChannel, selectChannel, refreshChannels, session, checkInRequired } =
+    useRadioSession();
   const [micState, setMicState] = useState('unknown');
   const [volume, setVolume] = useState(1);
   const [emergency, setEmergency] = useState(null);
@@ -102,7 +103,10 @@ export default function WalkieTalkie() {
     session.setVolume(next);
   };
 
-  const canTalk = !!channelId && (session.status === TALK_STATUS.ONLINE || session.status === TALK_STATUS.OFFLINE);
+  const canTalk =
+    !checkInRequired &&
+    !!channelId &&
+    (session.status === TALK_STATUS.ONLINE || session.status === TALK_STATUS.OFFLINE);
   const isDirectLink = session.transport === TALK_TRANSPORT.DIRECT;
   const targets = Array.isArray(session.audience) ? session.audience : [];
   const targetNames = targets
@@ -168,6 +172,16 @@ export default function WalkieTalkie() {
             >
               Dismiss
             </button>
+          </div>
+        )}
+
+        {checkInRequired && (
+          <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-3 text-[11px] text-amber-100">
+            <p className="font-bold uppercase tracking-[0.14em]">Radio locked</p>
+            <p className="mt-1 leading-relaxed">
+              The team radio only works while you are checked in. Check in on the Dashboard when you arrive on
+              site and this channel comes on by itself.
+            </p>
           </div>
         )}
 

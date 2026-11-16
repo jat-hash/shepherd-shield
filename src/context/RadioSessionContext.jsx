@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/AuthContext';
 import useTalkSession, { TALK_STATUS } from '@/hooks/useTalkSession';
 import useBluetoothPtt from '@/hooks/useBluetoothPtt';
 import useRadioStandby from '@/hooks/useRadioStandby';
+import useCheckInStatus from '@/hooks/useCheckInStatus';
 import { canAccessMainApp } from '@/lib/leadership';
 
 const RadioSessionContext = createContext(null);
@@ -49,6 +50,11 @@ export function RadioSessionProvider({ children }) {
   // Nursery-only members never use the radio.
   const blocked = !!user && !canAccessMainApp(user);
 
+  // The radio is only live while the member is checked in on site.
+  const { checkedIn } = useCheckInStatus(user?.email);
+  const checkInRequired = !!user && !blocked && !checkedIn;
+  const radioAllowed = !!user && !blocked && checkedIn;
+
   const loadChannels = useCallback(async () => {
     try {
       const result = await base44.entities.TalkChannel.filter(
@@ -78,16 +84,18 @@ export function RadioSessionProvider({ children }) {
     loadChannels();
   }, [blocked, loadChannels]);
 
-  const session = useTalkSession(channelId, { audiencePersistent: true });
+  const session = useTalkSession(radioAllowed ? channelId : null, { audiencePersistent: true });
 
   // The radio is usable as soon as it holds a channel. Patrols move between
   // screens, so the headset button is armed here for the whole app rather than
   // on the radio pages only — and it stays armed while the channel is still
   // joining or reconnecting, so a tap is never silently ignored.
   const radioReady =
-    !!channelId && (session.status === TALK_STATUS.ONLINE || session.status === TALK_STATUS.OFFLINE);
+    radioAllowed &&
+    !!channelId &&
+    (session.status === TALK_STATUS.ONLINE || session.status === TALK_STATUS.OFFLINE);
   const headset = useBluetoothPtt({
-    enabled: !!channelId,
+    enabled: radioAllowed && !!channelId,
     transmitting: session.transmitting,
     onStart: session.startTransmitting,
     onEnd: session.stopTransmitting,
@@ -97,7 +105,7 @@ export function RadioSessionProvider({ children }) {
   // team still sees them and their device rejoins the same channel on reopen.
   useRadioStandby({
     user,
-    channelId,
+    channelId: radioAllowed ? channelId : null,
     channelName: channels.find((channel) => channel.id === channelId)?.name || null,
     connected: radioReady,
   });
@@ -128,6 +136,7 @@ export function RadioSessionProvider({ children }) {
     refreshChannels: loadChannels,
     session,
     radioReady,
+    checkInRequired,
     headset,
     speakingEmails,
   };

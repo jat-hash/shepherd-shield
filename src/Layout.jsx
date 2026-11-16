@@ -16,6 +16,7 @@ import UserSwitcher from "@/components/UserSwitcher";
 import NotificationToast from "@/components/notifications/NotificationToast";
 import EmergencyOverlay from "@/components/notifications/EmergencyOverlay";
 import BottomTabs from "@/components/BottomTabs";
+import RadioCheckInNotice from "@/components/radio/RadioCheckInNotice";
 
 const NAV_ITEMS = [
   { name: "Dashboard", icon: Home, page: "Dashboard" },
@@ -212,6 +213,7 @@ export default function Layout({ children, currentPageName }) {
   return (
     <>
       <AlertNotificationSystem onUnreadCountChange={setAlertUnreadCount} />
+      <RadioCheckInNotice />
       <div className="min-h-screen bg-[#0a1128] text-white flex flex-col">
       <style>{`
         :root {

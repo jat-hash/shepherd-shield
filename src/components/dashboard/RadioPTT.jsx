@@ -14,13 +14,15 @@ import ChannelMembers from '@/components/dashboard/ChannelMembers';
  * channel as soon as it opens, so this panel is live without any setup.
  */
 export default function RadioPTT() {
-  const { channels, channelId, activeChannel, selectChannel, session } = useRadioSession();
+  const { channels, channelId, activeChannel, selectChannel, session, checkInRequired } = useRadioSession();
   const [targetLabel, setTargetLabel] = useState('');
 
   const channel = activeChannel;
   const channelName = channel?.name || '';
   const ready =
-    !!channelId && (session.status === TALK_STATUS.ONLINE || session.status === TALK_STATUS.OFFLINE);
+    !checkInRequired &&
+    !!channelId &&
+    (session.status === TALK_STATUS.ONLINE || session.status === TALK_STATUS.OFFLINE);
 
   // Nobody picked means the whole channel; otherwise this is a temporary private
   // contact with the people selected, inside the same channel.
@@ -49,7 +51,9 @@ export default function RadioPTT() {
     session.startTransmitting();
   };
 
-  const statusText = !channelId
+  const statusText = checkInRequired
+    ? 'Radio locked — check in to go on the channel'
+    : !channelId
     ? 'No radio channel is set up yet'
     : session.error
     ? session.error
