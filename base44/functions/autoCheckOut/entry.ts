@@ -1,26 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-// Church campus center: 21224 Orting Kapowsin Hwy E, Graham, WA 98338
-const CAMPUS_LAT = 47.0637;
-const CAMPUS_LON = -122.2525;
-// Campus boundary radius — 3 miles covers the church area.
-// Auto-checkout fires only when the user moves beyond this perimeter.
-const CAMPUS_RADIUS_MILES = 3;
-
 const FIREBASE_SERVER_KEY = Deno.env.get("FIREBASE_SERVER_KEY");
 const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID");
 const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
 const TWILIO_PHONE_NUMBER = Deno.env.get("TWILIO_PHONE_NUMBER");
-
-function distanceMiles(lat1, lon1, lat2, lon2) {
-  const R = 3958.8;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon/2) * Math.sin(dLon/2);
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
 
 function parseServiceTime(date, time) {
   // Parse as Pacific Time by appending the offset explicitly
@@ -111,8 +94,7 @@ Deno.serve(async (req) => {
     // Use Pacific Time (America/Los_Angeles) local date to match how assignments are created
     const today = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
 
-    // Assignments are MANUAL check-in/out only — no GPS automation for assignments.
-    // GPS auto check-in/out applies only to PersonalCheckIn (handled in the PersonalCheckIn component).
+    // Check-in/out is manual for everyone — no GPS distance limits anywhere.
 
     let autoCheckedIn = 0;
     let autoCheckedOut = 0;
@@ -135,36 +117,17 @@ Deno.serve(async (req) => {
       // Pre-service "Check In Now" / "You Haven't Checked In" reminders removed
       // — all automated service-start/end notifications are now off.
 
-      // Auto check-out if user has left the 3-mile vicinity (GPS) OR 45 min after service end (time fallback)
+      // Auto check-out 45 min after service end (no distance/GPS limit)
       if (assignment.checked_in && !assignment.checked_out) {
         let shouldCheckOut = false;
         let reason = '';
 
-        // Time-based fallback: 45 minutes after service end, auto-checkout regardless of GPS.
+        // Time-based fallback: 45 minutes after service end, auto-checkout.
         // Ensures assignments don't stay open if a member forgot to check out.
         const fortyFiveMinAfterEnd = new Date(endDateTime.getTime() + 45 * 60 * 1000);
         if (now >= fortyFiveMinAfterEnd) {
           shouldCheckOut = true;
           reason = `45 min after service end (auto time checkout)`;
-        }
-
-        // GPS: user has left the campus boundary (3-mile radius around church property)
-        if (!shouldCheckOut) {
-          const liveLocations = await base44.asServiceRole.entities.LiveLocation.filter({
-            user_email: assignment.assigned_to_email,
-            is_active: true
-          });
-          const loc = liveLocations?.[0];
-          if (loc?.latitude && loc?.longitude) {
-            const dist = distanceMiles(loc.latitude, loc.longitude, CAMPUS_LAT, CAMPUS_LON);
-            if (dist > CAMPUS_RADIUS_MILES) {
-              shouldCheckOut = true;
-              reason = `left campus boundary (${(dist * 5280).toFixed(0)} ft from campus center)`;
-            }
-          } else {
-            // No live location available — skip GPS checkout, time fallback will catch it later
-            console.log(`No live location for ${assignment.assigned_to_name} — skipping GPS auto-checkout`);
-          }
         }
 
         if (shouldCheckOut) {
