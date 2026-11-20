@@ -287,6 +287,10 @@ export default function useTalkSession(channelId, options = {}) {
   const lastAlertRef = useRef(0);
   const connectingRef = useRef(false);
   const configBlockedRef = useRef(false);
+  // Failed join attempts back off, so a radio server that is refusing
+  // connections is not hammered (which only keeps it refusing).
+  const connectFailuresRef = useRef(0);
+  const nextAttemptRef = useRef(0);
   // Where the radio voice is played. Kept across sessions so a paired headset
   // stays the speaker on the next shift too.
   const outputRef = useRef('');
@@ -767,6 +771,8 @@ export default function useTalkSession(channelId, options = {}) {
         setNetworkOffline(false);
         setStatus(TALK_STATUS.ONLINE);
         setError(null);
+        connectFailuresRef.current = 0;
+        nextAttemptRef.current = 0;
         syncParticipants();
         return true;
       } catch (connectError) {
@@ -783,11 +789,25 @@ export default function useTalkSession(channelId, options = {}) {
         } else if (connectError?.status === 401 || connectError?.response?.status === 401) {
           setError('Please sign in again to use the radio.');
         } else {
-          setError('Could not reach the radio channel. Check your connection and try again.');
+          // The radio server answers 429 when the project is over its limit, so
+          // the panel says that instead of blaming this device's connection.
+          const reason = String(connectError?.message || '');
+          const rateLimited =
+            connectError?.status === 429 || /429|too many requests|rate limit/i.test(reason);
+          setError(
+            rateLimited
+              ? 'The radio server is refusing connections right now. Retrying shortly.'
+              : 'Could not reach the radio channel. Check your connection and try again.'
+          );
         }
         setTransport(TALK_TRANSPORT.NONE);
         setStatus(TALK_STATUS.DISCONNECTED);
-        if (!configBlockedRef.current && !isBrowserOffline()) scheduleRebuild();
+        if (!configBlockedRef.current && !isBrowserOffline()) {
+          connectFailuresRef.current += 1;
+          const delay = Math.min(5000 * 2 ** (connectFailuresRef.current - 1), 60000);
+          nextAttemptRef.current = Date.now() + delay;
+          scheduleRebuild(delay);
+        }
         return false;
       } finally {
         connectingRef.current = false;
@@ -822,6 +842,9 @@ export default function useTalkSession(channelId, options = {}) {
     const onOnline = () => {
       setNetworkOffline(false);
       if (localRef.current) return;
+      // A network that just came back deserves an immediate try, whatever the
+      // backoff was waiting for.
+      nextAttemptRef.current = 0;
       if (room.state === ConnectionState.Disconnected) scheduleRebuild(0);
     };
 
@@ -835,6 +858,7 @@ export default function useTalkSession(channelId, options = {}) {
       const current = roomRef.current;
       if (!current || current.state !== ConnectionState.Disconnected) return;
       if (isBrowserOffline() || configBlockedRef.current) return;
+      if (Date.now() < nextAttemptRef.current) return;
       scheduleRebuild(0);
     };
     const retryId = setInterval(rejoined, 12000);
