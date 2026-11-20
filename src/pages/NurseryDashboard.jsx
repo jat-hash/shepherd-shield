@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import {
   Baby, LogIn, LogOut, Bell, CheckCircle, Clock,
-  AlertCircle, RefreshCw, Users, MessageSquare, ShieldAlert, BookUser
+  AlertCircle, RefreshCw, Users, MessageSquare, ShieldAlert, BookUser, Radio
 } from "lucide-react";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import ChildCheckInForm from "@/components/nursery/ChildCheckInForm";
@@ -12,6 +12,7 @@ import ParentRequestForm from "@/components/nursery/ParentRequestForm";
 import NurseryRequestReply from "@/components/nursery/NurseryRequestReply";
 import NurseryChat from "@/components/nursery/NurseryChat";
 import NurseryDirectory from "@/components/nursery/NurseryDirectory";
+import RadioPTT from "@/components/dashboard/RadioPTT";
 import DailySummary from "@/components/nursery/DailySummary";
 import { toast } from "sonner";
 
@@ -27,6 +28,7 @@ const TABS = [
   { id: "requests", label: "Requests", icon: Bell },
   { id: "directory", label: "Directory", icon: BookUser },
   { id: "chat", label: "Chat", icon: MessageSquare },
+  { id: "radio", label: "Radio", icon: Radio },
   { id: "alerts", label: "Alerts", icon: ShieldAlert },
 ];
 
@@ -217,7 +219,7 @@ export default function NurseryDashboard() {
         </div>
 
         {/* Tabs */}
-        <div className="flex bg-[#141f3d] rounded-xl border border-[rgba(212,168,67,0.1)] p-1 gap-1">
+        <div className="flex bg-[#141f3d] rounded-xl border border-[rgba(212,168,67,0.1)] p-1 gap-1 overflow-x-auto">
           {TABS.map(tab => {
             const Icon = tab.icon;
             const badge = tab.id === "requests" ? pendingRequests.length
@@ -226,7 +228,7 @@ export default function NurseryDashboard() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all relative ${
+                className={`flex-1 flex-shrink-0 whitespace-nowrap flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-semibold transition-all relative ${
                   activeTab === tab.id
                     ? "bg-[#d4a843] text-[#0a1128]"
                     : "text-slate-400 hover:text-white"
@@ -353,6 +355,13 @@ export default function NurseryDashboard() {
           {/* CHAT TAB */}
           {activeTab === "chat" && (
             <NurseryChat user={user} />
+          )}
+
+          {/* RADIO TAB */}
+          {activeTab === "radio" && (
+            <div className="space-y-3">
+              <RadioPTT />
+            </div>
           )}
 
           {/* ALERTS TAB */}

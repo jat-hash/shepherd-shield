@@ -8,6 +8,8 @@ import ChannelChips from '@/components/walkie/ChannelChips';
 import PTTButton from '@/components/walkie/PTTButton';
 import BluetoothPttCard from '@/components/walkie/BluetoothPttCard';
 import ChannelMembers from '@/components/dashboard/ChannelMembers';
+import { useAuth } from '@/lib/AuthContext';
+import { canAccessMainApp } from '@/lib/leadership';
 
 /**
  * Push-to-talk straight from the home screen. The app joins the main team
@@ -15,7 +17,10 @@ import ChannelMembers from '@/components/dashboard/ChannelMembers';
  */
 export default function RadioPTT() {
   const { channels, channelId, activeChannel, selectChannel, session, checkInRequired } = useRadioSession();
+  const { user } = useAuth();
   const [targetLabel, setTargetLabel] = useState('');
+  // Nursery members have no radio page of their own, so they use this panel only.
+  const showFullRadioLink = canAccessMainApp(user);
 
   const channel = activeChannel;
   const channelName = channel?.name || '';
@@ -155,12 +160,14 @@ export default function RadioPTT() {
         </span>
       </div>
 
-      <Link
-        to="/WalkieTalkie"
-        className="mt-2 block text-center text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-[#d4a843]"
-      >
-        Full radio &amp; volume
-      </Link>
+      {showFullRadioLink && (
+        <Link
+          to="/WalkieTalkie"
+          className="mt-2 block text-center text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-[#d4a843]"
+        >
+          Full radio &amp; volume
+        </Link>
+      )}
     </div>
   );
 }

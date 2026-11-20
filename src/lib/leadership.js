@@ -24,10 +24,14 @@ const NURSERY_ONLY_EMAILS = [
   "ramirezmarisol839@gmail.com",
 ];
 
+export function isNurseryOnly(user) {
+  if (!user) return false;
+  return NURSERY_ONLY_EMAILS.includes((user.email || "").toLowerCase());
+}
+
 export function canAccessMainApp(user) {
   if (!user) return false;
-  if (NURSERY_ONLY_EMAILS.includes((user.email || "").toLowerCase())) return false;
-  return true;
+  return !isNurseryOnly(user);
 }
 
 export function canAccessNursery(user) {

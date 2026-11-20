@@ -5,7 +5,6 @@ import useTalkSession, { TALK_STATUS } from '@/hooks/useTalkSession';
 import useBluetoothPtt from '@/hooks/useBluetoothPtt';
 import useRadioStandby from '@/hooks/useRadioStandby';
 import useCheckInStatus from '@/hooks/useCheckInStatus';
-import { canAccessMainApp } from '@/lib/leadership';
 
 const RadioSessionContext = createContext(null);
 
@@ -47,13 +46,12 @@ export function RadioSessionProvider({ children }) {
   const [channels, setChannels] = useState([]);
   const [channelId, setChannelId] = useState(readSavedChannel);
 
-  // Nursery-only members never use the radio.
-  const blocked = !!user && !canAccessMainApp(user);
-
   // The radio is only live while the member is checked in on site.
+  // Nursery members share the main team channel with security, so every
+  // signed-in member is on the radio.
   const { checkedIn } = useCheckInStatus(user?.email);
-  const checkInRequired = !!user && !blocked && !checkedIn;
-  const radioAllowed = !!user && !blocked && checkedIn;
+  const checkInRequired = !!user && !checkedIn;
+  const radioAllowed = !!user && checkedIn;
 
   const loadChannels = useCallback(async () => {
     try {
@@ -76,13 +74,13 @@ export function RadioSessionProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    if (blocked) {
+    if (!user) {
       setChannels([]);
       setChannelId(null);
       return;
     }
     loadChannels();
-  }, [blocked, loadChannels]);
+  }, [user, loadChannels]);
 
   const session = useTalkSession(radioAllowed ? channelId : null, { audiencePersistent: true });
 
