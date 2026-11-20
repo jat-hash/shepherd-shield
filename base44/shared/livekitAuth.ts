@@ -35,3 +35,17 @@ export async function mintLivekitToken(
 export function livekitHttpOrigin(url: string): string {
   return url.replace(/^ws/, 'http').replace(/\/$/, '');
 }
+
+/**
+ * The app was migrated to a new LiveKit project, but the stored LIVEKIT_URL
+ * still holds the retired project's address, which no current key can reach.
+ * Both radio functions resolve the server address here so they always agree.
+ */
+const RETIRED_LIVEKIT_URL = 'wss://shepard-sheild-j5eps61y.livekit.cloud';
+const CURRENT_LIVEKIT_URL = 'wss://shepard-shield-2-7m7j5buu.livekit.cloud';
+
+export function resolveLivekitUrl(storedUrl?: string | null): string {
+  const url = (storedUrl || '').trim();
+  if (!url || url === RETIRED_LIVEKIT_URL) return CURRENT_LIVEKIT_URL;
+  return url;
+}

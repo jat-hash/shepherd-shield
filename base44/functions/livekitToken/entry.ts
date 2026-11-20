@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import { isAuthorizedForChannel } from '../../shared/talkAccess.ts';
-import { mintLivekitToken, livekitHttpOrigin } from '../../shared/livekitAuth.ts';
+import { mintLivekitToken, livekitHttpOrigin, resolveLivekitUrl } from '../../shared/livekitAuth.ts';
 
 /**
  * Mints a short-lived LiveKit join token for one talk channel.
@@ -36,13 +36,7 @@ export default async function (req: Request): Promise<Response> {
       .slice(0, 24);
     const identity = deviceId ? `${user.email}#${deviceId}` : user.email;
 
-    // The app was migrated to a new LiveKit project. The stored LIVEKIT_URL
-    // still holds the retired project's address, which no key can join, so that
-    // address is replaced with the current project's one here.
-    const RETIRED_URL = 'wss://shepard-sheild-j5eps61y.livekit.cloud';
-    const CURRENT_URL = 'wss://shepard-shield-2-7m7j5buu.livekit.cloud';
-    const storedUrl = Deno.env.get('LIVEKIT_URL') || '';
-    const url = !storedUrl || storedUrl === RETIRED_URL ? CURRENT_URL : storedUrl;
+    const url = resolveLivekitUrl(Deno.env.get('LIVEKIT_URL'));
     const apiKey = Deno.env.get('LIVEKIT_API_KEY');
     const apiSecret = Deno.env.get('LIVEKIT_API_SECRET');
     if (!url || !apiKey || !apiSecret) {

@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
-import { mintLivekitToken, livekitHttpOrigin } from '../../shared/livekitAuth.ts';
+import { mintLivekitToken, livekitHttpOrigin, resolveLivekitUrl } from '../../shared/livekitAuth.ts';
 
 /**
  * Authoritative "who is on the radio right now" lookup.
@@ -29,7 +29,7 @@ export default async function (req: Request): Promise<Response> {
       return Response.json(cache.payload);
     }
 
-    const url = Deno.env.get('LIVEKIT_URL');
+    const url = resolveLivekitUrl(Deno.env.get('LIVEKIT_URL'));
     const apiKey = Deno.env.get('LIVEKIT_API_KEY');
     const apiSecret = Deno.env.get('LIVEKIT_API_SECRET');
     if (!url || !apiKey || !apiSecret) {
