@@ -35,7 +35,6 @@ export default async function (req: Request): Promise<Response> {
       (candidate) =>
         candidate?.email &&
         candidate.email !== user.email &&
-        String(candidate.role || 'user') !== 'nursery' &&
         (!emergencyChannel || isAuthorizedForChannel(candidate, emergencyChannel))
     );
 

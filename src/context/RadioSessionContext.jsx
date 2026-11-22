@@ -28,6 +28,16 @@ const saveChannel = (id) => {
   }
 };
 
+// Mirrors the server rule: empty allow-lists mean the channel is open to every
+// signed-in member.
+function canJoinChannel(channel, user) {
+  const roles = (channel?.allowed_roles || []).map((role) => String(role).trim().toLowerCase());
+  const emails = (channel?.allowed_emails || []).map((email) => String(email).trim().toLowerCase());
+  const roleOk = roles.length === 0 || roles.includes(String(user?.role || '').toLowerCase());
+  const emailOk = emails.length === 0 || emails.includes(String(user?.email || '').toLowerCase());
+  return roleOk && emailOk;
+}
+
 // The channel every member lands on when the app opens: Main Team when it
 // exists, otherwise the first ordinary channel in the configured order.
 function pickMainChannel(channels) {
@@ -50,8 +60,11 @@ export function RadioSessionProvider({ children }) {
   // Nursery members share the main team channel with security, so every
   // signed-in member is on the radio.
   const { checkedIn } = useCheckInStatus(user?.email);
-  const checkInRequired = !!user && !checkedIn;
-  const radioAllowed = !!user && checkedIn;
+  // Nursery staff are on duty in the nursery, not on a security post, so the
+  // security check-in does not gate their radio.
+  const nurseryStaff = String(user?.role || '').trim().toLowerCase() === 'nursery';
+  const checkInRequired = !!user && !checkedIn && !nurseryStaff;
+  const radioAllowed = !!user && (checkedIn || nurseryStaff);
 
   const loadChannels = useCallback(async () => {
     try {
@@ -60,18 +73,21 @@ export function RadioSessionProvider({ children }) {
         { sort: 'order', limit: 50 }
       );
       const items = result?.items || (Array.isArray(result) ? result : []);
-      setChannels(items);
-      if (!items.length) return;
+      // A member is only shown the channels they are allowed on, so nobody is
+      // parked on a channel they cannot join.
+      const allowed = items.filter((channel) => canJoinChannel(channel, user));
+      setChannels(allowed);
+      if (!allowed.length) return;
       setChannelId((current) => {
-        if (current && items.some((channel) => channel.id === current)) return current;
-        const fallback = pickMainChannel(items).id;
+        if (current && allowed.some((channel) => channel.id === current)) return current;
+        const fallback = pickMainChannel(allowed).id;
         saveChannel(fallback);
         return fallback;
       });
     } catch (_) {
       setChannels([]);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (!user) {
