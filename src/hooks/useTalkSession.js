@@ -735,7 +735,12 @@ export default function useTalkSession(channelId, options = {}) {
           setError(data.error || 'The radio could not prepare this channel.');
           setTransport(TALK_TRANSPORT.NONE);
           setStatus(TALK_STATUS.DISCONNECTED);
-          if (!configBlockedRef.current) scheduleRebuild();
+          // An out-of-minutes project refuses every join, so retrying every few
+          // seconds only hammers it; a minute between attempts is enough to pick
+          // the channel back up once minutes are added.
+          if (!configBlockedRef.current) {
+            scheduleRebuild(data.code === 'quota_exceeded' || data.code === 'rate_limited' ? 60000 : 5000);
+          }
           return false;
         }
 
@@ -786,6 +791,10 @@ export default function useTalkSession(channelId, options = {}) {
           configBlockedRef.current = true;
           if (payload.code === 'not_configured') setSetupRequired(true);
           setError(payload.error || null);
+        } else if (payload.code === 'quota_exceeded' || payload.code === 'rate_limited') {
+          // Out of connection minutes (or the project is throttled): the server's
+          // own wording is the useful one, so it goes on screen as-is.
+          setError(payload.error || 'The radio server is refusing connections right now. Retrying shortly.');
         } else if (connectError?.status === 401 || connectError?.response?.status === 401) {
           setError('Please sign in again to use the radio.');
         } else {

@@ -94,6 +94,23 @@ export default async function (req: Request): Promise<Response> {
     const verification = await fetch(check, { signal: AbortSignal.timeout(8000) }).catch(
       () => null
     );
+    // The project's connection minutes are used up: the server refuses every
+    // join with 429 and says why. That is a billing state, not a network fault,
+    // so the panel has to say it out loud instead of "not joined".
+    if (verification && verification.status === 429) {
+      const reason = await verification.text().catch(() => '');
+      const minutesOut = /connection minutes/i.test(reason);
+      return Response.json(
+        {
+          error: minutesOut
+            ? 'The radio server is out of connection minutes, so nobody can join the channel. Add minutes or upgrade the LiveKit project and the radio comes back on its own.'
+            : 'The radio server is refusing joins right now. The radio keeps retrying by itself.',
+          code: minutesOut ? 'quota_exceeded' : 'rate_limited',
+        },
+        { status: 503 }
+      );
+    }
+
     if (verification && (verification.status === 401 || verification.status === 403)) {
       console.error('LiveKit rejected the app key pair:', verification.status);
       return Response.json(
