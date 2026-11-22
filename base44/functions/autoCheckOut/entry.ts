@@ -117,17 +117,17 @@ Deno.serve(async (req) => {
       // Pre-service "Check In Now" / "You Haven't Checked In" reminders removed
       // — all automated service-start/end notifications are now off.
 
-      // Auto check-out 30 min after service end (no distance/GPS limit)
+      // Auto check-out 15 min after service end (no distance/GPS limit)
       if (assignment.checked_in && !assignment.checked_out) {
         let shouldCheckOut = false;
         let reason = '';
 
-        // Time-based fallback: 30 minutes after service end, auto-checkout.
+        // Time-based fallback: 15 minutes after service end, auto-checkout.
         // Ensures assignments don't stay open if a member forgot to check out.
-        const thirtyMinAfterEnd = new Date(endDateTime.getTime() + 30 * 60 * 1000);
-        if (now >= thirtyMinAfterEnd) {
+        const fifteenMinAfterEnd = new Date(endDateTime.getTime() + 15 * 60 * 1000);
+        if (now >= fifteenMinAfterEnd) {
           shouldCheckOut = true;
-          reason = `30 min after service end (auto time checkout)`;
+          reason = `15 min after service end (auto time checkout)`;
         }
 
         if (shouldCheckOut) {
@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── 2. Every member checked out 30 min after the service time ──────────────
+    // ── 2. Every member checked out 15 min after the service time ──────────────
     // The radio only stays live while a member holds an open check-in, so a
     // check-in left open after the service keeps that member joined to the
     // channel (and burning radio minutes) until someone closes it. This pass
@@ -207,17 +207,17 @@ Deno.serve(async (req) => {
 
       const checkedInAt = new Date(checkIn.check_in_time).getTime();
       // The first service end after this member arrived is the service they
-      // came for; 30 minutes past it they are off duty.
+      // came for; 15 minutes past it they are off duty.
       const serviceEnd = sortedEnds.find((end) => end.getTime() > checkedInAt);
       if (!serviceEnd) continue;
-      if (now.getTime() < serviceEnd.getTime() + 30 * 60 * 1000) continue;
+      if (now.getTime() < serviceEnd.getTime() + 15 * 60 * 1000) continue;
 
       await base44.asServiceRole.entities.PersonalCheckIn.update(checkIn.id, {
         check_out_time: now.toISOString(),
       });
       autoCheckedOut++;
       console.log(
-        `Auto checkout 30 min after service end: ${checkIn.user_name || checkIn.user_email}`
+        `Auto checkout 15 min after service end: ${checkIn.user_name || checkIn.user_email}`
       );
     }
 
