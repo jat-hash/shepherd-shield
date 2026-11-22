@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import { isAuthorizedForChannel } from '../../shared/talkAccess.ts';
 import { mintLivekitToken, livekitHttpOrigin, resolveLivekitUrl } from '../../shared/livekitAuth.ts';
+import { hasOpenCheckIn } from '../../shared/activeCheckIns.ts';
 
 /**
  * Mints a short-lived LiveKit join token for one talk channel.
@@ -55,6 +56,18 @@ export default async function (req: Request): Promise<Response> {
     }
     if (!isAuthorizedForChannel(user, channel)) {
       return Response.json({ error: 'You are not assigned to this channel' }, { status: 403 });
+    }
+    // Only a member who is active on site (checked in today) is joined to a
+    // channel. The app already withholds the radio, and this keeps a stale
+    // device from joining with an old token.
+    if (!(await hasOpenCheckIn(base44, user.email))) {
+      return Response.json(
+        {
+          error: 'Check in on the dashboard before joining the radio.',
+          code: 'not_checked_in',
+        },
+        { status: 403 }
+      );
     }
 
     const isEmergency = channel.channel_type === 'Emergency';

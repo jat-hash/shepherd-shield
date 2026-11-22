@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import { isAuthorizedForChannel } from '../../shared/talkAccess.ts';
+import { openCheckInEmails } from '../../shared/activeCheckIns.ts';
 
 /**
  * Alerts channel members who are not currently listening, so someone whose app
@@ -34,11 +35,15 @@ export default async function (req) {
     const standbyPage = await base44.asServiceRole.entities.RadioStandby
       .filter({ channel_id: channelId }, { sort: '-last_seen', limit: 200 })
       .catch(() => null);
+    // Only members who are still checked in are on a channel — anyone who has
+    // checked out is off duty and must not be alerted for the channel.
+    const active = await openCheckInEmails(base44).catch(() => null);
     const standby = new Set(
       (standbyPage?.items || [])
         .filter((record) => new Date(record.last_seen).getTime() >= standbyCutoff)
         .map((record) => String(record.user_email || '').toLowerCase())
         .filter(Boolean)
+        .filter((email) => !active || active.has(email))
     );
 
     const users = await base44.asServiceRole.entities.User.list();
@@ -46,7 +51,8 @@ export default async function (req) {
       .filter((candidate) => candidate?.email)
       .filter((candidate) => !listening.has(String(candidate.email).toLowerCase()))
       .filter((candidate) => isAuthorizedForChannel(candidate, channel))
-      .map((candidate) => String(candidate.email).toLowerCase());
+      .map((candidate) => String(candidate.email).toLowerCase())
+      .filter((email) => !active || active.has(email));
 
     // Alert exactly the members standing by on this channel: everyone else has
     // either closed the app on another channel or never joined the radio.

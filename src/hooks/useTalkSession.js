@@ -791,6 +791,8 @@ export default function useTalkSession(channelId, options = {}) {
           configBlockedRef.current = true;
           if (payload.code === 'not_configured') setSetupRequired(true);
           setError(payload.error || null);
+        } else if (payload.code === 'not_checked_in') {
+          setError(payload.error || 'Check in on the dashboard before joining the radio.');
         } else if (payload.code === 'quota_exceeded' || payload.code === 'rate_limited') {
           // Out of connection minutes (or the project is throttled): the server's
           // own wording is the useful one, so it goes on screen as-is.
