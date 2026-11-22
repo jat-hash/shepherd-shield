@@ -161,6 +161,66 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── 2. Every member checked out 45 min after the service time ──────────────
+    // The radio only stays live while a member holds an open check-in, so a
+    // check-in left open after the service keeps that member joined to the
+    // channel (and burning radio minutes) until someone closes it. This pass
+    // closes it for everyone, including members with no assignment that day.
+    const serviceEnds = new Set<string>();
+
+    // Standard weekly service end times, so this works even on a day whose
+    // assignments were never entered in the scheduler.
+    const weekday = new Date(
+      now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })
+    ).getDay();
+    const WEEKLY_SERVICE_ENDS: Record<number, string[]> = {
+      0: ['11:45', '15:00', '19:45'], // Sunday AM, Spanish, Sunday PM
+      2: ['20:15'], // Tuesday Bible Study
+      3: ['21:00'], // Wednesday Spanish Bible Study
+      4: ['20:45'], // Thursday Services
+    };
+    (WEEKLY_SERVICE_ENDS[weekday] || []).forEach((time) => serviceEnds.add(time));
+    // Plus the end time of every service actually scheduled today.
+    todayAssignments.forEach((assignment: any) => {
+      if (assignment.end_time) serviceEnds.add(assignment.end_time);
+    });
+
+    const sortedEnds = Array.from(serviceEnds)
+      .map((time) => parseServiceTime(today, time))
+      .sort((a, b) => a.getTime() - b.getTime());
+
+    // Members still inside an open assignment are handled by the pass above.
+    const openAssignmentEmails = new Set(
+      todayAssignments
+        .filter((a: any) => a.checked_in && !a.checked_out && a.assigned_to_email)
+        .map((a: any) => a.assigned_to_email)
+    );
+
+    const openCheckIns = await base44.asServiceRole.entities.PersonalCheckIn.filter({
+      check_in_date: today,
+    });
+
+    for (const checkIn of openCheckIns) {
+      if (checkIn.check_out_time) continue;
+      if (openAssignmentEmails.has(checkIn.user_email)) continue;
+      if (!checkIn.check_in_time) continue;
+
+      const checkedInAt = new Date(checkIn.check_in_time).getTime();
+      // The first service end after this member arrived is the service they
+      // came for; 45 minutes past it they are off duty.
+      const serviceEnd = sortedEnds.find((end) => end.getTime() > checkedInAt);
+      if (!serviceEnd) continue;
+      if (now.getTime() < serviceEnd.getTime() + 45 * 60 * 1000) continue;
+
+      await base44.asServiceRole.entities.PersonalCheckIn.update(checkIn.id, {
+        check_out_time: now.toISOString(),
+      });
+      autoCheckedOut++;
+      console.log(
+        `Auto checkout 45 min after service end: ${checkIn.user_name || checkIn.user_email}`
+      );
+    }
+
     // Equipment-return service-end alert removed — automated service-end
     // notifications are off; only manual Altar Call / Church Out send them.
 
