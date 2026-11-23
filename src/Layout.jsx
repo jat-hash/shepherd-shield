@@ -74,6 +74,10 @@ export default function Layout({ children, currentPageName }) {
   const user = authUser || fallbackUser;
   const isNurseryOnly = !!user && !canAccessMainApp(user);
   const onNurseryPage = location.pathname === '/NurseryDashboard' || location.pathname === '/NurseryMonitor';
+  // Nursery staff share the main team radio channel, so the radio page stays
+  // open to them even though the rest of the main app does not.
+  const onRadioPage = location.pathname === '/WalkieTalkie';
+  const nurseryAllowedPage = onNurseryPage || onRadioPage;
 
   const isRootPage = ROOT_PAGES.includes(currentPageName) || (isNurseryOnly && onNurseryPage);
   const pageTitle = PAGE_TITLES[currentPageName] || currentPageName;
@@ -83,8 +87,7 @@ export default function Layout({ children, currentPageName }) {
   // Nursery-only users are redirected to the Nursery dashboard from any main app page.
   useEffect(() => {
     if (!user) return;
-    const onNurseryPage = location.pathname === '/NurseryDashboard' || location.pathname === '/NurseryMonitor';
-    if (!canAccessMainApp(user) && !onNurseryPage) {
+    if (!canAccessMainApp(user) && !nurseryAllowedPage) {
       navigate('/NurseryDashboard', { replace: true });
     }
     if (!canAccessNursery(user) && onNurseryPage) {
@@ -489,7 +492,7 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Main Content */}
       <main className={`flex-1 overflow-x-hidden ${isNurseryOnly ? 'pb-6' : 'pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-6 lg:ml-56'}`}>
-        {isNurseryOnly && !onNurseryPage ? (
+        {isNurseryOnly && !nurseryAllowedPage ? (
           <div className="flex items-center justify-center min-h-[60vh] text-slate-400 text-sm">Loading…</div>
         ) : children}
       </main>
