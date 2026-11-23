@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import {
   Baby, LogIn, LogOut, Bell, CheckCircle, Clock,
-  AlertCircle, RefreshCw, Users, MessageSquare, ShieldAlert, BookUser, Radio
+  AlertCircle, RefreshCw, Users, MessageSquare, ShieldAlert, BookUser
 } from "lucide-react";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import ChildCheckInForm from "@/components/nursery/ChildCheckInForm";
@@ -28,7 +28,6 @@ const TABS = [
   { id: "requests", label: "Requests", icon: Bell },
   { id: "directory", label: "Directory", icon: BookUser },
   { id: "chat", label: "Chat", icon: MessageSquare },
-  { id: "radio", label: "Radio", icon: Radio },
   { id: "alerts", label: "Alerts", icon: ShieldAlert },
 ];
 
@@ -171,6 +170,9 @@ export default function NurseryDashboard() {
             {staffCheckedIn ? "Check Out" : "Check In"}
           </button>
         </div>
+
+        {/* Team Radio — front and centre so nursery staff can talk to security */}
+        <RadioPTT />
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
@@ -355,13 +357,6 @@ export default function NurseryDashboard() {
           {/* CHAT TAB */}
           {activeTab === "chat" && (
             <NurseryChat user={user} />
-          )}
-
-          {/* RADIO TAB */}
-          {activeTab === "radio" && (
-            <div className="space-y-3">
-              <RadioPTT />
-            </div>
           )}
 
           {/* ALERTS TAB */}
