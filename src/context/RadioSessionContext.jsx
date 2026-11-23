@@ -106,6 +106,8 @@ export function RadioSessionProvider({ children }) {
       return;
     }
     loadChannels();
+    window.addEventListener('app:refresh', loadChannels);
+    return () => window.removeEventListener('app:refresh', loadChannels);
   }, [user, loadChannels]);
 
   const session = useTalkSession(radioAllowed ? channelId : null, { audiencePersistent: true });

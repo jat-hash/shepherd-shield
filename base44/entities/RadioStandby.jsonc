@@ -43,6 +43,11 @@
           "user_condition": {
             "role": "user"
           }
+        },
+        {
+          "user_condition": {
+            "role": "nursery"
+          }
         }
       ]
     },
@@ -56,6 +61,11 @@
         {
           "user_condition": {
             "role": "user"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "nursery"
           }
         }
       ]
