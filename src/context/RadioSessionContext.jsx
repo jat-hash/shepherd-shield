@@ -76,18 +76,28 @@ export function RadioSessionProvider({ children }) {
       // A member is only shown the channels they are allowed on, so nobody is
       // parked on a channel they cannot join.
       const allowed = items.filter((channel) => canJoinChannel(channel, user));
-      setChannels(allowed);
-      if (!allowed.length) return;
+      // Nursery staff work on the main team channel with security. They keep the
+      // Emergency channel alongside it so an alert can still pull them across.
+      const visible = nurseryStaff
+        ? allowed.filter(
+            (channel) =>
+              channel.id === pickMainChannel(allowed).id || channel.channel_type === 'Emergency'
+          )
+        : allowed;
+      setChannels(visible);
+      if (!visible.length) return;
       setChannelId((current) => {
-        if (current && allowed.some((channel) => channel.id === current)) return current;
-        const fallback = pickMainChannel(allowed).id;
+        if (!nurseryStaff && current && visible.some((channel) => channel.id === current)) {
+          return current;
+        }
+        const fallback = pickMainChannel(visible).id;
         saveChannel(fallback);
         return fallback;
       });
     } catch (_) {
       setChannels([]);
     }
-  }, [user]);
+  }, [user, nurseryStaff]);
 
   useEffect(() => {
     if (!user) {
