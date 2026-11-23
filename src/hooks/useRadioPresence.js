@@ -3,9 +3,9 @@ import { base44 } from '@/api/base44Client';
 
 /**
  * Live radio presence for every talk channel, refreshed on an interval so the
- * member list reflects who is really connected (including yourself). A member
- * whose app is closed is not on the channel at all — they only appear once
- * their device is active and joined again.
+ * member list reflects who is really connected (including yourself). Recently
+ * connected members whose app is closed appear as standby on their last channel,
+ * not as active listeners.
  */
 export default function useRadioPresence(intervalMs = 15000) {
   const [presence, setPresence] = useState([]);

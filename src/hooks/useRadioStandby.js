@@ -53,11 +53,13 @@ export default function useRadioStandby({ user, channelId, channelName, connecte
       if (document.visibilityState === 'visible') beat().catch(() => {});
     };
     document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('app:refresh', beat);
 
     return () => {
       cancelled = true;
       clearInterval(id);
       document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('app:refresh', beat);
     };
   }, [user?.email, user?.full_name, channelId, channelName, connected]);
 }

@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import { mintLivekitToken, livekitHttpOrigin, resolveLivekitUrl } from '../../shared/livekitAuth.ts';
+import { openCheckInEmails } from '../../shared/activeCheckIns.ts';
 
 /**
  * Authoritative "who is on the radio right now" lookup.
@@ -70,7 +71,14 @@ export default async function (req: Request): Promise<Response> {
       (room: any) => typeof room?.name === 'string' && room.name.startsWith('shepherd-')
     );
 
-    const channels = await base44.asServiceRole.entities.TalkChannel.list();
+    const [channels, standbyPage, activeEmails] = await Promise.all([
+      base44.asServiceRole.entities.TalkChannel.list(),
+      base44.asServiceRole.entities.RadioStandby.filter(
+        { last_seen: { $gte: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString() } },
+        { sort: '-last_seen', limit: 200 }
+      ),
+      openCheckInEmails(base44),
+    ]);
     const byId = new Map<string, any>((channels || []).map((channel: any) => [channel.id, channel]));
 
     const presence: any[] = [];
@@ -105,6 +113,25 @@ export default async function (req: Request): Promise<Response> {
           channel_name: channel?.name || null,
         });
       }
+    }
+
+    // Saved presence is standby, never a live connection. A live session on any
+    // channel takes precedence, and checked-out security members stay off duty.
+    const seenEmails = new Set(presence.map((entry) => entry.email));
+    for (const record of standbyPage?.items || []) {
+      const email = String(record.user_email || '').trim().toLowerCase();
+      const channel = byId.get(record.channel_id);
+      if (!email || seenEmails.has(email) || !activeEmails.has(email) || !channel || channel.is_active === false) {
+        continue;
+      }
+      presence.push({
+        email,
+        name: record.user_name || email,
+        channel_id: channel.id,
+        channel_name: channel.name,
+        standby: true,
+      });
+      seenEmails.add(email);
     }
 
     const payload = { presence, configured: true };
