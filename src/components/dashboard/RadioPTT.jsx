@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mic, Radio, Volume2 } from 'lucide-react';
+import { Mic, Radio, Smartphone, Volume2 } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { TALK_STATUS } from '@/hooks/useTalkSession';
 import { useRadioSession } from '@/context/RadioSessionContext';
@@ -80,11 +80,21 @@ export default function RadioPTT() {
           <Radio className="h-4 w-4 text-[#d4a843]" />
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#d4a843]">Team Radio</p>
         </div>
-        {channelName && (
-          <span className="rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-slate-300">
-            {channelName}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {channelName && (
+            <span className="rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-slate-300">
+              {channelName}
+            </span>
+          )}
+          <Link
+            to="/Radio"
+            className="rounded-full border border-white/15 bg-white/5 p-1.5 text-slate-400 transition-colors hover:border-[#d4a843] hover:text-[#d4a843]"
+            title="Home-screen radio"
+            aria-label="Home-screen radio"
+          >
+            <Smartphone className="h-3.5 w-3.5" />
+          </Link>
+        </div>
       </div>
 
       {channels.length > 1 && (
