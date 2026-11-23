@@ -145,16 +145,36 @@ const readBoost = () => {
 const openMicrophone = async (room, boost, deviceId) => {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: micCleanup(deviceId) });
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
-  if (!AudioCtx) throw new Error('Audio processing is unavailable');
-  const ctx = new AudioCtx();
-  try {
-    await ctx.resume();
-  } catch (_) {
-    /* the next tap resumes it */
+  let ctx = null;
+  let gainNode = null;
+  // The device's own microphone is the default, so it is always published.
+  let track = stream.getAudioTracks()[0];
+
+  if (AudioCtx) {
+    const context = new AudioCtx();
+    try {
+      await context.resume();
+    } catch (_) {
+      /* the next tap resumes it */
+    }
+    // The tap that opened the microphone is often spent by the permission
+    // prompt, which leaves the audio context suspended — and a suspended
+    // context publishes pure silence, so the team hears nothing at all. In that
+    // case the raw microphone goes out instead: audible, just without the extra
+    // level and clarity processing.
+    if (context.state === 'running') {
+      const destination = context.createMediaStreamDestination();
+      gainNode = buildVoiceChain(context, context.createMediaStreamSource(stream), boost, destination);
+      track = destination.stream.getAudioTracks()[0];
+      ctx = context;
+    } else {
+      try {
+        await context.close();
+      } catch (_) {
+        /* already closed */
+      }
+    }
   }
-  const destination = ctx.createMediaStreamDestination();
-  const gainNode = buildVoiceChain(ctx, ctx.createMediaStreamSource(stream), boost, destination);
-  const track = destination.stream.getAudioTracks()[0];
 
   // Anything still published as the microphone would be a second, unboosted
   // voice on the channel.
@@ -221,9 +241,11 @@ const closeMicrophone = async (room, mic) => {
       item.stop();
     } catch (_) {}
   });
-  try {
-    await mic.ctx.close();
-  } catch (_) {}
+  if (mic.ctx) {
+    try {
+      await mic.ctx.close();
+    } catch (_) {}
+  }
 };
 
 // Who hears this device's transmissions: an empty list is the whole channel,
