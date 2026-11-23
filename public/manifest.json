@@ -9,6 +9,14 @@
   "background_color": "#0a1128",
   "theme_color": "#0a1128",
   "categories": ["productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Team Radio",
+      "short_name": "Radio",
+      "description": "Open the team radio and talk",
+      "url": "/Radio"
+    }
+  ],
   "icons": [
     {
       "src": "https://media.base44.com/images/public/699778b133b0b54bbf2b985e/3cfb4be4f_generated_image.png",

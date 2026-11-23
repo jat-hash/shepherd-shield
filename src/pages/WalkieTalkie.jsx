@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Mic, Settings2, Siren, Volume2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Mic, Settings2, Siren, Smartphone, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { TALK_STATUS, TALK_TRANSPORT } from '@/hooks/useTalkSession';
 import { useRadioSession } from '@/context/RadioSessionContext';
@@ -128,6 +129,14 @@ export default function WalkieTalkie() {
             <h1 className="text-xl font-bold">{activeChannel?.name || 'Select a channel'}</h1>
           </div>
           <div className="flex items-center gap-2">
+            <Link
+              to="/Radio"
+              className="rounded-full border border-white/15 bg-white/5 p-2 text-slate-300 transition-colors hover:border-[#d4a843] hover:text-[#d4a843]"
+              title="Home-screen radio"
+              aria-label="Home-screen radio"
+            >
+              <Smartphone className="h-4 w-4" />
+            </Link>
             <ConnectionStatusPill status={session.status} />
             {session.transport !== TALK_TRANSPORT.NONE && (
               <span

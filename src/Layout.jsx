@@ -76,7 +76,7 @@ export default function Layout({ children, currentPageName }) {
   const onNurseryPage = location.pathname === '/NurseryDashboard' || location.pathname === '/NurseryMonitor';
   // Nursery staff share the main team radio channel, so the radio page stays
   // open to them even though the rest of the main app does not.
-  const onRadioPage = location.pathname === '/WalkieTalkie';
+  const onRadioPage = location.pathname === '/WalkieTalkie' || location.pathname === '/Radio';
   const nurseryAllowedPage = onNurseryPage || onRadioPage;
 
   const isRootPage = ROOT_PAGES.includes(currentPageName) || (isNurseryOnly && onNurseryPage);
@@ -211,6 +211,26 @@ export default function Layout({ children, currentPageName }) {
 
   // All authenticated users get the full app layout.
   const canSeeNursery = canAccessNursery(user);
+
+  // The home-screen radio shows the radio alone — no header, sidebar or tabs —
+  // while the alert systems keep running over it.
+  if (currentPageName === 'Radio') {
+    return (
+      <>
+        <AlertNotificationSystem onUnreadCountChange={setAlertUnreadCount} />
+        <RadioCheckInNotice />
+        <div className="min-h-screen bg-[#0a1128] text-white">{children}</div>
+        <NotificationToast userEmail={user?.email} />
+        <EmergencyOverlay
+          alert={overlayAlert}
+          onDismiss={() => {
+            if (overlayAlert) acknowledgedIdsRef.current.add(overlayAlert.id);
+            setOverlayAlert(null);
+          }}
+        />
+      </>
+    );
+  }
 
 
   return (
